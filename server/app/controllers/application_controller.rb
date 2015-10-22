@@ -1,21 +1,23 @@
 class ApplicationController < ActionController::API
   include ActionController::Serialization
+  include ActionController::ImplicitRender
   
   rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
-  # rescue_from User::NotAuthorized, with: :user_not_authorized
-  # rescue_from User::Forbidden, with: :user_forbidden
+
+  # before_action :authenticate_user
+
+  def none
+    render plain: "", status: :ok
+  end
  
   private
- 
-    def record_not_found
-      render json: Hash.new, status: :not_found
-    end
+  def authenticate_user
+    # render json: Hash.new, status: 401 unless user_signed_in?
+    render json: {error:{code: :unauthorized, message: "Please sign in"}}, status: :unauthorized unless user_signed_in?
+  end
 
-    # def user_not_authorized
-    #   render json: Hash.new, status: 401
-    # end
+  def record_not_found
+    render json: {error: {code: :not_found, message: "No such item found"}}, status: :not_found
+  end
 
-    # def user_forbidden
-    #   render json: Hash.new, status: 403
-    # end
 end
