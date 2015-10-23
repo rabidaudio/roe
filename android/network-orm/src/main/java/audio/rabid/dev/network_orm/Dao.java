@@ -4,12 +4,14 @@ import android.os.AsyncTask;
 
 import com.j256.ormlite.dao.RuntimeExceptionDao;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.List;
 
 /**
  * Created by charles on 10/23/15.
  */
-public class Dao<T> extends RuntimeExceptionDao<T, Integer> {
+public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
 
     public Dao(com.j256.ormlite.dao.Dao<T, Integer> dao) {
         super(dao);
@@ -56,7 +58,7 @@ public class Dao<T> extends RuntimeExceptionDao<T, Integer> {
         }).execute();
     }
 
-    public void save(final T object, SingleQueryCallback<T> callback){
+    public void save(final T object, @Nullable SingleQueryCallback<T> callback){
         (new SingleItemQuery<T>(callback){
             @Override
             protected T doInBackground(Void... params) {
@@ -66,7 +68,7 @@ public class Dao<T> extends RuntimeExceptionDao<T, Integer> {
         }).execute();
     }
 
-    public void delete(final T object, SingleQueryCallback<T> callback){
+    public void delete(final T object, @Nullable SingleQueryCallback<T> callback){
         (new SingleItemQuery<T>(callback){
             @Override
             protected T doInBackground(Void... params) {
@@ -78,10 +80,10 @@ public class Dao<T> extends RuntimeExceptionDao<T, Integer> {
 
     /***************************************************************/
 
-    private static abstract class SingleItemQuery<Q> extends AsyncTask<Void, Void, Q> {
+    private static abstract class SingleItemQuery<Q extends Resource> extends AsyncTask<Void, Void, Q> {
 
         private SingleQueryCallback<Q> callback;
-        public SingleItemQuery(SingleQueryCallback<Q> callback){
+        public SingleItemQuery(@Nullable SingleQueryCallback<Q> callback){
             this.callback = callback;
         }
 
@@ -95,10 +97,10 @@ public class Dao<T> extends RuntimeExceptionDao<T, Integer> {
         void onResult(Q result);
     }
 
-    private static abstract class MultipleItemQuery<Q> extends AsyncTask<Void, Void, List<Q>> {
+    private static abstract class MultipleItemQuery<Q extends Resource> extends AsyncTask<Void, Void, List<Q>> {
 
         private MultipleQueryCallback<Q> callback;
-        public MultipleItemQuery(MultipleQueryCallback<Q> callback){
+        public MultipleItemQuery(@Nullable MultipleQueryCallback<Q> callback){
             this.callback = callback;
         }
 
