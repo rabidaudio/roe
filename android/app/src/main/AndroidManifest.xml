@@ -21,9 +21,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".views.author.EditAuthorActivity" >
+        <activity android:name=".controllers.author.EditAuthorActivity" >
         </activity>
-        <activity android:name=".views.author.AuthorActivity" >
+        <activity android:name=".controllers.author.AuthorActivity" >
         </activity>
     </application>
 

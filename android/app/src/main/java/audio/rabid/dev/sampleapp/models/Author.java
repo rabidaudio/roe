@@ -19,8 +19,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import audio.rabid.dev.network_orm.Dao;
-import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.network_orm.Resource;
+import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.utils.ImageCache;
 
 /**

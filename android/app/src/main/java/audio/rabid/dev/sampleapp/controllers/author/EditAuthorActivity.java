@@ -1,20 +1,18 @@
-package audio.rabid.dev.sampleapp.views.author;
+package audio.rabid.dev.sampleapp.controllers.author;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
-import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import java.net.URL;
 
+import audio.rabid.dev.network_orm.Dao;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
-import audio.rabid.dev.network_orm.Dao;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;

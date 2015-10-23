@@ -1,4 +1,4 @@
-package audio.rabid.dev.sampleapp.views.author;
+package audio.rabid.dev.sampleapp.controllers.author;
 
 import android.content.Context;
 import android.content.DialogInterface;
@@ -17,9 +17,9 @@ import android.widget.TextView;
 
 import java.util.List;
 
+import audio.rabid.dev.network_orm.Dao;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
-import audio.rabid.dev.network_orm.Dao;
 import audio.rabid.dev.utils.EasyArrayAdapter;
 import butterknife.Bind;
 import butterknife.ButterKnife;
