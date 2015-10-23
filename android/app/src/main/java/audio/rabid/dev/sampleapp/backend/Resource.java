@@ -14,11 +14,11 @@ public abstract class Resource<T extends Resource> {
 
     public abstract Dao<T> getDao();
 
-    @DatabaseField(id=true)
+    @DatabaseField(generatedId = true)
     protected int id;
 
-    @DatabaseField(unique = true, index = true)
-    protected int serverId;
+    @DatabaseField(index = true)
+    protected int serverId = -1;
 
     @DatabaseField
     protected boolean synced = false;

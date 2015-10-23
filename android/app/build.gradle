@@ -25,7 +25,8 @@ dependencies {
     compile 'com.android.support:appcompat-v7:23.1.0'
     compile 'com.android.support:design:23.1.0'
 
+//    compile project(':networkorm')
+
     compile 'com.j256.ormlite:ormlite-android:4.48'
     compile 'com.jakewharton:butterknife:7.0.1'
-    compile 'com.jakewharton:disklrucache:2.0.2'
 }

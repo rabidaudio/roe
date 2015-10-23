@@ -38,6 +38,11 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
             }
         });
         refreshLayout.setOnRefreshListener(this);
+    }
+
+    @Override
+    protected void onResume(){
+        super.onResume();
         updateAuthors();
     }
 

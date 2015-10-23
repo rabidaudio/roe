@@ -15,10 +15,10 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import audio.rabid.dev.sampleapp.Application;
 import audio.rabid.dev.sampleapp.backend.Dao;
 import audio.rabid.dev.sampleapp.backend.Database;
 import audio.rabid.dev.sampleapp.backend.Resource;
+import audio.rabid.dev.utils.ImageCache;
 
 /**
  * Created by charles on 10/23/15.
@@ -86,7 +86,7 @@ public class Author extends Resource<Author> {
         (new AsyncTask<URL, Void, Bitmap>(){
             @Override
             protected Bitmap doInBackground(URL... params) {
-                Bitmap b = Application.ImageCache.get(avatar);
+                Bitmap b = ImageCache.getInstance().get(avatar);
                 if(b!=null){
                     return b;
                 }else {
@@ -101,7 +101,7 @@ public class Author extends Resource<Author> {
             @Override
             protected void onPostExecute(Bitmap bitmap){
                 avatarBitmap = bitmap;
-                Application.ImageCache.put(avatar, bitmap);
+                ImageCache.getInstance().put(avatar, bitmap);
                 callback.onResult(bitmap);
             }
         }).execute(url);
@@ -112,7 +112,7 @@ public class Author extends Resource<Author> {
             new URL(avatar);
             this.avatar = avatar;
             //clear saved images
-            Application.ImageCache.remove(avatar);
+            ImageCache.getInstance().remove(avatar);
             avatarBitmap = null;
         }catch (MalformedURLException e){
             //oops
