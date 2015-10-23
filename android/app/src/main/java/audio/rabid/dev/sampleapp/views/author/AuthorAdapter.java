@@ -41,49 +41,24 @@ public class AuthorAdapter extends EasyArrayAdapter<Author, AuthorAdapter.Author
                 viewHolder.avatar.setImageBitmap(result);
             }
         });
-
         parent.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                AuthorActivity.open(getContext(), author.getId());
+                callbacks.onClick(author);
             }
         });
-
         parent.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                new AlertDialog.Builder(getContext())
-                        .setItems(
-                                new String[]{"Open", "Edit", "Delete"},
-                                new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        switch (which){
-                                            case 0: //open
-                                                AuthorActivity.open(getContext(), author.getId());
-                                                break;
-                                            case 1: //edit
-                                                EditAuthorActivity.edit(getContext(), author.getId());
-                                                break;
-                                            case 2:
-                                                author.delete(new Dao.SingleQueryCallback<Author>() {
-                                                    @Override
-                                                    public void onResult(@Nullable Author result) {
-                                                        callbacks.onDelete(result);
-                                                    }
-                                                });
-                                        }
-                                    }
-                                }
-                        )
-                        .create().show();
+                callbacks.onLongClick(author);
                 return true;
             }
         });
     }
 
     public interface AuthorAdapterCallbacks {
-        void onDelete(Author author);
+        void onClick(Author author);
+        void onLongClick(Author author);
     }
 
     @Override

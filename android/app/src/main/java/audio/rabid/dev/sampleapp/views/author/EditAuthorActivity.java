@@ -17,19 +17,11 @@ import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.network_orm.Dao;
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 
-public class EditAuthorActivity extends AppCompatActivity implements View.OnClickListener {
+public class EditAuthorActivity extends AppCompatActivity {
 
     public static final String EXTRA_AUTHOR_ID = "EXTRA_AUTHOR_ID";
-
-    @Bind(R.id.name) EditText name;
-    @Bind(R.id.email) EditText email;
-    @Bind(R.id.avatar) EditText avatar;
-    @Bind(R.id.submit) Button submit;
-
-    @Bind(R.id.title) TextView title;
-
-    Author author;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,57 +30,21 @@ public class EditAuthorActivity extends AppCompatActivity implements View.OnClic
         ButterKnife.bind(this);
 
         int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
+
         if(authorId == -1){
-            author = new Author();
-            title.setText("Add Author");
+            new ViewHolder(new Author(), true);
         }else{
             Author.Dao.findByLocalId(authorId, new Dao.SingleQueryCallback<Author>() {
                 @Override
                 public void onResult(@Nullable Author result) {
                     if(result==null){
-                        author = new Author();
-                        title.setText("Add Author");
+                        new ViewHolder(new Author(), true);
                     }else {
-                        author = result;
-                        name.setText(author.getName());
-                        email.setText(author.getEmail());
-                        URL a = author.getAvatar();
-                        if(a!=null){
-                            avatar.setText(a.toExternalForm());
-                        }
-                        title.setText("Edit Author "+author.getId());
+                        new ViewHolder(result, false);
                     }
                 }
             });
         }
-        submit.setOnClickListener(this);
-    }
-
-
-    @Override
-    public void onClick(View v) {
-        String n = name.getText().toString();
-        if(n.isEmpty()){
-            name.setError("Field required");
-            return;
-        }
-        String e = email.getText().toString();
-        if(e.isEmpty()){
-            email.setError("Field required");
-            return;
-        }
-        String a = avatar.getText().toString();
-
-        author.setName(n);
-        author.setEmail(e);
-        author.setAvatar(a);
-        author.save(new Dao.SingleQueryCallback<Author>() {
-            @Override
-            public void onResult(@Nullable Author result) {
-                AuthorActivity.open(EditAuthorActivity.this, author.getId());
-                finish();
-            }
-        });
     }
 
     public static void edit(Context context, int authorId){
@@ -100,5 +56,57 @@ public class EditAuthorActivity extends AppCompatActivity implements View.OnClic
     public static void add(Context context){
         Intent i  = new Intent(context, EditAuthorActivity.class);
         context.startActivity(i);
+    }
+
+    private class ViewHolder {
+        @Bind(R.id.name) EditText name;
+        @Bind(R.id.email) EditText email;
+        @Bind(R.id.avatar) EditText avatar;
+
+        @Bind(R.id.title) TextView title;
+
+        Author author;
+
+        public ViewHolder(Author author, boolean isNew){
+            ButterKnife.bind(this, EditAuthorActivity.this);
+            this.author = author;
+            if(isNew){
+                title.setText("Add Author");
+            }else{
+                title.setText("Edit Author "+author.getId());
+                name.setText(author.getName());
+                email.setText(author.getEmail());
+                URL a = author.getAvatar();
+                if(a!=null){
+                    avatar.setText(a.toExternalForm());
+                }
+            }
+        }
+
+        @OnClick(R.id.submit)
+        public void submit() {
+            String n = name.getText().toString();
+            if(n.isEmpty()){
+                name.setError("Field required");
+                return;
+            }
+            String e = email.getText().toString();
+            if(e.isEmpty()){
+                email.setError("Field required");
+                return;
+            }
+            String a = avatar.getText().toString();
+
+            author.setName(n);
+            author.setEmail(e);
+            author.setAvatar(a);
+            author.save(new Dao.SingleQueryCallback<Author>() {
+                @Override
+                public void onResult(@Nullable Author result) {
+                    AuthorActivity.open(EditAuthorActivity.this, author.getId());
+                    finish();
+                }
+            });
+        }
     }
 }

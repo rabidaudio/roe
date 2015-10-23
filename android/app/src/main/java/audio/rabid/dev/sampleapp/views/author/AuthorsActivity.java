@@ -1,9 +1,11 @@
 package audio.rabid.dev.sampleapp.views.author;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -63,8 +65,47 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
     }
 
     @Override
-    public void onDelete(Author author) {
-        //need to update list
-        updateAuthors();
+    public void onClick(Author author) {
+        AuthorActivity.open(this, author.getId());
+    }
+
+    @Override
+    public void onLongClick(final Author author) {
+        new AlertDialog.Builder(this)
+                .setItems(new String[]{"Open", "Edit", "Delete"},
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                switch (which){
+                                    case 0: //open
+                                        AuthorActivity.open(AuthorsActivity.this, author.getId());
+                                        break;
+                                    case 1: //edit
+                                        EditAuthorActivity.edit(AuthorsActivity.this, author.getId());
+                                        break;
+                                    case 2: //delete
+                                        confirmDelete(author);
+                                        break;
+                                }
+                            }
+                        }
+                ).create().show();
+    }
+
+    private void confirmDelete(final Author author){
+        new android.app.AlertDialog.Builder(this)
+                .setMessage("Are you sure you want to delete "+author.getName()+"?")
+                .setCancelable(true)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        author.delete(new Dao.SingleQueryCallback<Author>() {
+                            @Override
+                            public void onResult(@Nullable Author result) {
+                                updateAuthors();
+                            }
+                        });
+                    }
+                }).create().show();
     }
 }

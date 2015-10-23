@@ -1,7 +1,10 @@
 package audio.rabid.dev.sampleapp.models;
 
+import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.AsyncTask;
 
 import com.j256.ormlite.field.DatabaseField;
@@ -117,6 +120,13 @@ public class Author extends Resource<Author> {
         }catch (MalformedURLException e){
             //oops
         }
+    }
+
+    public void sendEmail(Context context){
+        if(email==null) return;
+        Intent i = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", getEmail(), null));
+        i.putExtra(Intent.EXTRA_EMAIL, new String[]{getEmail()});
+        context.startActivity(Intent.createChooser(i, "Contact the author"));
     }
 
 
