@@ -9,6 +9,8 @@ import com.j256.ormlite.table.TableUtils;
 
 import java.sql.SQLException;
 
+import audio.rabid.dev.sampleapp.models.Author;
+
 /**
  * Created by charles on 10/23/15.
  */
@@ -18,7 +20,6 @@ public class Database extends OrmLiteSqliteOpenHelper {
 
     private static Database instance;
 
-
     public static Database getInstance(){
         if(instance==null) throw new RuntimeException("Need to create an instance with context first");
         return instance;
@@ -26,13 +27,21 @@ public class Database extends OrmLiteSqliteOpenHelper {
 
     public static Database getInstance(Context context){
         if(instance == null){
-            instance = new Database(context.getApplicationContext());
+            instance = new Database(context);
         }
         return instance;
     }
 
     private Database(Context context){
-        super(context, "fixd-database", null, 1);
+        super(context, "simple.db", null, 1);
+    }
+
+    public static com.j256.ormlite.dao.Dao getDBDao(Class clazz){
+        try {
+            return getInstance().getDao(clazz);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
