@@ -1,6 +1,8 @@
 package audio.rabid.dev.sampleapp.views.author;
 
+import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -9,17 +11,20 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import java.util.List;
 
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.network_orm.Dao;
+import audio.rabid.dev.utils.EasyArrayAdapter;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 
-public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener, AuthorAdapter.AuthorAdapterCallbacks {
+public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
 
     @Bind(R.id.authors) ListView authors;
     @Bind(R.id.refreshLayout) SwipeRefreshLayout refreshLayout;
@@ -59,18 +64,16 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
             @Override
             public void onResult(@Nullable List<Author> results) {
                 refreshLayout.setRefreshing(false);
-                authors.setAdapter(new AuthorAdapter(AuthorsActivity.this, results, AuthorsActivity.this));
+                authors.setAdapter(new AuthorAdapter(AuthorsActivity.this, results));
             }
         });
     }
 
-    @Override
-    public void onClick(Author author) {
+    public void open(Author author) {
         AuthorActivity.open(this, author.getId());
     }
 
-    @Override
-    public void onLongClick(final Author author) {
+    public void openMenu(final Author author) {
         new AlertDialog.Builder(this)
                 .setItems(new String[]{"Open", "Edit", "Delete"},
                         new DialogInterface.OnClickListener() {
@@ -107,5 +110,52 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
                         });
                     }
                 }).create().show();
+    }
+
+    private class AuthorAdapter extends EasyArrayAdapter<Author, AuthorAdapter.AuthorHolder> {
+
+        public AuthorAdapter(Context context, @Nullable List<Author> authors){
+            super(context, R.layout.item_author, authors);
+        }
+
+        @Override
+        protected void onDrawView(final Author author, final AuthorHolder viewHolder, View parent) {
+            viewHolder.name.setText(author.getName());
+            viewHolder.email.setText(author.getEmail());
+            viewHolder.avatar.setImageResource(R.drawable.ic_keyboard_control);
+            author.getAvatarBitmap(new Dao.SingleQueryCallback<Bitmap>() {
+                @Override
+                public void onResult(@Nullable Bitmap result) {
+                    viewHolder.avatar.setImageBitmap(result);
+                }
+            });
+            parent.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    open(author);
+                }
+            });
+            parent.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    openMenu(author);
+                    return true;
+                }
+            });
+        }
+
+        @Override
+        protected AuthorHolder createViewHolder(View v) {
+            return new AuthorHolder(v);
+        }
+
+        protected class AuthorHolder {
+            @Bind(R.id.avatar) ImageView avatar;
+            @Bind(R.id.name) TextView name;
+            @Bind(R.id.email) TextView email;
+            public AuthorHolder(View v){
+                ButterKnife.bind(this, v);
+            }
+        }
     }
 }
