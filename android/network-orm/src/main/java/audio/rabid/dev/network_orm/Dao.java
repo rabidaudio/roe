@@ -1,7 +1,6 @@
-package audio.rabid.dev.sampleapp.backend;
+package audio.rabid.dev.network_orm;
 
 import android.os.AsyncTask;
-import android.support.annotation.Nullable;
 
 import com.j256.ormlite.dao.RuntimeExceptionDao;
 
@@ -57,7 +56,7 @@ public class Dao<T> extends RuntimeExceptionDao<T, Integer> {
         }).execute();
     }
 
-    public void save(final T object, @Nullable SingleQueryCallback<T> callback){
+    public void save(final T object, SingleQueryCallback<T> callback){
         (new SingleItemQuery<T>(callback){
             @Override
             protected T doInBackground(Void... params) {
@@ -67,7 +66,7 @@ public class Dao<T> extends RuntimeExceptionDao<T, Integer> {
         }).execute();
     }
 
-    public void delete(final T object, @Nullable SingleQueryCallback<T> callback){
+    public void delete(final T object, SingleQueryCallback<T> callback){
         (new SingleItemQuery<T>(callback){
             @Override
             protected T doInBackground(Void... params) {
@@ -93,7 +92,7 @@ public class Dao<T> extends RuntimeExceptionDao<T, Integer> {
     }
 
     public interface SingleQueryCallback<Q> {
-        void onResult(@Nullable Q result);
+        void onResult(Q result);
     }
 
     private static abstract class MultipleItemQuery<Q> extends AsyncTask<Void, Void, List<Q>> {
@@ -110,6 +109,6 @@ public class Dao<T> extends RuntimeExceptionDao<T, Integer> {
     }
 
     public interface MultipleQueryCallback<Q> {
-        void onResult(@Nullable List<Q> results);
+        void onResult(List<Q> results);
     }
 }

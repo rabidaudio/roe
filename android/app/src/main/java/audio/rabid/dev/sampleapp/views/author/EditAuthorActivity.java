@@ -14,7 +14,7 @@ import java.net.URL;
 
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
-import audio.rabid.dev.sampleapp.backend.Dao;
+import audio.rabid.dev.network_orm.Dao;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 

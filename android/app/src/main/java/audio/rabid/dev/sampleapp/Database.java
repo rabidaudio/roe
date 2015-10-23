@@ -1,9 +1,10 @@
-package audio.rabid.dev.sampleapp.backend;
+package audio.rabid.dev.sampleapp;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
+import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 
@@ -15,8 +16,6 @@ import audio.rabid.dev.sampleapp.models.Author;
  * Created by charles on 10/23/15.
  */
 public class Database extends OrmLiteSqliteOpenHelper {
-
-    private static final Class[] MODELS = {Author.class};
 
     private static Database instance;
 
@@ -33,10 +32,10 @@ public class Database extends OrmLiteSqliteOpenHelper {
     }
 
     private Database(Context context){
-        super(context, "simple.db", null, 1);
+        super(context, "simple.db", null, VERSION);
     }
 
-    public static com.j256.ormlite.dao.Dao getDBDao(Class clazz){
+    public static Dao getDBDao(Class clazz){
         try {
             return getInstance().getDao(clazz);
         } catch (SQLException e) {
@@ -46,21 +45,24 @@ public class Database extends OrmLiteSqliteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase database, ConnectionSource connectionSource) {
-
         try {
-            for(Class c : MODELS){
-                TableUtils.createTable(connectionSource, c);
-            }
-
+            TableUtils.createTable(connectionSource, Author.class);
         }catch (SQLException e){
             throw new RuntimeException("Problem creating database", e);
         }
     }
 
+    private static final int VERSION = 1;
+
     @Override
     public void onUpgrade(SQLiteDatabase database, ConnectionSource connectionSource, int oldVersion, int newVersion) {
-        //TODO use oldVersion and newVersion to do migrations here. increment VERSION for changes
-
         //http://ormlite.com/javadoc/ormlite-core/doc-files/ormlite_4.html#Upgrading-Schema
+        while (oldVersion < newVersion){
+            switch (oldVersion){
+                case 2:
+                    //TODO new migration
+            }
+            oldVersion++;
+        }
     }
 }

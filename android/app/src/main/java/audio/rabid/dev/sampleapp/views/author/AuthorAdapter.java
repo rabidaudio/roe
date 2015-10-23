@@ -13,7 +13,7 @@ import java.util.List;
 
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
-import audio.rabid.dev.sampleapp.backend.Dao;
+import audio.rabid.dev.network_orm.Dao;
 import audio.rabid.dev.utils.EasyArrayAdapter;
 import butterknife.Bind;
 import butterknife.ButterKnife;

@@ -3,6 +3,7 @@ package audio.rabid.dev.sampleapp.views.author;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -13,11 +14,11 @@ import android.widget.TextView;
 
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
-import audio.rabid.dev.sampleapp.backend.Dao;
+import audio.rabid.dev.network_orm.Dao;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 
-public class AuthorActivity extends AppCompatActivity implements View.OnClickListener {
+public class AuthorActivity extends AppCompatActivity {
 
     public static final String EXTRA_AUTHOR_ID = ".AUTHOR_ID";
 
@@ -28,36 +29,30 @@ public class AuthorActivity extends AppCompatActivity implements View.OnClickLis
     @Bind(R.id.edit_btn) Button edit;
     @Bind(R.id.delete_btn) Button delete;
 
-    Author author;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_author);
         ButterKnife.bind(this);
 
-        edit.setOnClickListener(this);
-        delete.setOnClickListener(this);
-
         int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
 
         Author.Dao.findByLocalId(authorId, new Dao.SingleQueryCallback<Author>() {
             @Override
             public void onResult(@Nullable Author result) {
-                author = result;
-                updateView();
+                updateView(result);
             }
         });
     }
 
-    private void updateView(){
+    private void updateView(final Author author){
         name.setText(author.getName());
         email.setText(author.getEmail());
         if(author.getEmail()!=null) {
             email.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    sendEmail();
+                    sendEmail(author);
                 }
             });
         }
@@ -68,21 +63,16 @@ public class AuthorActivity extends AppCompatActivity implements View.OnClickLis
                 avatar.setImageBitmap(result);
             }
         });
-    }
-
-    private void sendEmail(){
-        Intent i = new Intent(Intent.ACTION_SENDTO);
-        i.putExtra(Intent.EXTRA_EMAIL, new String[]{author.getEmail()});
-        startActivity(Intent.createChooser(i, "Contact the author"));
-    }
-
-    @Override
-    public void onClick(View v) {
-        if(edit.equals(v)){
-            EditAuthorActivity.edit(this, author.getId());
-            finish();
-        }else if(delete.equals(v)){
-            if(author!=null){
+        edit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                EditAuthorActivity.edit(AuthorActivity.this, author.getId());
+                finish();
+            }
+        });
+        delete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
                 author.delete(new Dao.SingleQueryCallback<Author>() {
                     @Override
                     public void onResult(@Nullable Author result) {
@@ -90,7 +80,13 @@ public class AuthorActivity extends AppCompatActivity implements View.OnClickLis
                     }
                 });
             }
-        }
+        });
+    }
+
+    private void sendEmail(Author author){
+        Intent i = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", author.getEmail(), null));
+        i.putExtra(Intent.EXTRA_EMAIL, new String[]{author.getEmail()});
+        startActivity(Intent.createChooser(i, "Contact the author"));
     }
 
     public static void open(Context context, int id){

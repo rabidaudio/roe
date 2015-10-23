@@ -1,6 +1,4 @@
-package audio.rabid.dev.sampleapp.backend;
-
-import android.support.annotation.Nullable;
+package audio.rabid.dev.network_orm;
 
 import com.j256.ormlite.field.DatabaseField;
 
@@ -32,12 +30,12 @@ public abstract class Resource<T extends Resource> {
     }
 
     @SuppressWarnings("unchecked")
-    public void save(@Nullable Dao.SingleQueryCallback<T> callback){
+    public void save(Dao.SingleQueryCallback<T> callback){
         getDao().save((T) this, callback);
     }
 
     @SuppressWarnings("unchecked")
-    public void delete(@Nullable Dao.SingleQueryCallback<T> callback){
+    public void delete(Dao.SingleQueryCallback<T> callback){
         getDao().delete((T) this, callback);
     }
 
