@@ -1,10 +1,14 @@
 package audio.rabid.dev.sampleapp.controllers.author;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -21,6 +25,8 @@ public class EditAuthorActivity extends AppCompatActivity {
 
     public static final String EXTRA_AUTHOR_ID = "EXTRA_AUTHOR_ID";
 
+    private ViewHolder viewHolder;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,13 +42,31 @@ public class EditAuthorActivity extends AppCompatActivity {
                 @Override
                 public void onResult(@Nullable Author result) {
                     if(result==null){
-                        new ViewHolder(new Author(), true);
+                        viewHolder = new ViewHolder(new Author(), true);
                     }else {
-                        new ViewHolder(result, false);
+                        viewHolder = new ViewHolder(result, false);
                     }
                 }
             });
         }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu (Menu menu){
+        super.onCreateOptionsMenu(menu);
+        menu.add("Delete").setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                if(viewHolder == null || viewHolder.isNew){
+                    finish();
+                    return false;
+                }else{
+                    viewHolder.delete();
+                    return true;
+                }
+            }
+        });
+        return true;
     }
 
     public static void edit(Context context, int authorId){
@@ -56,7 +80,7 @@ public class EditAuthorActivity extends AppCompatActivity {
         context.startActivity(i);
     }
 
-    private class ViewHolder {
+    protected class ViewHolder {
         @Bind(R.id.name) EditText name;
         @Bind(R.id.email) EditText email;
         @Bind(R.id.avatar) EditText avatar;
@@ -65,9 +89,12 @@ public class EditAuthorActivity extends AppCompatActivity {
 
         Author author;
 
+        boolean isNew;
+
         public ViewHolder(Author author, boolean isNew){
             ButterKnife.bind(this, EditAuthorActivity.this);
             this.author = author;
+            this.isNew = isNew;
             if(isNew){
                 title.setText("Add Author");
             }else{
@@ -105,6 +132,23 @@ public class EditAuthorActivity extends AppCompatActivity {
                     finish();
                 }
             });
+        }
+
+        public void delete(){
+            new AlertDialog.Builder(EditAuthorActivity.this)
+                    .setMessage("Are you sure you want to delete " + author.getName() + "?")
+                    .setCancelable(true)
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            author.delete(new Dao.SingleQueryCallback<Author>() {
+                                @Override
+                                public void onResult(@Nullable Author result) {
+                                    finish(); //close page
+                                }
+                            });
+                        }
+                    }).create().show();
         }
     }
 }

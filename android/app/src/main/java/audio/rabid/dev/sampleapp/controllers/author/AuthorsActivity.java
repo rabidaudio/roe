@@ -10,6 +10,7 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -18,6 +19,7 @@ import android.widget.TextView;
 import java.util.List;
 
 import audio.rabid.dev.network_orm.Dao;
+import audio.rabid.dev.network_orm.TypedObserver;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.utils.EasyArrayAdapter;
@@ -75,7 +77,7 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
 
     public void openMenu(final Author author) {
         new AlertDialog.Builder(this)
-                .setItems(new String[]{"Open", "Edit", "Delete"},
+                .setItems(new String[]{"Open", "Edit", "Email", "Delete"},
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
@@ -86,7 +88,10 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
                                     case 1: //edit
                                         EditAuthorActivity.edit(AuthorsActivity.this, author.getId());
                                         break;
-                                    case 2: //delete
+                                    case 2:
+                                        author.sendEmail(AuthorsActivity.this);
+                                        break;
+                                    case 3: //delete
                                         confirmDelete(author);
                                         break;
                                 }
@@ -112,7 +117,7 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
                 }).create().show();
     }
 
-    private class AuthorAdapter extends EasyArrayAdapter<Author, AuthorAdapter.AuthorHolder> {
+    protected class AuthorAdapter extends EasyArrayAdapter<Author, AuthorAdapter.AuthorHolder> {
 
         public AuthorAdapter(Context context, @Nullable List<Author> authors){
             super(context, R.layout.item_author, authors);
@@ -140,6 +145,13 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
                 public boolean onLongClick(View v) {
                     openMenu(author);
                     return true;
+                }
+            });
+
+            author.addObserver(new TypedObserver<Author>() {
+                @Override
+                public void update(Author observable, Object data) {
+                    Log.d("adapter", "Saw update to " + observable.toString());
                 }
             });
         }

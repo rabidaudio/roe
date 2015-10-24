@@ -11,6 +11,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import audio.rabid.dev.network_orm.TypedObserver;
+
 import audio.rabid.dev.network_orm.Dao;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
@@ -43,7 +45,7 @@ public class AuthorActivity extends AppCompatActivity {
         context.startActivity(i);
     }
 
-    private class ViewHolder {
+    protected class ViewHolder {
         @Bind(R.id.avatar) ImageView avatar;
         @Bind(R.id.name) TextView name;
         @Bind(R.id.email) TextView email;
@@ -52,7 +54,6 @@ public class AuthorActivity extends AppCompatActivity {
 
         public ViewHolder(final Author author){
             ButterKnife.bind(this, AuthorActivity.this);
-
             this.author = author;
 
             name.setText(author.getName());
@@ -68,18 +69,18 @@ public class AuthorActivity extends AppCompatActivity {
         }
 
         @OnClick(R.id.email)
-        private void sendEmail(){
+        public void sendEmail(){
             author.sendEmail(AuthorActivity.this);
         }
 
         @OnClick(R.id.edit_btn)
-        private void edit(){
+        public void edit(){
             EditAuthorActivity.edit(AuthorActivity.this, author.getId());
-            finish();
+//            finish(); //TODO
         }
 
         @OnClick(R.id.delete_btn)
-        private void delete(){
+        public void delete(){
             new AlertDialog.Builder(AuthorActivity.this)
                     .setMessage("Are you sure you want to delete " + author.getName() + "?")
                     .setCancelable(true)
@@ -89,7 +90,7 @@ public class AuthorActivity extends AppCompatActivity {
                             author.delete(new Dao.SingleQueryCallback<Author>() {
                                 @Override
                                 public void onResult(@Nullable Author result) {
-                                    finish(); //close page
+//                                    finish(); //close page TODO
                                 }
                             });
                         }

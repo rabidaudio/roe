@@ -6,12 +6,10 @@ import org.jetbrains.annotations.Nullable;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.Observable;
-
 /**
  * Created by charles on 10/23/15.
  */
-public abstract class Resource<T extends Resource> extends Observable {
+public abstract class Resource<T extends Resource> extends TypedObservable<T> {
 
     public abstract Dao<T> getDao();
 
