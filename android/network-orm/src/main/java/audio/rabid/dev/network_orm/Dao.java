@@ -4,6 +4,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 import android.util.LruCache;
 
+import com.j256.ormlite.dao.LruObjectCache;
 import com.j256.ormlite.dao.RuntimeExceptionDao;
 
 import org.jetbrains.annotations.Nullable;
@@ -17,22 +18,16 @@ import java.util.List;
  */
 public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
 
-    private final LruCache<Integer, T> instanceCache = new LruCache<Integer, T>(50); //TODO what limit?
-
     public Dao(com.j256.ormlite.dao.Dao<T, Integer> dao) {
         super(dao);
+        setObjectCache(new LruObjectCache(50));
     }
 
     public void findByLocalId(final int id, SingleQueryCallback<T> callback){
         (new SingleItemQuery(callback){
             @Override
             protected T doInBackground(Void... params) {
-                T cached = instanceCache.get(id);
-                if(cached != null){
-                    return cached;
-                }else {
-                    return queryForId(id);
-                }
+                return queryForId(id);
             }
         }).execute();
     }
@@ -45,7 +40,7 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
         (new SingleItemQuery(callback){
             @Override
             protected T doInBackground(Void... params) {
-                List<T> results = checkCacheForElements(queryForEq(field, value));
+                List<T> results = queryForEq(field, value);
                 return results.size() > 0 ? results.get(0) : null;
             }
         }).execute();
@@ -55,7 +50,7 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
         (new MultipleItemQuery(callback){
             @Override
             protected List<T> doInBackground(Void... params) {
-                return checkCacheForElements(queryForAll());
+                return queryForAll();
             }
         }).execute();
     }
@@ -64,7 +59,7 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
         (new MultipleItemQuery(callback){
             @Override
             protected List<T> doInBackground(Void... params) {
-                return checkCacheForElements(queryForEq("synced", false));
+                return queryForEq("synced", false);
             }
         }).execute();
     }
@@ -74,7 +69,7 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
             @Override
             protected T doInBackground(Void... params) {
                 createOrUpdate(object);
-                return checkCacheForElement(object);
+                return object;
             }
         }).execute();
     }
@@ -83,40 +78,10 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
         (new SingleItemQuery(callback){
             @Override
             protected T doInBackground(Void... params) {
-                instanceCache.remove(object.getId());
                 delete(object);
                 return object;
             }
         }).execute();
-    }
-
-    /**
-     * This method checks the cache, and if an instance already exists with that id, it returns
-     * the existing instance instead of the passed one. Otherwise it caches the passed one and
-     * returns it.
-     */
-    private T checkCacheForElement(T element){
-        synchronized (instanceCache) {
-            T cached = instanceCache.get(element.getId());
-            if (cached != null) {
-                //used the cached version so instances are shared
-                Log.d("Cache", "cached version "+cached.toString()+" used for " + element.toString());
-                return cached;
-            } else {
-                //add the instance to the cache and return it
-                instanceCache.put(element.getId(), element);
-                Log.d("Cache", "added to cache" + element.toString());
-                return element;
-            }
-        }
-    }
-
-    private List<T> checkCacheForElements(List<T> elements){
-        ArrayList<T> copy = new ArrayList<>(elements.size());
-        for (T element : elements) {
-            copy.add(checkCacheForElement(element));
-        }
-        return copy;
     }
 
     /***************************************************************/
@@ -131,7 +96,7 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
         @Override
         protected void onPostExecute(T result){
             if(callback!=null){
-                callback.onResult(checkCacheForElement(result));
+                callback.onResult(result);
             }
         }
     }
