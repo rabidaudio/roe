@@ -1,16 +1,11 @@
 package audio.rabid.dev.network_orm;
 
 import android.os.AsyncTask;
-import android.util.Log;
-import android.util.LruCache;
 
-import com.j256.ormlite.dao.LruObjectCache;
 import com.j256.ormlite.dao.RuntimeExceptionDao;
 
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -20,7 +15,7 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
 
     public Dao(com.j256.ormlite.dao.Dao<T, Integer> dao) {
         super(dao);
-        setObjectCache(new LruObjectCache(50));
+        setObjectCache(true);
     }
 
     public void findByLocalId(final int id, SingleQueryCallback<T> callback){

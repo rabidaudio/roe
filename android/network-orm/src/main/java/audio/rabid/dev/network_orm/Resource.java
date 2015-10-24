@@ -8,6 +8,9 @@ import org.json.JSONObject;
 
 /**
  * Created by charles on 10/23/15.
+ *
+ * Because a single record is shared as a single instance (possibly to multiple threads), all mutable
+ * changes should be wrapped in a synchronized(){} block for thread safety.
  */
 public abstract class Resource<T extends Resource> extends TypedObservable<T> {
 
