@@ -1,5 +1,6 @@
 package audio.rabid.dev.sampleapp.controllers.author;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -21,11 +22,20 @@ import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
+/**
+ * We don't use a view holder pattern here because
+ */
 public class EditAuthorActivity extends AppCompatActivity {
 
     public static final String EXTRA_AUTHOR_ID = "EXTRA_AUTHOR_ID";
 
-    private ViewHolder viewHolder;
+    @Bind(R.id.name) EditText name;
+    @Bind(R.id.email) EditText email;
+    @Bind(R.id.avatar) EditText avatar;
+
+    @Bind(R.id.title) TextView title;
+
+    private Author author;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,37 +46,20 @@ public class EditAuthorActivity extends AppCompatActivity {
         int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
 
         if(authorId == -1){
-            new ViewHolder(new Author(), true);
+            drawNewAuthor();
         }else{
             Author.Dao.findByLocalId(authorId, new Dao.SingleQueryCallback<Author>() {
                 @Override
                 public void onResult(@Nullable Author result) {
                     if(result==null){
-                        viewHolder = new ViewHolder(new Author(), true);
+                        drawNewAuthor();
                     }else {
-                        viewHolder = new ViewHolder(result, false);
+                        author = result;
+                        drawExisting();
                     }
                 }
             });
         }
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu (Menu menu){
-        super.onCreateOptionsMenu(menu);
-        menu.add("Delete").setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
-                if(viewHolder == null || viewHolder.isNew){
-                    finish();
-                    return false;
-                }else{
-                    viewHolder.delete();
-                    return true;
-                }
-            }
-        });
-        return true;
     }
 
     public static void edit(Context context, int authorId){
@@ -80,77 +73,46 @@ public class EditAuthorActivity extends AppCompatActivity {
         context.startActivity(i);
     }
 
-    protected class ViewHolder {
-        @Bind(R.id.name) EditText name;
-        @Bind(R.id.email) EditText email;
-        @Bind(R.id.avatar) EditText avatar;
+    private void drawNewAuthor(){
+        author = new Author();
+        title.setText("Add Author");
+    }
 
-        @Bind(R.id.title) TextView title;
+    private void drawExisting(){
+        title.setText("Edit Author "+author.getId());
+        name.setText(author.getName());
+        email.setText(author.getEmail());
+        URL a = author.getAvatar();
+        if(a!=null){
+            avatar.setText(a.toExternalForm());
+        }
+    }
 
-        Author author;
+    @OnClick(R.id.submit)
+    public void submit() {
+        String n = name.getText().toString();
+        if(n.isEmpty()){
+            name.setError("Field required");
+            return;
+        }
+        String e = email.getText().toString();
+        if(e.isEmpty()){
+            email.setError("Field required");
+            return;
+        }
+        String a = avatar.getText().toString();
 
-        boolean isNew;
-
-        public ViewHolder(Author author, boolean isNew){
-            ButterKnife.bind(this, EditAuthorActivity.this);
-            this.author = author;
-            this.isNew = isNew;
-            if(isNew){
-                title.setText("Add Author");
-            }else{
-                title.setText("Edit Author "+author.getId());
-                name.setText(author.getName());
-                email.setText(author.getEmail());
-                URL a = author.getAvatar();
-                if(a!=null){
-                    avatar.setText(a.toExternalForm());
+        synchronized (author.Lock) {
+            author.setName(n);
+            author.setEmail(e);
+            author.setAvatar(a);
+            author.save(new Dao.SingleQueryCallback<Author>() {
+                @Override
+                public void onResult(@Nullable Author result) {
+                    setResult(Activity.RESULT_OK);
+                    finish();
                 }
-            }
-        }
-
-        @OnClick(R.id.submit)
-        public void submit() {
-            String n = name.getText().toString();
-            if(n.isEmpty()){
-                name.setError("Field required");
-                return;
-            }
-            String e = email.getText().toString();
-            if(e.isEmpty()){
-                email.setError("Field required");
-                return;
-            }
-            String a = avatar.getText().toString();
-
-            synchronized (author.Lock) {
-                author.setName(n);
-                author.setEmail(e);
-                author.setAvatar(a);
-                author.save(new Dao.SingleQueryCallback<Author>() {
-                    @Override
-                    public void onResult(@Nullable Author result) {
-                        AuthorActivity.open(EditAuthorActivity.this, author.getId());
-                        finish();
-                    }
-                });
-            }
-        }
-
-        public void delete(){
-            new AlertDialog.Builder(EditAuthorActivity.this)
-                    .setMessage("Are you sure you want to delete " + author.getName() + "?")
-                    .setCancelable(true)
-                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            author.delete(new Dao.SingleQueryCallback<Author>() {
-                                @Override
-                                public void onResult(@Nullable Author result) {
-                                    finish();
-                                }
-                            });
-                        }
-                    }).create().show();
+            });
         }
     }
 }

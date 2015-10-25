@@ -35,7 +35,7 @@ public class Author extends Resource<Author> {
 
     @Override
     public AllowedOps getAllowedOps(){
-        return AllowedOps.ALL;
+        return new AllowedOps(AllowedOps.Op.CREATE, AllowedOps.Op.UPDATE);
     }
 
     @DatabaseField

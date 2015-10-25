@@ -1,7 +1,9 @@
 package audio.rabid.dev.sampleapp.controllers.author;
 
+import android.app.SearchManager;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -16,12 +18,14 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import java.sql.SQLException;
 import java.util.List;
 
 import audio.rabid.dev.network_orm.Dao;
 import audio.rabid.dev.network_orm.TypedObserver;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
+import audio.rabid.dev.sampleapp.views.AuthorViewHolder;
 import audio.rabid.dev.utils.EasyArrayAdapter;
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -31,6 +35,8 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
     @Bind(R.id.authors) ListView authors;
     @Bind(R.id.refreshLayout) SwipeRefreshLayout refreshLayout;
 
+    String query = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,7 +44,6 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
         ButterKnife.bind(this);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -47,6 +52,11 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
             }
         });
         refreshLayout.setOnRefreshListener(this);
+
+        Intent intent = getIntent();
+        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            query = intent.getStringExtra(SearchManager.QUERY);
+        }
     }
 
     @Override
@@ -62,9 +72,23 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
 
     private void updateAuthors(){
         refreshLayout.setRefreshing(true);
-        Author.Dao.all(new Dao.MultipleQueryCallback<Author>() {
+        Author.Dao.customMultipleQuery(new Dao.CustomMultipleQuery<Author>() {
             @Override
-            public void onResult(@Nullable List<Author> results) {
+            public List<Author> executeQuery(Dao<Author> dao) {
+                if(query==null){
+                    return dao.queryForAll();
+                }else{
+                    String search = "%"+query+"%";
+                    try {
+                        return dao.queryBuilder().where().like("name", search).or().like("email", search).query();
+                    }catch (SQLException e){
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+
+            @Override
+            public void onResult(List<Author> results) {
                 refreshLayout.setRefreshing(false);
                 authors.setAdapter(new AuthorAdapter(AuthorsActivity.this, results));
             }
@@ -77,11 +101,11 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
 
     public void openMenu(final Author author) {
         new AlertDialog.Builder(this)
-                .setItems(new String[]{"Open", "Edit", "Email", "Delete"},
+                .setItems(new String[]{"Open", "Edit", "Email"},
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                switch (which){
+                                switch (which) {
                                     case 0: //open
                                         AuthorActivity.open(AuthorsActivity.this, author.getId());
                                         break;
@@ -91,38 +115,22 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
                                     case 2:
                                         author.sendEmail(AuthorsActivity.this);
                                         break;
-                                    case 3: //delete
-                                        confirmDelete(author);
-                                        break;
                                 }
                             }
                         }
                 ).create().show();
     }
 
-    private void confirmDelete(final Author author){
-        new android.app.AlertDialog.Builder(this)
-                .setMessage("Are you sure you want to delete "+author.getName()+"?")
-                .setCancelable(true)
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        author.delete(null);
-                    }
-                }).create().show();
-    }
-
-    protected class AuthorAdapter extends EasyArrayAdapter<Author, AuthorAdapter.AuthorHolder> {
+    protected class AuthorAdapter extends EasyArrayAdapter<Author, AuthorViewHolder> {
 
         public AuthorAdapter(Context context, @Nullable List<Author> authors){
             super(context, R.layout.item_author, authors);
         }
 
         @Override
-        protected void onDrawView(final Author author, final AuthorHolder viewHolder, final View parent) {
+        protected void onDrawView(final Author author, AuthorViewHolder viewHolder, final View parent) {
 
-            viewHolder.draw(author);
+            viewHolder.setItem(author);
 
             parent.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -137,44 +145,11 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
                     return true;
                 }
             });
-            author.addObserver(new TypedObserver<Author>() {
-                @Override
-                public void update(Author observable, Object data) {
-                    if (observable.wasDeleted()) {
-                        Log.d("Asdf", "caught deleted");
-                        updateAuthors();
-                    } else {
-                        viewHolder.draw(author);
-                    }
-                }
-            });
         }
 
         @Override
-        protected AuthorHolder createViewHolder(View v) {
-            return new AuthorHolder(v);
-        }
-
-        protected class AuthorHolder {
-            @Bind(R.id.avatar) ImageView avatar;
-            @Bind(R.id.name) TextView name;
-            @Bind(R.id.email) TextView email;
-
-            public AuthorHolder(View v){
-                ButterKnife.bind(this, v);
-            }
-
-            public void draw(Author author){
-                name.setText(author.getName());
-                email.setText(author.getEmail());
-                avatar.setImageResource(R.drawable.ic_keyboard_control);
-                author.getAvatarBitmap(new Dao.SingleQueryCallback<Bitmap>() {
-                    @Override
-                    public void onResult(@Nullable Bitmap result) {
-                        avatar.setImageBitmap(result);
-                    }
-                });
-            }
+        protected AuthorViewHolder createViewHolder(View v) {
+            return new AuthorViewHolder(v);
         }
     }
 }

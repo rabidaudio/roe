@@ -90,6 +90,24 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
         }
     }
 
+    public void customSingleQuery(final CustomSingleQuery<T> callbacks){
+        (new SingleItemQuery<T>(callbacks){
+            @Override
+            protected T doInBackground(Void... params) {
+                return callbacks.executeQuery(Dao.this);
+            }
+        }).execute();
+    }
+
+    public void customMultipleQuery(final CustomMultipleQuery<T> callbacks){
+        (new MultipleItemQuery<T>(callbacks){
+            @Override
+            protected List<T> doInBackground(Void... params) {
+                return callbacks.executeQuery(Dao.this);
+            }
+        }).execute();
+    }
+
     /***************************************************************/
 
     private static abstract class SingleItemQuery<V> extends AsyncTask<Void, Void, V> {
@@ -126,5 +144,13 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
 
     public interface MultipleQueryCallback<Q> {
         void onResult(List<Q> results);
+    }
+
+    public interface CustomSingleQuery<Q extends Resource> extends SingleQueryCallback<Q> {
+        Q executeQuery(Dao<Q> dao);
+    }
+
+    public interface CustomMultipleQuery<Q extends Resource> extends MultipleQueryCallback<Q> {
+        List<Q> executeQuery(Dao<Q> dao);
     }
 }
