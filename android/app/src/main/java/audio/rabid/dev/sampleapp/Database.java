@@ -12,6 +12,7 @@ import com.j256.ormlite.table.TableUtils;
 import java.sql.SQLException;
 
 import audio.rabid.dev.sampleapp.models.Author;
+import audio.rabid.dev.sampleapp.models.Post;
 
 /**
  * Created by charles on 10/23/15.
@@ -53,15 +54,19 @@ public class Database extends OrmLiteSqliteOpenHelper {
         }
     }
 
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
 
     @Override
     public void onUpgrade(SQLiteDatabase database, ConnectionSource connectionSource, int oldVersion, int newVersion) {
-        switch (oldVersion){
-            case 1: //--> 2
+        try {
+            switch (oldVersion) {
+                case 1: //--> 2
+                    TableUtils.createTable(connectionSource, Post.class);
+                case 2: //--> 3
 //                database.execSQL(/* SOME SQL */);
-            case 2: //--> 3
-//                database.execSQL(/* SOME SQL */);
+            }
+        }catch (SQLException e){
+            throw new RuntimeException("Problem upgrading database", e);
         }
     }
 }

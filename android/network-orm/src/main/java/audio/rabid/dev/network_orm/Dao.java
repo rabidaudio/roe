@@ -60,23 +60,34 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
     }
 
     public void save(final T object, @Nullable SingleQueryCallback<T> callback){
-        (new SingleItemQuery<T>(callback){
-            @Override
-            protected T doInBackground(Void... params) {
-                createOrUpdate(object);
-                return object;
-            }
-        }).execute();
+        AllowedOps a = object.getAllowedOps();
+        if(object.isNew() && !a.canCreate()){
+            throw new RuntimeException("Create operation not allowed on class "+object.getClass().getSimpleName());
+        }else if(!object.isNew() && !a.canUpdate()){
+            throw new RuntimeException("Update operation not allowed on class "+object.getClass().getSimpleName());
+        }else {
+            (new SingleItemQuery<T>(callback) {
+                @Override
+                protected T doInBackground(Void... params) {
+                    createOrUpdate(object);
+                    return object;
+                }
+            }).execute();
+        }
     }
 
     public void delete(final T object, @Nullable SingleQueryCallback<T> callback){
-        (new SingleItemQuery<T>(callback){
-            @Override
-            protected T doInBackground(Void... params) {
-                delete(object);
-                return object;
-            }
-        }).execute();
+        if(!object.getAllowedOps().canDelete()){
+            throw new RuntimeException("Delete operation not allowed on class "+object.getClass().getSimpleName());
+        }else {
+            (new SingleItemQuery<T>(callback) {
+                @Override
+                protected T doInBackground(Void... params) {
+                    delete(object);
+                    return object;
+                }
+            }).execute();
+        }
     }
 
     /***************************************************************/

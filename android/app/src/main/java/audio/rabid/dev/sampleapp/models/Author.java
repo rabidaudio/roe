@@ -18,6 +18,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import audio.rabid.dev.network_orm.AllowedOps;
 import audio.rabid.dev.network_orm.Dao;
 import audio.rabid.dev.network_orm.Resource;
 import audio.rabid.dev.sampleapp.Database;
@@ -31,6 +32,11 @@ public class Author extends Resource<Author> {
 
     @SuppressWarnings("unchecked")
     public static Dao<Author> Dao = new Dao<>(Database.getDBDao(Author.class));
+
+    @Override
+    public AllowedOps getAllowedOps(){
+        return AllowedOps.ALL;
+    }
 
     @DatabaseField
     private String name;

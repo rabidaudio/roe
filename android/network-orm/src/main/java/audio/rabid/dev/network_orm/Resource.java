@@ -16,12 +16,14 @@ import java.util.Date;
  */
 public abstract class Resource<T extends Resource> extends TypedObservable<T> {
 
+
+
     public abstract Dao<T> getDao();
 
     public final Object Lock = new Object();
 
     @DatabaseField(generatedId = true)
-    protected int id;
+    protected int id = -1;
 
     @DatabaseField(index = true)
     protected int serverId = -1;
@@ -48,6 +50,12 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
     public boolean wasDeleted(){
          return deleted;
     }
+
+    public boolean isNew(){
+        return id < 0;
+    }
+
+    public abstract AllowedOps getAllowedOps();
 
     @SuppressWarnings("unchecked")
     public synchronized void save(@Nullable final Dao.SingleQueryCallback<T> callback){

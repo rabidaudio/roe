@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="audio.rabid.dev.sampleapp" >
 
-    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".Application"
@@ -24,6 +24,8 @@
         <activity android:name=".controllers.author.EditAuthorActivity" >
         </activity>
         <activity android:name=".controllers.author.AuthorActivity" >
+        </activity>
+        <activity android:name=".controllers.posts.PostActivity" >
         </activity>
     </application>
 
