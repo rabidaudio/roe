@@ -45,7 +45,7 @@ public class AuthorActivity extends AppCompatActivity {
         context.startActivity(i);
     }
 
-    protected class ViewHolder {
+    protected class ViewHolder implements TypedObserver<Author> {
         @Bind(R.id.avatar) ImageView avatar;
         @Bind(R.id.name) TextView name;
         @Bind(R.id.email) TextView email;
@@ -55,7 +55,35 @@ public class AuthorActivity extends AppCompatActivity {
         public ViewHolder(final Author author){
             ButterKnife.bind(this, AuthorActivity.this);
             this.author = author;
+            author.addObserver(this);
+            draw();
+        }
 
+        @OnClick(R.id.email)
+        public void sendEmail(){
+            author.sendEmail(AuthorActivity.this);
+        }
+
+        @OnClick(R.id.edit_btn)
+        public void edit(){
+            EditAuthorActivity.edit(AuthorActivity.this, author.getId());
+        }
+
+        @OnClick(R.id.delete_btn)
+        public void delete(){
+            new AlertDialog.Builder(AuthorActivity.this)
+                    .setMessage("Are you sure you want to delete " + author.getName() + "?")
+                    .setCancelable(true)
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            author.delete(null);
+                        }
+                    }).create().show();
+        }
+
+        public void draw(){
             name.setText(author.getName());
             email.setText(author.getEmail());
 
@@ -68,33 +96,13 @@ public class AuthorActivity extends AppCompatActivity {
             });
         }
 
-        @OnClick(R.id.email)
-        public void sendEmail(){
-            author.sendEmail(AuthorActivity.this);
-        }
-
-        @OnClick(R.id.edit_btn)
-        public void edit(){
-            EditAuthorActivity.edit(AuthorActivity.this, author.getId());
-//            finish(); //TODO
-        }
-
-        @OnClick(R.id.delete_btn)
-        public void delete(){
-            new AlertDialog.Builder(AuthorActivity.this)
-                    .setMessage("Are you sure you want to delete " + author.getName() + "?")
-                    .setCancelable(true)
-                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            author.delete(new Dao.SingleQueryCallback<Author>() {
-                                @Override
-                                public void onResult(@Nullable Author result) {
-//                                    finish(); //close page TODO
-                                }
-                            });
-                        }
-                    }).create().show();
+        @Override
+        public void update(Author observable, Object data) {
+            if(observable.wasDeleted()){
+                finish();
+            }else{
+                draw();
+            }
         }
     }
 }

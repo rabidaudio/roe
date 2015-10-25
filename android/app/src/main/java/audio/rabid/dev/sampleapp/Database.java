@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase;
 
 import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.stmt.ColumnArg;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 
@@ -56,13 +57,11 @@ public class Database extends OrmLiteSqliteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase database, ConnectionSource connectionSource, int oldVersion, int newVersion) {
-        //http://ormlite.com/javadoc/ormlite-core/doc-files/ormlite_4.html#Upgrading-Schema
-        while (oldVersion < newVersion){
-            switch (oldVersion){
-                case 2:
-                    //TODO new migration
-            }
-            oldVersion++;
+        switch (oldVersion){
+            case 1: //--> 2
+//                database.execSQL(/* SOME SQL */);
+            case 2: //--> 3
+//                database.execSQL(/* SOME SQL */);
         }
     }
 }

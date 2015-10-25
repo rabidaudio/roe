@@ -135,12 +135,19 @@ public class Author extends Resource<Author> {
         return Dao;
     }
 
+    @Override
     public JSONObject toJSON() throws JSONException{
-        return new JSONObject()
-                .put("id", id)
-                .put("serverId", serverId)
+        return super.toJSON()
                 .put("name", name)
                 .put("email", email)
                 .put("avatar", avatar);
+    }
+
+    @Override
+    protected void fromJSON(JSONObject data) throws JSONException{
+        super.fromJSON(data);
+        name = data.getString("name");
+        email = data.getString("email");
+        avatar = data.getString("avatar");
     }
 }

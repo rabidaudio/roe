@@ -104,15 +104,11 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
         new android.app.AlertDialog.Builder(this)
                 .setMessage("Are you sure you want to delete "+author.getName()+"?")
                 .setCancelable(true)
+                .setNegativeButton("Cancel", null)
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        author.delete(new Dao.SingleQueryCallback<Author>() {
-                            @Override
-                            public void onResult(@Nullable Author result) {
-                                updateAuthors();
-                            }
-                        });
+                        author.delete(null);
                     }
                 }).create().show();
     }
@@ -124,16 +120,10 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
         }
 
         @Override
-        protected void onDrawView(final Author author, final AuthorHolder viewHolder, View parent) {
-            viewHolder.name.setText(author.getName());
-            viewHolder.email.setText(author.getEmail());
-            viewHolder.avatar.setImageResource(R.drawable.ic_keyboard_control);
-            author.getAvatarBitmap(new Dao.SingleQueryCallback<Bitmap>() {
-                @Override
-                public void onResult(@Nullable Bitmap result) {
-                    viewHolder.avatar.setImageBitmap(result);
-                }
-            });
+        protected void onDrawView(final Author author, final AuthorHolder viewHolder, final View parent) {
+
+            viewHolder.draw(author);
+
             parent.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -147,11 +137,15 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
                     return true;
                 }
             });
-
             author.addObserver(new TypedObserver<Author>() {
                 @Override
                 public void update(Author observable, Object data) {
-                    Log.d("adapter", "Saw update to " + observable.toString());
+                    if (observable.wasDeleted()) {
+                        Log.d("Asdf", "caught deleted");
+                        updateAuthors();
+                    } else {
+                        viewHolder.draw(author);
+                    }
                 }
             });
         }
@@ -165,8 +159,21 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
             @Bind(R.id.avatar) ImageView avatar;
             @Bind(R.id.name) TextView name;
             @Bind(R.id.email) TextView email;
+
             public AuthorHolder(View v){
                 ButterKnife.bind(this, v);
+            }
+
+            public void draw(Author author){
+                name.setText(author.getName());
+                email.setText(author.getEmail());
+                avatar.setImageResource(R.drawable.ic_keyboard_control);
+                author.getAvatarBitmap(new Dao.SingleQueryCallback<Bitmap>() {
+                    @Override
+                    public void onResult(@Nullable Bitmap result) {
+                        avatar.setImageBitmap(result);
+                    }
+                });
             }
         }
     }

@@ -19,7 +19,7 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
     }
 
     public void findByLocalId(final int id, SingleQueryCallback<T> callback){
-        (new SingleItemQuery(callback){
+        (new SingleItemQuery<T>(callback){
             @Override
             protected T doInBackground(Void... params) {
                 return queryForId(id);
@@ -32,7 +32,7 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
     }
 
     public void findBy(final String field, final Object value, SingleQueryCallback<T> callback){
-        (new SingleItemQuery(callback){
+        (new SingleItemQuery<T>(callback){
             @Override
             protected T doInBackground(Void... params) {
                 List<T> results = queryForEq(field, value);
@@ -42,7 +42,7 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
     }
 
     public void all(MultipleQueryCallback<T> callback){
-        (new MultipleItemQuery(callback){
+        (new MultipleItemQuery<T>(callback){
             @Override
             protected List<T> doInBackground(Void... params) {
                 return queryForAll();
@@ -51,7 +51,7 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
     }
 
     public void unSynced(MultipleQueryCallback<T> callback){
-        (new MultipleItemQuery(callback){
+        (new MultipleItemQuery<T>(callback){
             @Override
             protected List<T> doInBackground(Void... params) {
                 return queryForEq("synced", false);
@@ -60,7 +60,7 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
     }
 
     public void save(final T object, @Nullable SingleQueryCallback<T> callback){
-        (new SingleItemQuery(callback){
+        (new SingleItemQuery<T>(callback){
             @Override
             protected T doInBackground(Void... params) {
                 createOrUpdate(object);
@@ -70,7 +70,7 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
     }
 
     public void delete(final T object, @Nullable SingleQueryCallback<T> callback){
-        (new SingleItemQuery(callback){
+        (new SingleItemQuery<T>(callback){
             @Override
             protected T doInBackground(Void... params) {
                 delete(object);
@@ -81,30 +81,28 @@ public class Dao<T extends Resource> extends RuntimeExceptionDao<T, Integer> {
 
     /***************************************************************/
 
-    private abstract class SingleItemQuery extends AsyncTask<Void, Void, T> {
-
-        private SingleQueryCallback<T> callback;
-        public SingleItemQuery(@Nullable SingleQueryCallback<T> callback){
+    private static abstract class SingleItemQuery<V> extends AsyncTask<Void, Void, V> {
+        private SingleQueryCallback<V> callback;
+        public SingleItemQuery(@Nullable SingleQueryCallback<V> callback){
             this.callback = callback;
         }
 
         @Override
-        protected void onPostExecute(T result){
+        protected void onPostExecute(V result){
             if(callback!=null){
                 callback.onResult(result);
             }
         }
     }
 
-    private abstract class MultipleItemQuery extends AsyncTask<Void, Void, List<T>> {
-
-        private MultipleQueryCallback<T> callback;
-        public MultipleItemQuery(@Nullable MultipleQueryCallback<T> callback){
+    private static abstract class MultipleItemQuery<V> extends AsyncTask<Void, Void, List<V>> {
+        private MultipleQueryCallback<V> callback;
+        public MultipleItemQuery(@Nullable MultipleQueryCallback<V> callback){
             this.callback = callback;
         }
 
         @Override
-        protected void onPostExecute(List<T> results){
+        protected void onPostExecute(List<V> results){
             if(callback!=null){
                 callback.onResult(results);
             }

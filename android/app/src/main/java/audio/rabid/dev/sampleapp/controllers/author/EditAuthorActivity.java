@@ -122,16 +122,18 @@ public class EditAuthorActivity extends AppCompatActivity {
             }
             String a = avatar.getText().toString();
 
-            author.setName(n);
-            author.setEmail(e);
-            author.setAvatar(a);
-            author.save(new Dao.SingleQueryCallback<Author>() {
-                @Override
-                public void onResult(@Nullable Author result) {
-                    AuthorActivity.open(EditAuthorActivity.this, author.getId());
-                    finish();
-                }
-            });
+            synchronized (author.Lock) {
+                author.setName(n);
+                author.setEmail(e);
+                author.setAvatar(a);
+                author.save(new Dao.SingleQueryCallback<Author>() {
+                    @Override
+                    public void onResult(@Nullable Author result) {
+                        AuthorActivity.open(EditAuthorActivity.this, author.getId());
+                        finish();
+                    }
+                });
+            }
         }
 
         public void delete(){
@@ -144,7 +146,7 @@ public class EditAuthorActivity extends AppCompatActivity {
                             author.delete(new Dao.SingleQueryCallback<Author>() {
                                 @Override
                                 public void onResult(@Nullable Author result) {
-                                    finish(); //close page
+                                    finish();
                                 }
                             });
                         }
