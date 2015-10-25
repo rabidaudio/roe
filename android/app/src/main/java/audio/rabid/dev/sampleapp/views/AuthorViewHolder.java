@@ -47,6 +47,7 @@ public class AuthorViewHolder extends ViewHolder<Author> {
 
     @Override
     protected void onNoItem(View parent) {
+        ButterKnife.bind(this, parent);
         avatar.setImageResource(R.drawable.ic_not_interested);
         name.setText("Author not found");
         email.setText(null);

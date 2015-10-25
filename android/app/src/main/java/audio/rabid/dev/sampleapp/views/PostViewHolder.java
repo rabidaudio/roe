@@ -1,6 +1,7 @@
 package audio.rabid.dev.sampleapp.views;
 
 import android.app.Activity;
+import android.support.annotation.Nullable;
 import android.view.View;
 import android.widget.TextView;
 
@@ -16,8 +17,9 @@ import butterknife.ButterKnife;
 public class PostViewHolder extends ViewHolder<Post> {
 
     @Bind(R.id.title) TextView title;
-    @Bind(R.id.body) TextView body;
-    @Bind(R.id.author) View author;
+    @Nullable @Bind(R.id.body) TextView body;
+    @Nullable @Bind(R.id.author) View author;
+    @Nullable @Bind(R.id.createdAt) TextView createdAt;
 
     AuthorViewHolder authorViewHolder;
 
@@ -34,15 +36,21 @@ public class PostViewHolder extends ViewHolder<Post> {
         ButterKnife.bind(this, parent);
 
         title.setText(item.getTitle());
-        body.setText(item.getBody());
+        if(body!=null)
+            body.setText(item.getBody());
+
+        if(createdAt!=null)
+            createdAt.setText(item.getCreatedAt().toLocaleString());
 
         //pass child view through
-        authorViewHolder = new AuthorViewHolder(author);
-        authorViewHolder.setItem(item.getAuthor());
+        if(author!=null) {
+            authorViewHolder = new AuthorViewHolder(author);
+            authorViewHolder.setItem(item.getAuthor());
+        }
     }
 
     @Override
     protected void onNoItem(View parent) {
-        body.setText("Post not found");
+        title.setText("Post not found");
     }
 }

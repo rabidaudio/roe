@@ -51,6 +51,14 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
          return deleted;
     }
 
+    public Date getCreatedAt(){
+        return createdAt;
+    }
+
+    public Date getUpdatedAt(){
+        return updatedAt;
+    }
+
     public boolean isNew(){
         return id < 0;
     }

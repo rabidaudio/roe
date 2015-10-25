@@ -18,12 +18,12 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
-import java.sql.SQLException;
 import java.util.List;
 
 import audio.rabid.dev.network_orm.Dao;
 import audio.rabid.dev.network_orm.TypedObserver;
 import audio.rabid.dev.sampleapp.R;
+import audio.rabid.dev.sampleapp.controllers.posts.PostsActivity;
 import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.sampleapp.views.AuthorViewHolder;
 import audio.rabid.dev.utils.EasyArrayAdapter;
@@ -34,8 +34,6 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
 
     @Bind(R.id.authors) ListView authors;
     @Bind(R.id.refreshLayout) SwipeRefreshLayout refreshLayout;
-
-    String query = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,11 +50,6 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
             }
         });
         refreshLayout.setOnRefreshListener(this);
-
-        Intent intent = getIntent();
-        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
-            query = intent.getStringExtra(SearchManager.QUERY);
-        }
     }
 
     @Override
@@ -72,23 +65,11 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
 
     private void updateAuthors(){
         refreshLayout.setRefreshing(true);
-        Author.Dao.customMultipleQuery(new Dao.CustomMultipleQuery<Author>() {
-            @Override
-            public List<Author> executeQuery(Dao<Author> dao) {
-                if(query==null){
-                    return dao.queryForAll();
-                }else{
-                    String search = "%"+query+"%";
-                    try {
-                        return dao.queryBuilder().where().like("name", search).or().like("email", search).query();
-                    }catch (SQLException e){
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-
+        final long start = System.nanoTime();
+        Author.Dao.all(new Dao.MultipleQueryCallback<Author>() {
             @Override
             public void onResult(List<Author> results) {
+                Log.d("q", "query time ms: "+(System.nanoTime()-start)/1000f/1000f);
                 refreshLayout.setRefreshing(false);
                 authors.setAdapter(new AuthorAdapter(AuthorsActivity.this, results));
             }
@@ -96,7 +77,7 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
     }
 
     public void open(Author author) {
-        AuthorActivity.open(this, author.getId());
+        PostsActivity.openForAuthor(this, author.getId());
     }
 
     public void openMenu(final Author author) {
