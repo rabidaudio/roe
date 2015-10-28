@@ -6,6 +6,7 @@ import com.j256.ormlite.dao.Dao;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -129,25 +130,28 @@ public class Source<T extends Resource> {
                     if(r.wasError()) {
                         return null;
                     }else{
-                        List<T> newInstances = resourceCreator.createArrayFromJSON(r.getResponseBody());
-                        ArrayList<T> returnValues = new ArrayList<T>(newInstances.size());
-                        for(T n : newInstances){
+                        List<T> newInstances = new ArrayList<T>();
+                        JSONArray array = r.getResponseBody().getJSONArray(resourceCreator.jsonArrayContainerKey());
+                        for(int i=0; i<array.length(); i++){
+                            JSONObject o = array.getJSONObject(i);
+                            T n = resourceCreator.createFromJSON(o);
+
                             List<T> fromServerId = dao.queryForEq("server_id", n.getServerId());
                             if(fromServerId != null && !fromServerId.isEmpty()){
                                 //update
                                 T existing = atomicCachePutIfMissing(fromServerId.get(0));
-                                resourceCreator.copyFromNew(existing, n);
+                                existing.updateFromJSON(o);
                                 existing.synced = true;
                                 dao.update(existing);
-                                returnValues.add(existing);
+                                newInstances.add(existing);
                             }else{
                                 //create
                                 n.synced = true;
                                 dao.create(n);
-                                returnValues.add(atomicCachePut(n));
+                                newInstances.add(atomicCachePut(n));
                             }
                         }
-                        return returnValues;
+                        return newInstances;
                     }
                 }catch (Server.NetworkException e){
                     //oh no, no items...
@@ -231,6 +235,7 @@ public class Source<T extends Resource> {
                     }
                     try {
                         dao.delete(object);
+                        object.deleted = true;
                     } catch (SQLException e) {
                         throw new RuntimeException(e);
                     }
@@ -285,7 +290,12 @@ public class Source<T extends Resource> {
                 try {
                     Server.Response r = server.show(endpoint, item);
                     if(!r.wasError()){
-                        boolean changed = item.updateFromJSON(r.getResponseBody()); //update values
+                        boolean changed;
+                        try {
+                            changed = item.updateFromJSON(r.getResponseBody()); //update values
+                        }catch (JSONException e){
+                            throw new RuntimeException(e);
+                        }
                         if(changed) {
                             try {
                                 item.synced = true;
@@ -329,7 +339,11 @@ public class Source<T extends Resource> {
 
     protected void updateFromResponse(T object, Server.Response r) throws SQLException {
         if (!r.wasError()) {
-            object.updateFromJSON(r.getResponseBody());
+            try {
+                object.updateFromJSON(r.getResponseBody());
+            }catch (JSONException e){
+                throw new RuntimeException(e);
+            }
             object.synced = true;
             dao.update(object);
         }

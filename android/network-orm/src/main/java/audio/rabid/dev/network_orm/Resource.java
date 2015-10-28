@@ -6,7 +6,6 @@ import org.jetbrains.annotations.Nullable;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.net.ProtocolException;
 import java.util.Date;
 
 /**
@@ -36,7 +35,7 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
     @DatabaseField
     protected Date updatedAt;
 
-    private boolean deleted = false;
+    protected boolean deleted = false;
 
     public int getId(){
         return id;
@@ -80,34 +79,30 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
 
     @Override
     public String toString(){
-        return getClass().getSimpleName()+": "+toJSON().toString();
+        try {
+            return getClass().getSimpleName() + ": " + toJSON().toString();
+        }catch (JSONException e){
+            return super.toString();
+        }
     }
 
-    public JSONObject toJSON() {
-        try {
-            return new JSONObject()
-                    .put("id", serverId)
-                    .put("created_at", NetworkDate.encode(createdAt))
-                    .put("updated_at", NetworkDate.encode(updatedAt));
-        }catch (JSONException e) {
-            throw new RuntimeException(e);
-        }
+    public JSONObject toJSON() throws JSONException {
+        return new JSONObject()
+                .put("id", serverId)
+                .put("created_at", NetworkDate.encode(createdAt))
+                .put("updated_at", NetworkDate.encode(updatedAt));
     }
 
     /**
      * Set values from a JSON object
      * @return were any object fields changed?
      */
-    protected boolean updateFromJSON(JSONObject data) {
-        try {
-            int id = data.getInt("id");
-            boolean updated = serverId != id;
-            if(updated){
-                serverId = id;
-            }
-            return updated;
-        }catch (JSONException e){
-            throw new RuntimeException(e);
+    protected boolean updateFromJSON(JSONObject data) throws JSONException{
+        int id = data.getInt("id");
+        boolean updated = serverId != id;
+        if(updated){
+            serverId = id;
         }
+        return updated;
     }
 }

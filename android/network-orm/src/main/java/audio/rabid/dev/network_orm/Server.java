@@ -2,6 +2,7 @@ package audio.rabid.dev.network_orm;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -72,11 +73,19 @@ public class Server {
     }
 
     public Response create(String endpoint, Resource item) throws NetworkException {
-        return request(endpoint, Method.POST, item.toJSON());
+        try {
+            return request(endpoint, Method.POST, item.toJSON());
+        }catch (JSONException e){
+            throw new RuntimeException(e);
+        }
     }
 
     public Response update(String endpoint, Resource item) throws NetworkException {
-        return request(endpoint+"/"+item.getServerId(), Method.PUT, item.toJSON());
+        try {
+            return request(endpoint + "/" + item.getServerId(), Method.PUT, item.toJSON());
+        }catch (JSONException e){
+        throw new RuntimeException(e);
+    }
     }
 
     public Response destroy(String endpoint, Resource item) throws NetworkException {

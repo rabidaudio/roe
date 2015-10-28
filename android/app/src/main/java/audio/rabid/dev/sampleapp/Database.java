@@ -37,7 +37,7 @@ public class Database extends OrmLiteSqliteOpenHelper {
         super(context, "simple.db", null, VERSION);
     }
 
-    public static Dao getDBDao(Class clazz){
+    public static Dao getDaoOrThrow(Class clazz){
         try {
             return getInstance().getDao(clazz);
         } catch (SQLException e) {

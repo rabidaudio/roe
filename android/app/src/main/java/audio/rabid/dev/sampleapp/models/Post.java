@@ -7,9 +7,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import audio.rabid.dev.network_orm.AllowedOps;
-import audio.rabid.dev.network_orm.Dao;
 import audio.rabid.dev.network_orm.Resource;
+import audio.rabid.dev.network_orm.ResourceCreator;
+import audio.rabid.dev.network_orm.Source;
 import audio.rabid.dev.sampleapp.Database;
+import audio.rabid.dev.sampleapp.SampleAppServer;
 
 /**
  * Created by charles on 10/25/15.
@@ -17,12 +19,14 @@ import audio.rabid.dev.sampleapp.Database;
 @DatabaseTable(tableName = "posts")
 public class Post extends Resource<Post> {
 
+    private static final String ENDPOINT = "posts";
+
     @SuppressWarnings("unchecked")
-    public static Dao<Post> Dao = new Dao<>(Database.getDBDao(Post.class));
+    public static final Source<Post> Source = new Source<>(SampleAppServer.getInstance(), Database.getDaoOrThrow(Post.class), ENDPOINT, new PostResourceCreator());
 
     @Override
-    public Dao<Post> getDao() {
-        return Dao;
+    public Source<Post> getSource(){
+        return Source;
     }
 
     @Override
@@ -90,10 +94,38 @@ public class Post extends Resource<Post> {
     }
 
     @Override
-    protected void updateFromJSON(JSONObject data) throws JSONException{
-        super.updateFromJSON(data);
-        title = data.getString("title");
-        body = data.getString("body");
-        likes = data.getInt("likes");
+    protected boolean updateFromJSON(JSONObject data) throws JSONException {
+        boolean updated = super.updateFromJSON(data);;
+        String t = data.getString("title");
+        String b = data.getString("body");
+        int l = data.getInt("likes");
+        if(!title.equals(t)){
+            title = t;
+            updated = true;
+        }
+        if(!body.equals(b)){
+            body = b;
+            updated = true;
+        }
+        if(l != likes){
+            likes = l;
+            updated = true;
+        }
+        return updated;
+    }
+
+    public static class PostResourceCreator extends ResourceCreator<Post>{
+
+        @Override
+        public Post createFromJSON(JSONObject json) throws JSONException {
+            Post p = new Post();
+            p.updateFromJSON(json);
+            return p;
+        }
+
+        @Override
+        public String jsonArrayContainerKey() {
+            return "posts";
+        }
     }
 }
