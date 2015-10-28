@@ -150,8 +150,8 @@ public class Author extends Resource<Author> {
     }
 
     @Override
-    protected void fromJSON(JSONObject data) throws JSONException{
-        super.fromJSON(data);
+    protected void updateFromJSON(JSONObject data) throws JSONException{
+        super.updateFromJSON(data);
         name = data.getString("name");
         email = data.getString("email");
         avatar = data.getString("avatar");

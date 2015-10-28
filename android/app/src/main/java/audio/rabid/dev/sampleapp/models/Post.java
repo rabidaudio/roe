@@ -90,8 +90,8 @@ public class Post extends Resource<Post> {
     }
 
     @Override
-    protected void fromJSON(JSONObject data) throws JSONException{
-        super.fromJSON(data);
+    protected void updateFromJSON(JSONObject data) throws JSONException{
+        super.updateFromJSON(data);
         title = data.getString("title");
         body = data.getString("body");
         likes = data.getInt("likes");
