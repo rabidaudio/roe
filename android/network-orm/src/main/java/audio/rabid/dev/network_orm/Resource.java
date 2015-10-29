@@ -61,7 +61,7 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
         return id < 0;
     }
 
-    protected int getServerId(){
+    public int getServerId(){
         return serverId;
     }
 

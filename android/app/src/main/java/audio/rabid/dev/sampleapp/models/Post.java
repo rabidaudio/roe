@@ -3,15 +3,12 @@ package audio.rabid.dev.sampleapp.models;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import audio.rabid.dev.network_orm.AllowedOps;
 import audio.rabid.dev.network_orm.Resource;
-import audio.rabid.dev.network_orm.ResourceCreator;
 import audio.rabid.dev.network_orm.Source;
-import audio.rabid.dev.sampleapp.Database;
-import audio.rabid.dev.sampleapp.SampleAppServer;
 
 /**
  * Created by charles on 10/25/15.
@@ -81,6 +78,7 @@ public class Post extends Resource<Post> {
     @Override
     public JSONObject toJSON() throws JSONException {
         return super.toJSON()
+                .put("author_id", author.getId())
                 .put("title", title)
                 .put("body", body)
                 .put("liked", liked);
@@ -92,6 +90,7 @@ public class Post extends Resource<Post> {
         String t = data.getString("title");
         String b = data.getString("body");
         int l = data.getInt("likes");
+
         if(title==null || !title.equals(t)){
             title = t;
             updated = true;
@@ -104,8 +103,14 @@ public class Post extends Resource<Post> {
             likes = l;
             updated = true;
         }
+        //TODO this is hacky...
+        if(!data.isNull("author")) {
+            int authorServerId = data.getJSONObject("author").getInt("id");
+            if (author == null || author.getServerId() != authorServerId) {
+                author = Author.Source.getServerSync(authorServerId);
+                updated = true;
+            }
+        }
         return updated;
     }
-
-
 }

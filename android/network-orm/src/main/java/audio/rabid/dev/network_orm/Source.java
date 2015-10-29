@@ -4,6 +4,7 @@ import android.util.Log;
 import android.util.SparseArray;
 
 import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.field.DatabaseField;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -11,6 +12,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -31,20 +33,20 @@ public class Source<T extends Resource> {
     private String endpoint;
     private String jsonSingleObjectKey;
     private String jsonArrayObjectKey;
-    private ResourceCreator<T> resourceCreator;
+    private ResourceFactory<T> resourceFactory;
     private AllowedOps permissions;
 
     private final SparseArray<T> instanceCache = new SparseArray<>(50);
 
     public Source(@NotNull Server server, @NotNull Dao<T, Integer> dao, @NotNull String endpoint,
                   @NotNull String jsonSingleObjectKey, @NotNull String jsonArrayObjectKey,
-                  @NotNull ResourceCreator<T> resourceCreator, @NotNull AllowedOps permissions){
+                  @NotNull ResourceFactory<T> resourceFactory, @NotNull AllowedOps permissions){
         this.server = server;
         this.dao = dao;
         this.endpoint = endpoint;
         this.jsonSingleObjectKey = jsonSingleObjectKey;
         this.jsonArrayObjectKey = jsonArrayObjectKey;
-        this.resourceCreator = resourceCreator;
+        this.resourceFactory = resourceFactory;
         this.permissions = permissions;
     }
 
@@ -69,17 +71,7 @@ public class Source<T extends Resource> {
         (new SourceAsyncTask<T>(callback){
             @Override
             protected T runInBackground() {
-                T result;
-                try {
-                    result = dao.queryForId(localId);
-                }catch (SQLException e){
-                    return null;
-                }
-                if(result == null){
-                    return null; //not found
-                }else{
-                    return cacheGetNetworkUpdateOnMiss(result);
-                }
+                return getLocalSync(localId);
             }
         }).execute();
     }
@@ -114,24 +106,7 @@ public class Source<T extends Resource> {
         (new SourceAsyncTask<T>(callback){
             @Override
             protected T runInBackground() {
-                T result;
-                try {
-                    List<T> q = dao.queryForEq("serverId", serverId);
-                    if(q==null || q.isEmpty()){
-                        result = null;
-                    }else{
-                        result = q.get(0);
-                    }
-                }catch (SQLException e){
-                    result = null;
-                }
-                if(result==null){
-                    //try to create from server
-                    return cacheAddWithNetworkCreate(serverId);
-                }else{
-                    //get from cache, updating if required
-                    return cacheGetNetworkUpdateOnMiss(result);
-                }
+                return getServerSync(serverId);
             }
         }).execute();
     }
@@ -155,7 +130,7 @@ public class Source<T extends Resource> {
                         JSONArray array = r.getResponseBody().getJSONArray(jsonArrayObjectKey);
                         for(int i=0; i<array.length(); i++){
                             JSONObject o = array.getJSONObject(i);
-                            T n = resourceCreator.createFromJSON(o);
+                            T n = resourceFactory.createFromJSON(o);
 
                             List<T> fromServerId = dao.queryForEq("serverId", n.getServerId());
                             if(fromServerId != null && !fromServerId.isEmpty()){
@@ -366,7 +341,7 @@ public class Source<T extends Resource> {
             Server.Response r = server.show(endpoint, serverId);
             if(!r.wasError()) {
                 //create object
-                T newInstance = resourceCreator.createFromJSON(r.getResponseBody().getJSONObject(jsonSingleObjectKey));
+                T newInstance = resourceFactory.createFromJSON(r.getResponseBody().getJSONObject(jsonSingleObjectKey));
                 //save local
                 newInstance.synced = true;
                 newInstance.createdAt = newInstance.updatedAt = new Date();
@@ -415,6 +390,62 @@ public class Source<T extends Resource> {
             }
         }
     }
+
+    public T getLocalSync(int localId){
+        T result;
+        try {
+            result = dao.queryForId(localId);
+        }catch (SQLException e){
+            return null;
+        }
+        if(result == null){
+            return null; //not found
+        }else{
+            return cacheGetNetworkUpdateOnMiss(result);
+        }
+    }
+
+    public T getServerSync(int serverId){
+        T result;
+        try {
+            List<T> q = dao.queryForEq("serverId", serverId);
+            if(q==null || q.isEmpty()){
+                result = null;
+            }else{
+                result = q.get(0);
+            }
+        }catch (SQLException e){
+            result = null;
+        }
+        if(result==null){
+            //try to create from server
+            return cacheAddWithNetworkCreate(serverId);
+        }else{
+            //get from cache, updating if required
+            return cacheGetNetworkUpdateOnMiss(result);
+        }
+    }
+
+//    @SuppressWarnings("unchecked")
+//    protected List<Source> getForeignAutoFieldSources(){
+//        List<Source> autoRefreshFields = new ArrayList<>();
+//        for(Field f : dao.getDataClass().getFields()){
+//            DatabaseField databaseField = f.getAnnotation(DatabaseField.class);
+//            if(databaseField!=null){
+//                if( databaseField.foreign() && (databaseField.foreignAutoRefresh() || databaseField.foreignAutoCreate())){
+//                    if(f.getType().isAssignableFrom(Resource.class)){
+//                        try {
+//                            Source foreignSource = ((Resource) f.getType().getConstructor().newInstance()).getSource();
+//                            autoRefreshFields.add(foreignSource);
+//                        }catch (Exception e){
+//                            throw new RuntimeException("Unable to find Source for foreign field "+f.getName(), e);
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        return autoRefreshFields;
+//    }
 
     private T atomicCacheFetch(int id){
         synchronized (instanceCache){

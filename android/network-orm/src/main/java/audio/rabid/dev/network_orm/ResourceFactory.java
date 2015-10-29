@@ -10,7 +10,7 @@ import org.json.JSONObject;
  * what they are. It should *NOT* do any database hits or anything fancy. It should simply create a new
  * instance, populate values, and return it.
  */
-public interface ResourceCreator<T extends Resource> {
+public interface ResourceFactory<T extends Resource> {
 
     T createFromJSON(JSONObject json) throws JSONException;
 

@@ -1,14 +1,17 @@
 package audio.rabid.dev.sampleapp.models;
 
+import com.j256.ormlite.table.ObjectFactory;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Constructor;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 import audio.rabid.dev.network_orm.AllowedOps;
-import audio.rabid.dev.network_orm.ResourceCreator;
+import audio.rabid.dev.network_orm.ResourceFactory;
 import audio.rabid.dev.network_orm.Source;
 import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.SampleAppServer;
@@ -21,7 +24,14 @@ public class PostSource extends Source<Post> {
     @SuppressWarnings("unchecked")
     public PostSource() {
         super(SampleAppServer.getInstance(), Database.getDaoOrThrow(Post.class),
-                "posts", "post", "posts", new PostResourceCreator(), AllowedOps.ALL);
+                "posts", "post", "posts", new PostResourceFactory(), AllowedOps.ALL);
+
+        getDao().setObjectFactory(new ObjectFactory<Post>() {
+            @Override
+            public Post createObject(Constructor<Post> construcor, Class<Post> dataClass) throws SQLException {
+                return new Post();
+            }
+        });
     }
 
     public void getRecentByAuthor(final int authorId, final long limit, QueryCallback<List<Post>> callback){
@@ -66,7 +76,7 @@ public class PostSource extends Source<Post> {
         }
     }
 
-    public static class PostResourceCreator implements ResourceCreator<Post> {
+    public static class PostResourceFactory implements ResourceFactory<Post> {
 
         @Override
         public Post createFromJSON(JSONObject json) throws JSONException {
