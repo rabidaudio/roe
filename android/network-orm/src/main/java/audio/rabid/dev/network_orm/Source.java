@@ -27,16 +27,29 @@ public class Source<T extends Resource> {
     private Server server;
     private Dao<T, Integer> dao;
     private String endpoint;
+    private String jsonArrayObjectKey;
     private ResourceCreator<T> resourceCreator;
+    private AllowedOps permissions;
 
     private final SparseArray<T> instanceCache = new SparseArray<>(50);
 
     public Source(@NotNull Server server, @NotNull Dao<T, Integer> dao, @NotNull String endpoint,
-                  @NotNull ResourceCreator<T> resourceCreator){
+                  @NotNull String jsonArrayObjectKey, @NotNull ResourceCreator<T> resourceCreator,
+                  @NotNull AllowedOps permissions){
         this.server = server;
         this.dao = dao;
         this.endpoint = endpoint;
+        this.jsonArrayObjectKey = jsonArrayObjectKey;
         this.resourceCreator = resourceCreator;
+        this.permissions = permissions;
+    }
+
+    protected Dao<T, Integer> getDao(){
+        return dao;
+    }
+
+    protected Server getServer(){
+        return server;
     }
 
     /**
@@ -48,6 +61,7 @@ public class Source<T extends Resource> {
      * @param callback which supplies the data
      */
     public void getLocal(final int localId, @NotNull QueryCallback<T> callback){
+        checkPermissions(AllowedOps.Op.READ);
         (new SourceAsyncTask<T>(callback){
             @Override
             protected T runInBackground() {
@@ -71,6 +85,7 @@ public class Source<T extends Resource> {
      * @param callback
      */
     public void getAllLocal(@NotNull QueryCallback<List<T>> callback){
+        checkPermissions(AllowedOps.Op.READ);
         (new SourceAsyncTask<List<T>>(callback){
             @Override
             protected List<T> runInBackground() {
@@ -91,6 +106,7 @@ public class Source<T extends Resource> {
     }
 
     public void getByServerId(final int serverId, @NotNull QueryCallback<T> callback){
+        checkPermissions(AllowedOps.Op.READ, AllowedOps.Op.CREATE);
         (new SourceAsyncTask<T>(callback){
             @Override
             protected T runInBackground() {
@@ -122,6 +138,7 @@ public class Source<T extends Resource> {
      * @param callback
      */
     public void remoteSearch(@Nullable final JSONObject payload, @Nullable QueryCallback<List<T>> callback){
+        checkPermissions(AllowedOps.Op.READ, AllowedOps.Op.CREATE);
         (new SourceAsyncTask<List<T>>(callback){
             @Override
             protected List<T> runInBackground() {
@@ -131,7 +148,7 @@ public class Source<T extends Resource> {
                         return null;
                     }else{
                         List<T> newInstances = new ArrayList<T>();
-                        JSONArray array = r.getResponseBody().getJSONArray(resourceCreator.jsonArrayContainerKey());
+                        JSONArray array = r.getResponseBody().getJSONArray(jsonArrayObjectKey);
                         for(int i=0; i<array.length(); i++){
                             JSONObject o = array.getJSONObject(i);
                             T n = resourceCreator.createFromJSON(o);
@@ -164,6 +181,7 @@ public class Source<T extends Resource> {
     }
 
     public void createOrUpdate(T object, @Nullable QueryCallback<T> callback){
+        checkPermissions(AllowedOps.Op.CREATE, AllowedOps.Op.UPDATE);
         if(object.getId()>0){
             update(object, callback);
         }else{
@@ -176,6 +194,7 @@ public class Source<T extends Resource> {
      * We also need to add it to the object cache.
      */
     public void create(final T object, @Nullable QueryCallback<T> callback){
+        checkPermissions(AllowedOps.Op.CREATE);
         (new SourceAsyncTask<T>(callback){
             @Override
             protected T runInBackground() {
@@ -200,6 +219,7 @@ public class Source<T extends Resource> {
      * We update in the database, then update on the server,
      */
     public void update(final T object, @Nullable QueryCallback<T> callback){
+        checkPermissions(AllowedOps.Op.UPDATE);
         (new SourceAsyncTask<T>(callback){
             @Override
             protected T runInBackground() {
@@ -222,6 +242,7 @@ public class Source<T extends Resource> {
     }
 
     public void delete(final T object, final boolean deleteRemotely, @Nullable QueryCallback<T> callback){
+        checkPermissions(AllowedOps.Op.DELETE);
         (new SourceAsyncTask<T>(callback){
             @Override
             protected T runInBackground() {
@@ -349,6 +370,14 @@ public class Source<T extends Resource> {
         }
     }
 
+    protected void checkPermissions(AllowedOps.Op... required){
+        for(AllowedOps.Op r : required) {
+            if (!permissions.can(r)) {
+                throw new RuntimeException("Permission " + r.toString() + " denied for " + dao.getDataClass().toString());
+            }
+        }
+    }
+
     private T atomicCacheFetch(int id){
         synchronized (instanceCache){
             return instanceCache.get(id);
@@ -385,7 +414,7 @@ public class Source<T extends Resource> {
      * Handles running queries in background and callbacks on main thread
      * @param <A> the data type returned by the query
      */
-    private abstract static class SourceAsyncTask<A> implements Runnable {
+    protected abstract static class SourceAsyncTask<A> implements Runnable {
 
         @Nullable
         private QueryCallback<A> callback;

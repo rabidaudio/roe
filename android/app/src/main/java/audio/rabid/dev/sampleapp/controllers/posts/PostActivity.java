@@ -2,18 +2,16 @@ package audio.rabid.dev.sampleapp.controllers.posts;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.TextView;
 
-import audio.rabid.dev.network_orm.Dao;
+import audio.rabid.dev.network_orm.Source;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.author.AuthorActivity;
-import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.sampleapp.models.Post;
 import audio.rabid.dev.sampleapp.views.PostViewHolder;
 import butterknife.Bind;
@@ -38,7 +36,8 @@ public class PostActivity extends AppCompatActivity {
         postViewHolder = new PostViewHolder(this);
 
         int postID = getIntent().getIntExtra(EXTRA_POST_ID, -1);
-        Post.Dao.findByLocalId(postID, new Dao.SingleQueryCallback<Post>() {
+
+        Post.Source.getLocal(postID, new Source.QueryCallback<Post>() {
             @Override
             public void onResult(@Nullable Post result) {
                 postViewHolder.setItem(result);

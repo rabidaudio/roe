@@ -65,8 +65,6 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
         return serverId;
     }
 
-    public abstract AllowedOps getAllowedOps();
-
     @SuppressWarnings("unchecked")
     public synchronized void save(@Nullable Source.QueryCallback<T> callback){
         getSource().createOrUpdate((T) this, callback);
@@ -97,7 +95,7 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
      * Set values from a JSON object
      * @return were any object fields changed?
      */
-    protected boolean updateFromJSON(JSONObject data) throws JSONException{
+    protected synchronized boolean updateFromJSON(JSONObject data) throws JSONException{
         int id = data.getInt("id");
         boolean updated = serverId != id;
         if(updated){

@@ -6,16 +6,20 @@ package audio.rabid.dev.network_orm;
 public class AllowedOps {
 
     public enum Op {
+        READ,
         CREATE,
         UPDATE,
         DELETE
     }
 
-    private boolean create, update, delete = false;
+    private boolean read, create, update, delete = false;
 
     public AllowedOps(Op... allowed){
         for(Op o : allowed){
             switch (o){
+                case READ:
+                    read = true;
+                    break;
                 case CREATE:
                     create = true;
                     break;
@@ -27,6 +31,10 @@ public class AllowedOps {
                     break;
             }
         }
+    }
+
+    public boolean canRead(){
+        return read;
     }
 
     public boolean canCreate(){
@@ -41,7 +49,22 @@ public class AllowedOps {
         return delete;
     }
 
-    public static AllowedOps READ_ONLY = new AllowedOps();
+    public boolean can(Op permission){
+        switch (permission){
+            case READ:
+                return read;
+            case CREATE:
+                return create;
+            case UPDATE:
+                return update;
+            case DELETE:
+                return delete;
+            default:
+                return false;
+        }
+    }
 
-    public static AllowedOps ALL = new AllowedOps(Op.CREATE, Op.UPDATE, Op.DELETE);
+    public static AllowedOps READ_ONLY = new AllowedOps(Op.READ);
+
+    public static AllowedOps ALL = new AllowedOps(Op.READ, Op.CREATE, Op.UPDATE, Op.DELETE);
 }

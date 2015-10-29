@@ -10,14 +10,8 @@ import org.json.JSONObject;
  * what they are. It should *NOT* do any database hits or anything fancy. It should simply create a new
  * instance, populate values, and return it.
  */
-public abstract class ResourceCreator<T extends Resource> {
+public interface ResourceCreator<T extends Resource> {
 
-    public abstract T createFromJSON(JSONObject json) throws JSONException;
+    T createFromJSON(JSONObject json) throws JSONException;
 
-    /**
-     * @return the name of the object which contains an array of json objects when multiple items are
-     * returned from the server. for example, if server returns { posts: [{post1}, {post2}, ...]},
-     * you should return "posts"
-     */
-    public abstract String jsonArrayContainerKey();
 }

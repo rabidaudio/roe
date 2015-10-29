@@ -19,19 +19,12 @@ import audio.rabid.dev.sampleapp.SampleAppServer;
 @DatabaseTable(tableName = "posts")
 public class Post extends Resource<Post> {
 
-    private static final String ENDPOINT = "posts";
-
     @SuppressWarnings("unchecked")
-    public static final Source<Post> Source = new Source<>(SampleAppServer.getInstance(), Database.getDaoOrThrow(Post.class), ENDPOINT, new PostResourceCreator());
+    public static final PostSource Source = new PostSource();
 
     @Override
     public Source<Post> getSource(){
         return Source;
-    }
-
-    @Override
-    public AllowedOps getAllowedOps() {
-        return AllowedOps.ALL;
     }
 
     @DatabaseField
@@ -94,8 +87,8 @@ public class Post extends Resource<Post> {
     }
 
     @Override
-    protected boolean updateFromJSON(JSONObject data) throws JSONException {
-        boolean updated = super.updateFromJSON(data);;
+    protected synchronized boolean updateFromJSON(JSONObject data) throws JSONException {
+        boolean updated = super.updateFromJSON(data);
         String t = data.getString("title");
         String b = data.getString("body");
         int l = data.getInt("likes");
@@ -114,18 +107,5 @@ public class Post extends Resource<Post> {
         return updated;
     }
 
-    public static class PostResourceCreator extends ResourceCreator<Post>{
 
-        @Override
-        public Post createFromJSON(JSONObject json) throws JSONException {
-            Post p = new Post();
-            p.updateFromJSON(json);
-            return p;
-        }
-
-        @Override
-        public String jsonArrayContainerKey() {
-            return "posts";
-        }
-    }
 }

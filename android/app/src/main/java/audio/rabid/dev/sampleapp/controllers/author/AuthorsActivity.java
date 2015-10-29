@@ -1,10 +1,7 @@
 package audio.rabid.dev.sampleapp.controllers.author;
 
-import android.app.SearchManager;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
-import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -14,14 +11,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.TextView;
 
 import java.util.List;
 
-import audio.rabid.dev.network_orm.Dao;
-import audio.rabid.dev.network_orm.TypedObserver;
+import audio.rabid.dev.network_orm.Source;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.posts.PostsActivity;
 import audio.rabid.dev.sampleapp.models.Author;
@@ -66,7 +60,7 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
     private void updateAuthors(){
         refreshLayout.setRefreshing(true);
         final long start = System.nanoTime();
-        Author.Dao.all(new Dao.MultipleQueryCallback<Author>() {
+        Author.Source.getAllLocal(new Source.QueryCallback<List<Author>>() {
             @Override
             public void onResult(List<Author> results) {
                 Log.d("q", "query time ms: "+(System.nanoTime()-start)/1000f/1000f);

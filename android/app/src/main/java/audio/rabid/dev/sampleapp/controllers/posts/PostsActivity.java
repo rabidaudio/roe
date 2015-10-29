@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -15,14 +14,11 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.BaseAdapter;
 import android.widget.ListView;
 
 import java.util.List;
 
-import audio.rabid.dev.network_orm.Dao;
+import audio.rabid.dev.network_orm.Source;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.author.AuthorActivity;
 import audio.rabid.dev.sampleapp.controllers.author.AuthorsActivity;
@@ -59,7 +55,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         if(authorId == -1) {
             author.setVisibility(View.GONE);
         }else {
-            Author.Dao.findByLocalId(authorId, new Dao.SingleQueryCallback<Author>() {
+            Author.Source.getLocal(authorId, new Source.QueryCallback<Author>() {
                 @Override
                 public void onResult(Author result) {
                     authorViewHolder.setItem(result);
@@ -104,21 +100,13 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     void updateList(){
         refreshLayout.setRefreshing(true);
         final long start = System.nanoTime();
-        Post.Dao.customMultipleQuery(new Dao.CustomMultipleQuery<Post>() {
-            @Override
-            public List<Post> executeQuery(Dao<Post> dao) {
-                if (authorId == -1) {
-                    return dao.queryForAll();
-                } else {
-                    return dao.queryForEq("author_id", authorId);
-                }
-            }
 
+        Post.Source.allByAuthorOrAll(authorId, new Source.QueryCallback<List<Post>>() {
             @Override
-            public void onResult(List<Post> results) {
+            public void onResult(@org.jetbrains.annotations.Nullable List<Post> result) {
                 Log.d("q", "query time ms: " + (System.nanoTime() - start) / 1000f / 1000f);
                 refreshLayout.setRefreshing(false);
-                posts.setAdapter(new PostAdapter(results));
+                posts.setAdapter(new PostAdapter(result));
             }
         });
     }
@@ -157,7 +145,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                                                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                                                     @Override
                                                     public void onClick(DialogInterface dialog, int which) {
-                                                        post.delete(new Dao.SingleQueryCallback<Post>() {
+                                                        post.delete(new Source.QueryCallback<Post>() {
                                                             @Override
                                                             public void onResult(Post result) {
                                                                 finish();

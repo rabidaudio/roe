@@ -1,21 +1,12 @@
 package audio.rabid.dev.sampleapp.controllers.posts;
 
-import android.app.SearchManager;
-import android.app.SearchableInfo;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
-import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.CursorAdapter;
+import android.support.v7.app.AppCompatActivity;
 import android.widget.EditText;
-import android.widget.SearchView;
 
-import audio.rabid.dev.network_orm.Dao;
+import audio.rabid.dev.network_orm.Source;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.sampleapp.models.Post;
@@ -49,7 +40,7 @@ public class EditPostActivity extends AppCompatActivity {
         final int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
         if(postId == -1){
             post = new Post();
-            Author.Dao.findByLocalId(authorId, new Dao.SingleQueryCallback<Author>() {
+            Author.Source.getLocal(authorId, new Source.QueryCallback<Author>() {
                 @Override
                 public void onResult(Author result) {
                     post.setAuthor(result);
@@ -57,7 +48,7 @@ public class EditPostActivity extends AppCompatActivity {
                 }
             });
         }else{
-            Post.Dao.findByLocalId(postId, new Dao.SingleQueryCallback<Post>() {
+            Post.Source.getLocal(postId, new Source.QueryCallback<Post>() {
                 @Override
                 public void onResult(Post result) {
                     if(result==null){
@@ -89,7 +80,7 @@ public class EditPostActivity extends AppCompatActivity {
         synchronized (post.Lock){
             post.setTitle(t);
             post.setBody(b);
-            post.save(new Dao.SingleQueryCallback<Post>() {
+            post.save(new Source.QueryCallback<Post>() {
                 @Override
                 public void onResult(Post result) {
                     setResult(RESULT_OK);

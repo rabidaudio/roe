@@ -19,9 +19,11 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import audio.rabid.dev.network_orm.AllowedOps;
-import audio.rabid.dev.network_orm.Dao;
 import audio.rabid.dev.network_orm.Resource;
+import audio.rabid.dev.network_orm.ResourceCreator;
+import audio.rabid.dev.network_orm.Source;
 import audio.rabid.dev.sampleapp.Database;
+import audio.rabid.dev.sampleapp.SampleAppServer;
 import audio.rabid.dev.utils.ImageCache;
 
 /**
@@ -31,12 +33,9 @@ import audio.rabid.dev.utils.ImageCache;
 public class Author extends Resource<Author> {
 
     @SuppressWarnings("unchecked")
-    public static Dao<Author> Dao = new Dao<>(Database.getDBDao(Author.class));
-
-    @Override
-    public AllowedOps getAllowedOps(){
-        return new AllowedOps(AllowedOps.Op.CREATE, AllowedOps.Op.UPDATE);
-    }
+    public static final Source<Author> Source = new Source<>(SampleAppServer.getInstance(),
+            Database.getDaoOrThrow(Author.class), "authors", "authors", new AuthorResourceCreator(),
+            new AllowedOps(AllowedOps.Op.CREATE, AllowedOps.Op.READ, AllowedOps.Op.UPDATE));
 
     @DatabaseField
     private String name;
@@ -73,7 +72,7 @@ public class Author extends Resource<Author> {
     }
 
     private Bitmap avatarBitmap;
-    public void getAvatarBitmap(final Dao.SingleQueryCallback<Bitmap> callback) {
+    public void getAvatarBitmap(final Source.QueryCallback<Bitmap> callback) {
         //no image saved
         if(avatar==null){
             callback.onResult(null);
@@ -137,8 +136,8 @@ public class Author extends Resource<Author> {
 
 
     @Override
-    public Dao<Author> getDao() {
-        return Dao;
+    public Source<Author> getSource(){
+        return Source;
     }
 
     @Override
@@ -150,10 +149,32 @@ public class Author extends Resource<Author> {
     }
 
     @Override
-    protected void updateFromJSON(JSONObject data) throws JSONException{
-        super.updateFromJSON(data);
-        name = data.getString("name");
-        email = data.getString("email");
-        avatar = data.getString("avatar");
+    protected synchronized boolean updateFromJSON(JSONObject data) throws JSONException{
+        boolean changed = super.updateFromJSON(data);
+        String n = data.getString("name");
+        String e = data.getString("email");
+        String a = data.getString("avatar");
+        if(!n.equals(name)){
+            name = n;
+            changed = true;
+        }
+        if(!e.equals(email)){
+            email = n;
+            changed = true;
+        }
+        if(!a.equals(avatar)) {
+            setAvatar(a);
+            changed = true;
+        }
+        return changed;
+    }
+
+    private static class AuthorResourceCreator implements ResourceCreator<Author> {
+        @Override
+        public Author createFromJSON(JSONObject json) throws JSONException {
+            Author a = new Author();
+            a.updateFromJSON(json);
+            return a;
+        }
     }
 }

@@ -7,7 +7,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import audio.rabid.dev.network_orm.Dao;
+import audio.rabid.dev.network_orm.Source;
 import audio.rabid.dev.network_orm.ViewHolder;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
@@ -37,7 +37,7 @@ public class AuthorViewHolder extends ViewHolder<Author> {
         email.setText(author.getEmail());
 
         avatar.setImageResource(R.drawable.ic_keyboard_control);
-        author.getAvatarBitmap(new Dao.SingleQueryCallback<Bitmap>() {
+        author.getAvatarBitmap(new Source.QueryCallback<Bitmap>() {
             @Override
             public void onResult(@Nullable Bitmap result) {
                 avatar.setImageBitmap(result);

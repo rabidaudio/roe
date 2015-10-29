@@ -1,21 +1,17 @@
 package audio.rabid.dev.sampleapp.controllers.author;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import java.net.URL;
 
-import audio.rabid.dev.network_orm.Dao;
+import audio.rabid.dev.network_orm.Source;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import butterknife.Bind;
@@ -48,12 +44,12 @@ public class EditAuthorActivity extends AppCompatActivity {
         if(authorId == -1){
             drawNewAuthor();
         }else{
-            Author.Dao.findByLocalId(authorId, new Dao.SingleQueryCallback<Author>() {
+            Author.Source.getLocal(authorId, new Source.QueryCallback<Author>() {
                 @Override
-                public void onResult(@Nullable Author result) {
-                    if(result==null){
+                public void onResult(@org.jetbrains.annotations.Nullable Author result) {
+                    if (result == null) {
                         drawNewAuthor();
-                    }else {
+                    } else {
                         author = result;
                         drawExisting();
                     }
@@ -106,7 +102,7 @@ public class EditAuthorActivity extends AppCompatActivity {
             author.setName(n);
             author.setEmail(e);
             author.setAvatar(a);
-            author.save(new Dao.SingleQueryCallback<Author>() {
+            author.save(new Source.QueryCallback<Author>() {
                 @Override
                 public void onResult(@Nullable Author result) {
                     setResult(Activity.RESULT_OK);
