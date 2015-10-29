@@ -48,7 +48,7 @@ public class Server {
         timeout = ms;
     }
 
-    protected void onBeforeConnection(HttpURLConnection connection){
+    protected void onBeforeConnection(HttpURLConnection connection, @Nullable JSONObject payload){
         connection.setRequestProperty("Content-Type", "application/json");
         connection.setRequestProperty("Accept", "application/json");
     }
@@ -69,20 +69,20 @@ public class Server {
     }
 
     public Response show(String endpoint, Resource item) throws NetworkException {
-        return request(endpoint+""+item.getServerId(), Method.GET, null);
+        return request(endpoint+"/"+item.getServerId(), Method.GET, null);
     }
 
-    public Response create(String endpoint, Resource item) throws NetworkException {
+    public Response create(String endpoint, String jsonObjectKey, Resource item) throws NetworkException {
         try {
-            return request(endpoint, Method.POST, item.toJSON());
+            return request(endpoint, Method.POST, wrapItem(jsonObjectKey, item));
         }catch (JSONException e){
             throw new RuntimeException(e);
         }
     }
 
-    public Response update(String endpoint, Resource item) throws NetworkException {
+    public Response update(String endpoint, String jsonObjectKey, Resource item) throws NetworkException {
         try {
-            return request(endpoint + "/" + item.getServerId(), Method.PUT, item.toJSON());
+            return request(endpoint + "/" + item.getServerId(), Method.PUT, wrapItem(jsonObjectKey, item));
         }catch (JSONException e){
         throw new RuntimeException(e);
     }
@@ -90,6 +90,11 @@ public class Server {
 
     public Response destroy(String endpoint, Resource item) throws NetworkException {
         return request(endpoint+"/"+item.getServerId(), Method.DELETE, null);
+    }
+
+
+    protected JSONObject wrapItem(String key, Resource item) throws JSONException {
+        return new JSONObject().put(key, item.toJSON());
     }
 
     public final Response request(String endpoint, Method method, @Nullable JSONObject payload) throws NetworkException {
@@ -113,7 +118,7 @@ public class Server {
             connection.setRequestMethod(method.toString());
             connection.setConnectTimeout(timeout);
 
-            onBeforeConnection(connection);
+            onBeforeConnection(connection, payload);
 
             if (payload != null) {
                 switch (method) {
@@ -176,6 +181,24 @@ public class Server {
 
         public boolean wasError(){
             return (responseCode/100 != 2) || responseBody.has("error");
+        }
+
+        public String getErrorStatus(){
+            if(!wasError()) return null;
+            try {
+                return getResponseBody().getJSONObject("error").getString("code");
+            }catch (JSONException e){
+                return null;
+            }
+        }
+
+        public String getErrorMessage(){
+            if(!wasError()) return null;
+            try {
+                return getResponseBody().getJSONObject("error").getString("message");
+            }catch (JSONException e){
+                return null;
+            }
         }
     }
 

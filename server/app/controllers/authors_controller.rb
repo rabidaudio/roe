@@ -10,14 +10,18 @@ class AuthorsController < ApplicationController
   end
 
   def create
-    @author = Author.create params.permit(:name, :email, :avatar)
+    @author = Author.create! params.require(:author).permit(:name, :email, :avatar)
     render json: @author
   end
 
   def update
     @author = Author.find params[:id]
-    @author.update(params.permit(:name, :email, :avatar)) unless @author.nil?
-    render json: @author
+    if @author.nil?
+      record_not_found
+    else
+      @author.update! params.require(:author).permit(:name, :email, :avatar)
+      render json: @author
+    end
   end
 
   def destroy

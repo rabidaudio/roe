@@ -34,7 +34,7 @@ public class Author extends Resource<Author> {
 
     @SuppressWarnings("unchecked")
     public static final Source<Author> Source = new Source<>(SampleAppServer.getInstance(),
-            Database.getDaoOrThrow(Author.class), "authors", "authors", new AuthorResourceCreator(),
+            Database.getDaoOrThrow(Author.class), "authors", "author", "authors", new AuthorResourceCreator(),
             new AllowedOps(AllowedOps.Op.CREATE, AllowedOps.Op.READ, AllowedOps.Op.UPDATE));
 
     @DatabaseField
@@ -109,7 +109,9 @@ public class Author extends Resource<Author> {
             @Override
             protected void onPostExecute(Bitmap bitmap){
                 avatarBitmap = bitmap;
-                ImageCache.getInstance().put(avatar, bitmap);
+                if(bitmap!=null && avatar != null) {
+                    ImageCache.getInstance().put(avatar, bitmap);
+                }
                 callback.onResult(bitmap);
             }
         }).execute(url);

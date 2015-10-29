@@ -49,6 +49,7 @@ public class Database extends OrmLiteSqliteOpenHelper {
     public void onCreate(SQLiteDatabase database, ConnectionSource connectionSource) {
         try {
             TableUtils.createTable(connectionSource, Author.class);
+            TableUtils.createTable(connectionSource, Post.class);
         }catch (SQLException e){
             throw new RuntimeException("Problem creating database", e);
         }

@@ -1,5 +1,6 @@
 package audio.rabid.dev.network_orm;
 
+import android.util.Log;
 import android.util.SparseArray;
 
 import com.j256.ormlite.dao.Dao;
@@ -12,6 +13,7 @@ import org.json.JSONObject;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -27,6 +29,7 @@ public class Source<T extends Resource> {
     private Server server;
     private Dao<T, Integer> dao;
     private String endpoint;
+    private String jsonSingleObjectKey;
     private String jsonArrayObjectKey;
     private ResourceCreator<T> resourceCreator;
     private AllowedOps permissions;
@@ -34,11 +37,12 @@ public class Source<T extends Resource> {
     private final SparseArray<T> instanceCache = new SparseArray<>(50);
 
     public Source(@NotNull Server server, @NotNull Dao<T, Integer> dao, @NotNull String endpoint,
-                  @NotNull String jsonArrayObjectKey, @NotNull ResourceCreator<T> resourceCreator,
-                  @NotNull AllowedOps permissions){
+                  @NotNull String jsonSingleObjectKey, @NotNull String jsonArrayObjectKey,
+                  @NotNull ResourceCreator<T> resourceCreator, @NotNull AllowedOps permissions){
         this.server = server;
         this.dao = dao;
         this.endpoint = endpoint;
+        this.jsonSingleObjectKey = jsonSingleObjectKey;
         this.jsonArrayObjectKey = jsonArrayObjectKey;
         this.resourceCreator = resourceCreator;
         this.permissions = permissions;
@@ -159,11 +163,13 @@ public class Source<T extends Resource> {
                                 T existing = atomicCachePutIfMissing(fromServerId.get(0));
                                 existing.updateFromJSON(o);
                                 existing.synced = true;
+                                existing.updatedAt = new Date();
                                 dao.update(existing);
                                 newInstances.add(existing);
                             }else{
                                 //create
                                 n.synced = true;
+                                n.createdAt = n.updatedAt = new Date();
                                 dao.create(n);
                                 newInstances.add(atomicCachePut(n));
                             }
@@ -171,6 +177,7 @@ public class Source<T extends Resource> {
                         return newInstances;
                     }
                 }catch (Server.NetworkException e){
+                    Log.w(this.toString(), "Network issue", e);
                     //oh no, no items...
                     return null;
                 }catch (SQLException | JSONException e){
@@ -199,11 +206,13 @@ public class Source<T extends Resource> {
             @Override
             protected T runInBackground() {
                 try {
+                    object.createdAt = object.updatedAt = new Date();
                     dao.create(object);
                     try{
-                        Server.Response r = server.create(endpoint, object);
+                        Server.Response r = server.create(endpoint, jsonSingleObjectKey, object);
                         updateFromResponse(object, r);
                     }catch (Server.NetworkException e){
+                        Log.w(this.toString(), "Network issue", e);
                         //well, shoot. it's already marked as unsynced
                     }
                 }catch (SQLException e){
@@ -225,11 +234,13 @@ public class Source<T extends Resource> {
             protected T runInBackground() {
                 synchronized (object) { //don't let two update operations happen simultaneously for same object
                     try {
+                        object.updatedAt = new Date();
                         dao.update(object);
                         try {
-                            Server.Response r = server.update(endpoint, object);
+                            Server.Response r = server.update(endpoint, jsonSingleObjectKey, object);
                             updateFromResponse(object, r);
                         } catch (Server.NetworkException e) {
+                            Log.w(this.toString(), "Network issue", e);
                             //well, shoot. it's already marked as unsynced
                         }
                     } catch (SQLException e) {
@@ -251,6 +262,7 @@ public class Source<T extends Resource> {
                         try {
                             server.destroy(endpoint, object);
                         } catch (Server.NetworkException e) {
+                            Log.w(this.toString(), "Network issue", e);
                             //TODO what do we do if remote delete fails?
                         }
                     }
@@ -278,9 +290,15 @@ public class Source<T extends Resource> {
                     List<T> unsynced = dao.queryForEq("synced", false);
                     for (T u : unsynced) {
                         try {
-                            Server.Response r = server.update(endpoint, u);
+                            Server.Response r;
+                            if (u.serverId < 0) {
+                                r = server.create(endpoint, jsonSingleObjectKey, u);
+                            } else {
+                                r = server.update(endpoint, jsonSingleObjectKey, u);
+                            }
                             updateFromResponse(u, r);
                         } catch (Server.NetworkException e) {
+                            Log.w(this.toString(), "Network issue", e);
                             //oh well, still no network
                         }
                         atomicCachePutIfMissing(u);
@@ -313,20 +331,22 @@ public class Source<T extends Resource> {
                     if(!r.wasError()){
                         boolean changed;
                         try {
-                            changed = item.updateFromJSON(r.getResponseBody()); //update values
+                            changed = item.updateFromJSON(r.getResponseBody().getJSONObject(jsonSingleObjectKey)); //update values
                         }catch (JSONException e){
                             throw new RuntimeException(e);
                         }
                         if(changed) {
                             try {
                                 item.synced = true;
+                                item.updatedAt = new Date();
                                 dao.update(item); //save changes to database
                             } catch (SQLException e) {
-                                //just put in cache as it is
+                                throw new RuntimeException(e);
                             }
                         }
                     }
                 }catch (Server.NetworkException e){
+                    Log.w(this.toString(), "Network issue", e);
                     //just put in cache as it is
                 }
             }
@@ -342,9 +362,10 @@ public class Source<T extends Resource> {
             Server.Response r = server.show(endpoint, serverId);
             if(!r.wasError()) {
                 //create object
-                T newInstance = resourceCreator.createFromJSON(r.getResponseBody());
+                T newInstance = resourceCreator.createFromJSON(r.getResponseBody().getJSONObject(jsonSingleObjectKey));
                 //save local
                 newInstance.synced = true;
+                newInstance.createdAt = newInstance.updatedAt = new Date();
                 dao.create(newInstance);
                 //store in cache
                 return atomicCachePut(newInstance);
@@ -352,6 +373,7 @@ public class Source<T extends Resource> {
                 return null;
             }
         }catch (Server.NetworkException e){
+            Log.w(this.toString(), "Network issue", e);
             return null;
         }catch (SQLException | JSONException e){
             throw new RuntimeException(e);
@@ -359,13 +381,25 @@ public class Source<T extends Resource> {
     }
 
     protected void updateFromResponse(T object, Server.Response r) throws SQLException {
-        if (!r.wasError()) {
+        if (r.wasError()) {
+            if(r.getErrorStatus().equals("not_found")){
+                //try a create instead
+                try {
+                    Server.Response create = server.create(endpoint, jsonSingleObjectKey, object);
+                    updateFromResponse(object, create);
+                }catch (Server.NetworkException e){
+                    //uggh what an annoying time to lose the network. keep sync = false
+                    Log.w(this.toString(), "Network issue", e);
+                }
+            }
+        }else{
             try {
-                object.updateFromJSON(r.getResponseBody());
+                object.updateFromJSON(r.getResponseBody().getJSONObject(jsonSingleObjectKey));
             }catch (JSONException e){
                 throw new RuntimeException(e);
             }
             object.synced = true;
+            object.updatedAt = new Date();
             dao.update(object);
         }
     }

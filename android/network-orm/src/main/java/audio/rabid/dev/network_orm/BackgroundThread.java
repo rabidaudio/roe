@@ -12,12 +12,15 @@ public class BackgroundThread extends Thread {
 
     private Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    private Object semaphore = new Object();
+    private final Object semaphore = new Object();
 
     private BackgroundThread(){
         super("SourceBackgroundLooperTask");
         try {
-            semaphore.wait();
+            start();
+            synchronized (semaphore) {
+                semaphore.wait();
+            }
         }catch (InterruptedException e){
             throw new RuntimeException("Problem creating background thread", e);
         }
@@ -26,7 +29,9 @@ public class BackgroundThread extends Thread {
     public void run(){
         Looper.prepare();
         handler = new Handler(Looper.myLooper());
-        semaphore.notify();
+        synchronized (semaphore) {
+            semaphore.notify();
+        }
         Looper.loop();
     }
 

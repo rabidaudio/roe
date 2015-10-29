@@ -10,14 +10,18 @@ class PostsController < ApplicationController
   end
 
   def create
-    @post = Post.create params.permit(:author_id, :title, :body, :likes)
+    @post = Post.create! params.require(:post).permit(:author_id, :title, :body, :likes)
     render json: @post
   end
 
   def update
     @post = Post.find params[:id]
-    @post.update(params.permit(:author_id, :title, :body, :likes)) unless @post.nil?
-    render json: @post
+    if @post.nil?
+      record_not_found
+    else
+      @post.update! params.require(:post).permit(:author_id, :title, :body, :likes)
+      render json: @post
+    end
   end
 
   def destroy

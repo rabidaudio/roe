@@ -20,8 +20,8 @@ public class PostSource extends Source<Post> {
 
     @SuppressWarnings("unchecked")
     public PostSource() {
-        super(SampleAppServer.getInstance(), Database.getDaoOrThrow(Author.class),
-                "posts", "posts", new PostResourceCreator(), AllowedOps.ALL);
+        super(SampleAppServer.getInstance(), Database.getDaoOrThrow(Post.class),
+                "posts", "post", "posts", new PostResourceCreator(), AllowedOps.ALL);
     }
 
     public void getRecentByAuthor(final int authorId, final long limit, QueryCallback<List<Post>> callback){
