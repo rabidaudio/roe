@@ -92,11 +92,11 @@ public class Post extends Resource<Post> {
         String t = data.getString("title");
         String b = data.getString("body");
         int l = data.getInt("likes");
-        if(!title.equals(t)){
+        if(title==null || !title.equals(t)){
             title = t;
             updated = true;
         }
-        if(!body.equals(b)){
+        if(body==null || !body.equals(b)){
             body = b;
             updated = true;
         }

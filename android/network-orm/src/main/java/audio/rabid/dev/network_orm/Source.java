@@ -116,7 +116,7 @@ public class Source<T extends Resource> {
             protected T runInBackground() {
                 T result;
                 try {
-                    List<T> q = dao.queryForEq("server_id", serverId);
+                    List<T> q = dao.queryForEq("serverId", serverId);
                     if(q==null || q.isEmpty()){
                         result = null;
                     }else{
@@ -141,9 +141,9 @@ public class Source<T extends Resource> {
      * @param payload
      * @param callback
      */
-    public void remoteSearch(@Nullable final JSONObject payload, @Nullable QueryCallback<List<T>> callback){
+    public void remoteSearch(@Nullable final JSONObject payload, final QueryCallback<List<T>> callback){
         checkPermissions(AllowedOps.Op.READ, AllowedOps.Op.CREATE);
-        (new SourceAsyncTask<List<T>>(callback){
+        (new SourceAsyncTask<List<T>>(null){
             @Override
             protected List<T> runInBackground() {
                 try {
@@ -157,7 +157,7 @@ public class Source<T extends Resource> {
                             JSONObject o = array.getJSONObject(i);
                             T n = resourceCreator.createFromJSON(o);
 
-                            List<T> fromServerId = dao.queryForEq("server_id", n.getServerId());
+                            List<T> fromServerId = dao.queryForEq("serverId", n.getServerId());
                             if(fromServerId != null && !fromServerId.isEmpty()){
                                 //update
                                 T existing = atomicCachePutIfMissing(fromServerId.get(0));
@@ -174,6 +174,10 @@ public class Source<T extends Resource> {
                                 newInstances.add(atomicCachePut(n));
                             }
                         }
+                        //once we've fetched all the changes from the server, if there are any local
+                        //  ones that weren't returned from the server, we want those too, so run that
+                        //  first. That call should be cheap since all of the remotes are now in the cache.
+                        getAllLocal(callback);
                         return newInstances;
                     }
                 }catch (Server.NetworkException e){

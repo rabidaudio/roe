@@ -156,15 +156,15 @@ public class Author extends Resource<Author> {
         String n = data.getString("name");
         String e = data.getString("email");
         String a = data.getString("avatar");
-        if(!n.equals(name)){
+        if(name==null || !name.equals(n)){
             name = n;
             changed = true;
         }
-        if(!e.equals(email)){
+        if(email==null || !email.equals(e)){
             email = n;
             changed = true;
         }
-        if(!a.equals(avatar)) {
+        if(avatar==null || !avatar.equals(a)) {
             setAvatar(a);
             changed = true;
         }

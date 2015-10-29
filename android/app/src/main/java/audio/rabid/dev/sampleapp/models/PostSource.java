@@ -44,26 +44,26 @@ public class PostSource extends Source<Post> {
     }
 
     public void allByAuthorOrAll(final int authorId, QueryCallback<List<Post>> callback){
-        (new SourceAsyncTask<List<Post>>(callback){
-            @Override
-            protected List<Post> runInBackground() {
-                try {
-                    List<Post> results;
-                    if (authorId == -1) {
-                        results = getDao().queryForAll();
-                    } else {
+        if(authorId == -1) {
+            remoteSearch(null, callback);
+        }else {
+            (new SourceAsyncTask<List<Post>>(callback) {
+                @Override
+                protected List<Post> runInBackground() {
+                    try {
+                        List<Post> results;
                         results = getDao().queryForEq("author_id", authorId);
+                        List<Post> returnResults = new ArrayList<>(results.size());
+                        for (Post p : results) {
+                            returnResults.add(cacheGetNetworkUpdateOnMiss(p));
+                        }
+                        return returnResults;
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
                     }
-                    List<Post> returnResults = new ArrayList<>(results.size());
-                    for (Post p : results) {
-                        returnResults.add(cacheGetNetworkUpdateOnMiss(p));
-                    }
-                    return returnResults;
-                }catch (SQLException e){
-                    throw new RuntimeException(e);
                 }
-            }
-        }).execute();
+            }).execute();
+        }
     }
 
     public static class PostResourceCreator implements ResourceCreator<Post> {
