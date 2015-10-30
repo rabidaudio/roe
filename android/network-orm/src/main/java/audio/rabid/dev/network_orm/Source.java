@@ -181,7 +181,7 @@ public class Source<T extends Resource> {
                                     }
                                 }
                             });
-                            boolean changed = factory.updateItem(newInstance, data);
+                            boolean changed = factory.updateItemDirect(newInstance, data);
                             if (changed) {
                                 newInstance.synced = true;
                                 newInstance.updatedAt = new Date();
@@ -214,7 +214,7 @@ public class Source<T extends Resource> {
                     resource.createdAt = resource.updatedAt = new Date();
                     resource.synced = false;
                     try {
-                        Server.Response response = server.createItem(dao.getDataClass(), resource.toJSON());
+                        Server.Response response = server.createItem(dao.getDataClass(), factory.turnItemIntoValidServerPayload(resource));
                         if (!server.isErrorResponse(response)) {
                             boolean changed = resourceFactory.updateItem(resource, response.getResponseBody());
                             if (changed) {
@@ -253,7 +253,7 @@ public class Source<T extends Resource> {
                 resource.synced = false;
                 try {
                     try {
-                        Server.Response response = server.updateItem(dao.getDataClass(), resource.getServerId(), resource.toJSON());
+                        Server.Response response = server.updateItem(dao.getDataClass(), resource.getServerId(), factory.turnItemIntoValidServerPayload(resource));
                         if (!server.isErrorResponse(response)) {
                             factory.updateItem(resource, response.getResponseBody());
                             resource.synced = true;
@@ -347,9 +347,9 @@ public class Source<T extends Resource> {
                         try {
                             Server.Response response;
                             if (item.getServerId() < 0 && getPermissions().canCreate()) {
-                                response = server.createItem(dao.getDataClass(), item.toJSON());
+                                response = server.createItem(dao.getDataClass(), factory.turnItemIntoValidServerPayload(item));
                             } else if (getPermissions().canUpdate()) {
-                                response = server.updateItem(dao.getDataClass(), item.getServerId(), item.toJSON());
+                                response = server.updateItem(dao.getDataClass(), item.getServerId(), factory.turnItemIntoValidServerPayload(item));
                             } else {
                                 continue;
                             }
@@ -371,7 +371,7 @@ public class Source<T extends Resource> {
 
             @Override
             public AllowedOps requiredPermissions() {
-                return null;
+                return new AllowedOps();
             }
         });
     }

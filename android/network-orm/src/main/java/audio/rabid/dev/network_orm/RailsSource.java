@@ -38,6 +38,11 @@ public class RailsSource<T extends Resource> extends Source<T> {
         }
 
         @Override
+        public boolean updateItemDirect(R item, JSONObject data) throws JSONException {
+            return item.updateFromJSON(data);
+        }
+
+        @Override
         public List<JSONObject> splitMultipleNetworkQuery(JSONObject data) throws JSONException {
             JSONArray array = data.getJSONArray(jsonArrayObjectKey);
             List<JSONObject> result = new ArrayList<>(array.length());
@@ -45,6 +50,11 @@ public class RailsSource<T extends Resource> extends Source<T> {
                 result.add(array.getJSONObject(i));
             }
             return result;
+        }
+
+        @Override
+        public JSONObject turnItemIntoValidServerPayload(R item) throws JSONException {
+            return new JSONObject().put(jsonSingleObjectKey, item.toJSON());
         }
     }
 }

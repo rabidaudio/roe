@@ -34,6 +34,8 @@ public interface ResourceFactory<T extends Resource> {
      */
     boolean updateItem(T item, JSONObject data) throws JSONException;
 
+    boolean updateItemDirect(T item, JSONObject data) throws JSONException;
+
     /**
      * Take in a raw server response which should be of multiple Resources, and split it into
      * a list of JSONObjects which represent a Resource to be created or updated.
@@ -43,4 +45,6 @@ public interface ResourceFactory<T extends Resource> {
      * @throws JSONException
      */
     List<JSONObject> splitMultipleNetworkQuery(JSONObject data) throws JSONException;
+
+    JSONObject turnItemIntoValidServerPayload(T item) throws JSONException;
 }

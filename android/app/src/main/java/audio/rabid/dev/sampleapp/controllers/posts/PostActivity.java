@@ -63,6 +63,13 @@ public class PostActivity extends AppCompatActivity {
                 return true;
             }
         });
+        menu.add("Edit Post").setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                EditPostActivity.edit(PostActivity.this, post.getId());
+                return true;
+            }
+        });
         return super.onCreateOptionsMenu(menu);
     }
 
