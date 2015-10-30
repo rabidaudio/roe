@@ -13,19 +13,19 @@ public class NetworkDate extends SimpleDateFormat {
 
     private static NetworkDate instance = new NetworkDate();
 
-    private NetworkDate(){
+    private NetworkDate() {
         super("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.US);
         setTimeZone(TimeZone.getTimeZone("GMT"));
     }
 
-    public static String encode(Date date){
+    public static String encode(Date date) {
         return instance.format(date);
     }
 
-    public static Date decode(String date){
+    public static Date decode(String date) {
         try {
             return instance.parse(date);
-        }catch (ParseException e){
+        } catch (ParseException e) {
             return null;
         }
     }

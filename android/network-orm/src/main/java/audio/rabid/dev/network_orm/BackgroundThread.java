@@ -14,19 +14,19 @@ public class BackgroundThread extends Thread {
 
     private final Object semaphore = new Object();
 
-    private BackgroundThread(){
+    private BackgroundThread() {
         super("SourceBackgroundLooperTask");
         try {
             start();
             synchronized (semaphore) {
                 semaphore.wait();
             }
-        }catch (InterruptedException e){
+        } catch (InterruptedException e) {
             throw new RuntimeException("Problem creating background thread", e);
         }
     }
 
-    public void run(){
+    public void run() {
         Looper.prepare();
         handler = new Handler(Looper.myLooper());
         synchronized (semaphore) {
@@ -37,19 +37,19 @@ public class BackgroundThread extends Thread {
 
     private static final BackgroundThread instance = new BackgroundThread();
 
-    public static Handler getBackgroundHandler(){
+    public static Handler getBackgroundHandler() {
         return instance.handler;
     }
 
-    public static Handler getMainHandler(){
+    public static Handler getMainHandler() {
         return instance.mainHandler;
     }
 
-    public static void postMain(Runnable r){
+    public static void postMain(Runnable r) {
         getMainHandler().post(r);
     }
 
-    public static void postBackground(Runnable r){
+    public static void postBackground(Runnable r) {
         getBackgroundHandler().post(r);
     }
 }

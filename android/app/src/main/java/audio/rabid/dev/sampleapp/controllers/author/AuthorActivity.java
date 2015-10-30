@@ -27,7 +27,8 @@ public class AuthorActivity extends AppCompatActivity {
 
     public static final String EXTRA_AUTHOR_ID = ".AUTHOR_ID";
 
-    @Bind(R.id.recentPosts) ListView recentPosts;
+    @Bind(R.id.recentPosts)
+    ListView recentPosts;
 
     private AuthorViewHolder view;
 
@@ -58,26 +59,26 @@ public class AuthorActivity extends AppCompatActivity {
         });
     }
 
-    public static void open(Context context, int id){
+    public static void open(Context context, int id) {
         Intent i = new Intent(context, AuthorActivity.class);
         i.putExtra(AuthorActivity.EXTRA_AUTHOR_ID, id);
         context.startActivity(i);
     }
 
     @OnClick(R.id.edit_btn)
-    void edit(){
-        if(author != null){
+    void edit() {
+        if (author != null) {
             EditAuthorActivity.edit(this, author.getId());
         }
     }
 
     @OnClick(R.id.posts_btn)
-    void showPosts(){
+    void showPosts() {
         PostsActivity.openForAuthor(this, author.getId());
     }
 
     protected class RecentPostsAdapter extends EasyArrayAdapter<Post, PostViewHolder> {
-        public RecentPostsAdapter(List<Post> results){
+        public RecentPostsAdapter(List<Post> results) {
             super(AuthorActivity.this, R.layout.item_post_small, results);
         }
 

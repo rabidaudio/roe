@@ -10,8 +10,8 @@ public class ImageCache extends LruCache<String, Bitmap> {
 
     private static ImageCache instance;
 
-    public static ImageCache getInstance(){
-        if(instance == null){
+    public static ImageCache getInstance() {
+        if (instance == null) {
             instance = new ImageCache();
         }
         return instance;

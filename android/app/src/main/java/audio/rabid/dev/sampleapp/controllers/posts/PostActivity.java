@@ -24,8 +24,9 @@ public class PostActivity extends AppCompatActivity {
     PostViewHolder postViewHolder;
 
     Post post;
-    
-    @Bind(R.id.author) View author;
+
+    @Bind(R.id.author)
+    View author;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,7 +55,7 @@ public class PostActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu){
+    public boolean onCreateOptionsMenu(Menu menu) {
         menu.add("Author Details").setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
@@ -65,7 +66,7 @@ public class PostActivity extends AppCompatActivity {
         return super.onCreateOptionsMenu(menu);
     }
 
-    public static void open(Context context, int postId){
+    public static void open(Context context, int postId) {
         Intent i = new Intent(context, PostActivity.class);
         i.putExtra(EXTRA_POST_ID, postId);
         context.startActivity(i);

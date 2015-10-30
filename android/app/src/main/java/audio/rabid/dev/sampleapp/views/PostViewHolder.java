@@ -16,10 +16,17 @@ import butterknife.ButterKnife;
  */
 public class PostViewHolder extends ViewHolder<Post> {
 
-    @Bind(R.id.title) TextView title;
-    @Nullable @Bind(R.id.body) TextView body;
-    @Nullable @Bind(R.id.author) View author;
-    @Nullable @Bind(R.id.createdAt) TextView createdAt;
+    @Bind(R.id.title)
+    TextView title;
+    @Nullable
+    @Bind(R.id.body)
+    TextView body;
+    @Nullable
+    @Bind(R.id.author)
+    View author;
+    @Nullable
+    @Bind(R.id.createdAt)
+    TextView createdAt;
 
     AuthorViewHolder authorViewHolder;
 
@@ -36,14 +43,14 @@ public class PostViewHolder extends ViewHolder<Post> {
         ButterKnife.bind(this, parent);
 
         title.setText(item.getTitle());
-        if(body!=null)
+        if (body != null)
             body.setText(item.getBody());
 
-        if(createdAt!=null)
+        if (createdAt != null)
             createdAt.setText(item.getCreatedAt().toLocaleString());
 
         //pass child view through
-        if(author!=null) {
+        if (author != null) {
             authorViewHolder = new AuthorViewHolder(author);
             authorViewHolder.setItem(item.getAuthor());
         }

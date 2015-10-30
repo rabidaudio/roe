@@ -10,7 +10,7 @@ import java.util.Date;
 
 /**
  * Created by charles on 10/23/15.
- *
+ * <p/>
  * Because a single record is shared as a single instance (possibly to multiple threads), all mutable
  * changes should be wrapped in a synchronized(*.Lock){} block for thread safety. TODO doesn't protect against simultaneous off-thread save/deletes
  */
@@ -37,49 +37,49 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
 
     protected boolean deleted = false;
 
-    public int getId(){
+    public int getId() {
         return id;
     }
 
-    public boolean isSynced(){
+    public boolean isSynced() {
         return synced;
     }
 
-    public boolean wasDeleted(){
-         return deleted;
+    public boolean wasDeleted() {
+        return deleted;
     }
 
-    public Date getCreatedAt(){
+    public Date getCreatedAt() {
         return createdAt;
     }
 
-    public Date getUpdatedAt(){
+    public Date getUpdatedAt() {
         return updatedAt;
     }
 
-    public boolean isNew(){
+    public boolean isNew() {
         return id < 0;
     }
 
-    public int getServerId(){
+    public int getServerId() {
         return serverId;
     }
 
     @SuppressWarnings("unchecked")
-    public synchronized void save(@Nullable Source.QueryCallback<T> callback){
+    public synchronized void save(@Nullable Source.QueryCallback<T> callback) {
         getSource().createOrUpdate((T) this, callback);
     }
 
     @SuppressWarnings("unchecked")
-    public synchronized void delete(@Nullable Source.QueryCallback<T> callback){
-        getSource().delete((T) this, true, callback);
+    public synchronized void delete(@Nullable Source.QueryCallback<T> callback) {
+        getSource().deleteLocal((T) this, callback);
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         try {
             return getClass().getSimpleName() + ": " + toJSON().toString();
-        }catch (JSONException e){
+        } catch (JSONException e) {
             return super.toString();
         }
     }
@@ -93,12 +93,13 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
 
     /**
      * Set values from a JSON object
+     *
      * @return were any object fields changed?
      */
-    protected synchronized boolean updateFromJSON(JSONObject data) throws JSONException{
+    protected synchronized boolean updateFromJSON(JSONObject data) throws JSONException {
         int id = data.getInt("id");
         boolean updated = serverId != id;
-        if(updated){
+        if (updated) {
             serverId = id;
         }
         return updated;

@@ -19,9 +19,11 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import audio.rabid.dev.network_orm.AllowedOps;
+import audio.rabid.dev.network_orm.RailsSource;
 import audio.rabid.dev.network_orm.Resource;
 import audio.rabid.dev.network_orm.ResourceFactory;
 import audio.rabid.dev.network_orm.Source;
+import audio.rabid.dev.network_orm.SparseArrayResourceCache;
 import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.SampleAppServer;
 import audio.rabid.dev.utils.ImageCache;
@@ -33,8 +35,8 @@ import audio.rabid.dev.utils.ImageCache;
 public class Author extends Resource<Author> {
 
     @SuppressWarnings("unchecked")
-    public static final Source<Author> Source = new Source<>(SampleAppServer.getInstance(),
-            Database.getDaoOrThrow(Author.class), "authors", "author", "authors", new AuthorResourceFactory(),
+    public static final RailsSource<Author> Source = new RailsSource<>(SampleAppServer.getInstance(),
+            Database.getDaoOrThrow(Author.class), "authors", new AuthorResourceFactory(),
             new AllowedOps(AllowedOps.Op.CREATE, AllowedOps.Op.READ, AllowedOps.Op.UPDATE));
 
     @DatabaseField
@@ -62,42 +64,43 @@ public class Author extends Resource<Author> {
         this.email = email;
     }
 
-    public URL getAvatar(){
-        if(avatar==null) return null;
+    public URL getAvatar() {
+        if (avatar == null) return null;
         try {
             return new URL(avatar);
-        }catch (MalformedURLException e){
+        } catch (MalformedURLException e) {
             return null;
         }
     }
 
     private Bitmap avatarBitmap;
+
     public void getAvatarBitmap(final Source.QueryCallback<Bitmap> callback) {
         //no image saved
-        if(avatar==null){
+        if (avatar == null) {
             callback.onResult(null);
             return;
         }
 
         //image cached locally
-        if(avatarBitmap!=null){
+        if (avatarBitmap != null) {
             callback.onResult(avatarBitmap);
             return;
         }
         URL url = getAvatar();
         //invalid url
-        if(url==null){
+        if (url == null) {
             callback.onResult(null);
             return;
         }
         //fetch from network
-        (new AsyncTask<URL, Void, Bitmap>(){
+        (new AsyncTask<URL, Void, Bitmap>() {
             @Override
             protected Bitmap doInBackground(URL... params) {
                 Bitmap b = ImageCache.getInstance().get(avatar);
-                if(b!=null){
+                if (b != null) {
                     return b;
-                }else {
+                } else {
                     try {
                         HttpURLConnection connection = (HttpURLConnection) params[0].openConnection();
                         return BitmapFactory.decodeStream(connection.getInputStream());
@@ -106,10 +109,11 @@ public class Author extends Resource<Author> {
                     }
                 }
             }
+
             @Override
-            protected void onPostExecute(Bitmap bitmap){
+            protected void onPostExecute(Bitmap bitmap) {
                 avatarBitmap = bitmap;
-                if(bitmap!=null && avatar != null) {
+                if (bitmap != null && avatar != null) {
                     ImageCache.getInstance().put(avatar, bitmap);
                 }
                 callback.onResult(bitmap);
@@ -118,19 +122,19 @@ public class Author extends Resource<Author> {
     }
 
     public void setAvatar(String avatar) {
-        try{
+        try {
             new URL(avatar);
             this.avatar = avatar;
             //clear saved images
             ImageCache.getInstance().remove(avatar);
             avatarBitmap = null;
-        }catch (MalformedURLException e){
+        } catch (MalformedURLException e) {
             //oops
         }
     }
 
-    public void sendEmail(Context context){
-        if(email==null) return;
+    public void sendEmail(Context context) {
+        if (email == null) return;
         Intent i = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", getEmail(), null));
         i.putExtra(Intent.EXTRA_EMAIL, new String[]{getEmail()});
         context.startActivity(Intent.createChooser(i, "Contact the author"));
@@ -138,12 +142,12 @@ public class Author extends Resource<Author> {
 
 
     @Override
-    public Source<Author> getSource(){
+    public Source<Author> getSource() {
         return Source;
     }
 
     @Override
-    public JSONObject toJSON() throws JSONException{
+    public JSONObject toJSON() throws JSONException {
         return super.toJSON()
                 .put("name", name)
                 .put("email", email)
@@ -151,27 +155,32 @@ public class Author extends Resource<Author> {
     }
 
     @Override
-    protected synchronized boolean updateFromJSON(JSONObject data) throws JSONException{
+    protected synchronized boolean updateFromJSON(JSONObject data) throws JSONException {
         boolean changed = super.updateFromJSON(data);
         String n = data.getString("name");
         String e = data.getString("email");
         String a = data.getString("avatar");
-        if(name==null || !name.equals(n)){
+        if (name == null || !name.equals(n)) {
             name = n;
             changed = true;
         }
-        if(email==null || !email.equals(e)){
+        if (email == null || !email.equals(e)) {
             email = n;
             changed = true;
         }
-        if(avatar==null || !avatar.equals(a)) {
+        if (avatar == null || !avatar.equals(a)) {
             setAvatar(a);
             changed = true;
         }
         return changed;
     }
 
-    private static class AuthorResourceFactory implements ResourceFactory<Author> {
+    private static class AuthorResourceFactory extends RailsSource.RailsResourceFactory<Author> {
+
+        public AuthorResourceFactory() {
+            super("author", "authors");
+        }
+
         @Override
         public Author createFromJSON(JSONObject json) throws JSONException {
             Author a = new Author();

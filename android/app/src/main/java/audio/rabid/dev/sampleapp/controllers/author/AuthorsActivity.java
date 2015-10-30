@@ -26,8 +26,10 @@ import butterknife.ButterKnife;
 
 public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
 
-    @Bind(R.id.authors) ListView authors;
-    @Bind(R.id.refreshLayout) SwipeRefreshLayout refreshLayout;
+    @Bind(R.id.authors)
+    ListView authors;
+    @Bind(R.id.refreshLayout)
+    SwipeRefreshLayout refreshLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,7 +49,7 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
     }
 
     @Override
-    protected void onResume(){
+    protected void onResume() {
         super.onResume();
         updateAuthors();
     }
@@ -57,13 +59,13 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
         updateAuthors();
     }
 
-    private void updateAuthors(){
+    private void updateAuthors() {
         refreshLayout.setRefreshing(true);
         final long start = System.nanoTime();
         Author.Source.getAllLocal(new Source.QueryCallback<List<Author>>() {
             @Override
             public void onResult(List<Author> results) {
-                Log.d("q", "query time ms: "+(System.nanoTime()-start)/1000f/1000f);
+                Log.d("q", "query time ms: " + (System.nanoTime() - start) / 1000f / 1000f);
                 refreshLayout.setRefreshing(false);
                 authors.setAdapter(new AuthorAdapter(AuthorsActivity.this, results));
             }
@@ -98,7 +100,7 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
 
     protected class AuthorAdapter extends EasyArrayAdapter<Author, AuthorViewHolder> {
 
-        public AuthorAdapter(Context context, @Nullable List<Author> authors){
+        public AuthorAdapter(Context context, @Nullable List<Author> authors) {
             super(context, R.layout.item_author, authors);
         }
 

@@ -5,7 +5,6 @@ import android.database.sqlite.SQLiteDatabase;
 
 import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.dao.Dao;
-import com.j256.ormlite.stmt.ColumnArg;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 
@@ -21,23 +20,24 @@ public class Database extends OrmLiteSqliteOpenHelper {
 
     private static Database instance;
 
-    public static Database getInstance(){
-        if(instance==null) throw new RuntimeException("Need to create an instance with context first");
+    public static Database getInstance() {
+        if (instance == null)
+            throw new RuntimeException("Need to create an instance with context first");
         return instance;
     }
 
-    public static Database getInstance(Context context){
-        if(instance == null){
+    public static Database getInstance(Context context) {
+        if (instance == null) {
             instance = new Database(context);
         }
         return instance;
     }
 
-    private Database(Context context){
+    private Database(Context context) {
         super(context, "simple.db", null, VERSION);
     }
 
-    public static Dao getDaoOrThrow(Class clazz){
+    public static Dao getDaoOrThrow(Class clazz) {
         try {
             return getInstance().getDao(clazz);
         } catch (SQLException e) {
@@ -50,7 +50,7 @@ public class Database extends OrmLiteSqliteOpenHelper {
         try {
             TableUtils.createTable(connectionSource, Author.class);
             TableUtils.createTable(connectionSource, Post.class);
-        }catch (SQLException e){
+        } catch (SQLException e) {
             throw new RuntimeException("Problem creating database", e);
         }
     }
@@ -66,7 +66,7 @@ public class Database extends OrmLiteSqliteOpenHelper {
                 case 2: //--> 3
 //                database.execSQL(/* SOME SQL */);
             }
-        }catch (SQLException e){
+        } catch (SQLException e) {
             throw new RuntimeException("Problem upgrading database", e);
         }
     }

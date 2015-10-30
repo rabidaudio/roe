@@ -19,7 +19,7 @@ public class SampleAppServer extends RailsServer {
 
     private static SampleAppServer instance = new SampleAppServer();
 
-    public static SampleAppServer getInstance(){
+    public static SampleAppServer getInstance() {
         return instance;
     }
 
@@ -28,16 +28,16 @@ public class SampleAppServer extends RailsServer {
     }
 
     @Override
-    protected void onBeforeConnection(HttpURLConnection connection, @Nullable JSONObject payload){
+    protected void onBeforeConnection(HttpURLConnection connection, @Nullable JSONObject payload) {
         super.onBeforeConnection(connection, payload);
-        Log.d("server", "Opening connection to "+connection.getURL().toString()
-                +(payload==null ? "": "\r\t"+payload.toString()));
+        Log.d("server", "Opening connection to " + connection.getURL().toString()
+                + (payload == null ? "" : "\r\t" + payload.toString()));
     }
 
     @Override
-    protected void onResponse(@Nullable URL url, @Nullable Response response){
+    protected void onResponse(@Nullable URL url, @Nullable Response response) {
         Log.d("server", String.format("%s [%d]: %s", url == null ? "null" : url.toString(),
                 response == null ? 0 : response.getResponseCode(),
-                response==null? "null": response.getResponseBody().toString()));
+                response == null ? "null" : response.getResponseBody().toString()));
     }
 }

@@ -30,13 +30,16 @@ import audio.rabid.dev.utils.EasyArrayAdapter;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 
-public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener{
+public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
 
     public static final String EXTRA_AUTHOR_ID = "EXTRA_AUTHOR_ID";
 
-    @Bind(R.id.posts) ListView posts;
-    @Bind(R.id.refreshLayout) SwipeRefreshLayout refreshLayout;
-    @Bind(R.id.author) View author;
+    @Bind(R.id.posts)
+    ListView posts;
+    @Bind(R.id.refreshLayout)
+    SwipeRefreshLayout refreshLayout;
+    @Bind(R.id.author)
+    View author;
 
     AuthorViewHolder authorViewHolder;
 
@@ -52,9 +55,9 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         authorViewHolder = new AuthorViewHolder(this);
 
         authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
-        if(authorId == -1) {
+        if (authorId == -1) {
             author.setVisibility(View.GONE);
-        }else {
+        } else {
             Author.Source.getLocal(authorId, new Source.QueryCallback<Author>() {
                 @Override
                 public void onResult(Author result) {
@@ -75,7 +78,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu){
+    public boolean onCreateOptionsMenu(Menu menu) {
         menu.add("Authors").setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
@@ -87,7 +90,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     }
 
     @Override
-    protected void onResume(){
+    protected void onResume() {
         super.onResume();
         updateList();
     }
@@ -97,7 +100,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         updateList();
     }
 
-    void updateList(){
+    void updateList() {
         refreshLayout.setRefreshing(true);
         final long start = System.nanoTime();
 
@@ -111,17 +114,17 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         });
     }
 
-    public static void openForAuthor(Context context, int authorId){
+    public static void openForAuthor(Context context, int authorId) {
         Intent i = new Intent(context, PostsActivity.class);
         i.putExtra(EXTRA_AUTHOR_ID, authorId);
         context.startActivity(i);
     }
 
-    void open(Post post){
+    void open(Post post) {
         PostActivity.open(this, post.getId());
     }
 
-    void showMenu(final Post post){
+    void showMenu(final Post post) {
         new AlertDialog.Builder(this)
                 .setItems(new String[]{"Open", "Edit", "View Author", "Delete"},
                         new DialogInterface.OnClickListener() {

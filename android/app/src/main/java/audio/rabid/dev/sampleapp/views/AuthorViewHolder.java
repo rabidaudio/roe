@@ -18,9 +18,12 @@ import butterknife.ButterKnife;
  * Created by charles on 10/25/15.
  */
 public class AuthorViewHolder extends ViewHolder<Author> {
-    @Bind(R.id.avatar) ImageView avatar;
-    @Bind(R.id.name) TextView name;
-    @Bind(R.id.email) TextView email;
+    @Bind(R.id.avatar)
+    ImageView avatar;
+    @Bind(R.id.name)
+    TextView name;
+    @Bind(R.id.email)
+    TextView email;
 
     public AuthorViewHolder(View v) {
         super(v);

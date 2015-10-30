@@ -2,7 +2,7 @@ package audio.rabid.dev.network_orm;
 
 /**
  * Created by charles on 10/25/15.
- *
+ * <p/>
  * TODO allow for Resource-specific permissions
  */
 public class AllowedOps {
@@ -18,10 +18,10 @@ public class AllowedOps {
 
     private Op[] list;
 
-    public AllowedOps(Op... allowed){
+    public AllowedOps(Op... allowed) {
         list = allowed;
-        for(Op o : allowed){
-            switch (o){
+        for (Op o : allowed) {
+            switch (o) {
                 case READ:
                     read = true;
                     break;
@@ -38,24 +38,24 @@ public class AllowedOps {
         }
     }
 
-    public boolean canRead(){
+    public boolean canRead() {
         return read;
     }
 
-    public boolean canCreate(){
+    public boolean canCreate() {
         return create;
     }
 
-    public boolean canUpdate(){
+    public boolean canUpdate() {
         return update;
     }
 
-    public boolean canDelete(){
+    public boolean canDelete() {
         return delete;
     }
 
-    public boolean can(Op permission){
-        switch (permission){
+    public boolean can(Op permission) {
+        switch (permission) {
             case READ:
                 return read;
             case CREATE:
@@ -69,7 +69,7 @@ public class AllowedOps {
         }
     }
 
-    public Op[] getOps(){
+    public Op[] getOps() {
         return list;
     }
 

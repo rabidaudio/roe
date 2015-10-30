@@ -48,8 +48,7 @@ public class TypedObservable<T extends TypedObservable> {
      * Adds the specified observer to the list of observers. If it is already
      * registered, it is not added a second time.
      *
-     * @param observer
-     *            the Observer to add.
+     * @param observer the Observer to add.
      */
     public void addObserver(TypedObserver<T> observer) {
         if (observer == null) {
@@ -82,8 +81,7 @@ public class TypedObservable<T extends TypedObservable> {
      * Removes the specified observer from the list of observers. Passing null
      * won't do anything.
      *
-     * @param observer
-     *            the observer to remove.
+     * @param observer the observer to remove.
      */
     public synchronized void deleteObserver(TypedObserver<T> observer) {
         observers.remove(observer);
@@ -100,7 +98,7 @@ public class TypedObservable<T extends TypedObservable> {
      * Returns the changed flag for this {@code Observable}.
      *
      * @return {@code true} when the changed flag for this {@code Observable} is
-     *         set, {@code false} otherwise.
+     * set, {@code false} otherwise.
      */
     public boolean hasChanged() {
         return changed;
@@ -110,7 +108,7 @@ public class TypedObservable<T extends TypedObservable> {
      * If {@code hasChanged()} returns {@code true}, calls the {@code update()}
      * method for every observer in the list of observers using null as the
      * argument. Afterwards, calls {@code clearChanged()}.
-     * <p>
+     * <p/>
      * Equivalent to calling {@code notifyObservers(null)}.
      */
     public void notifyObservers() {
@@ -122,8 +120,7 @@ public class TypedObservable<T extends TypedObservable> {
      * method for every Observer in the list of observers using the specified
      * argument. Afterwards calls {@code clearChanged()}.
      *
-     * @param data
-     *            the argument passed to {@code update()}.
+     * @param data the argument passed to {@code update()}.
      */
     @SuppressWarnings("unchecked")
     public void notifyObservers(Object data) {

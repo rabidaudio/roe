@@ -25,11 +25,15 @@ public class EditAuthorActivity extends AppCompatActivity {
 
     public static final String EXTRA_AUTHOR_ID = "EXTRA_AUTHOR_ID";
 
-    @Bind(R.id.name) EditText name;
-    @Bind(R.id.email) EditText email;
-    @Bind(R.id.avatar) EditText avatar;
+    @Bind(R.id.name)
+    EditText name;
+    @Bind(R.id.email)
+    EditText email;
+    @Bind(R.id.avatar)
+    EditText avatar;
 
-    @Bind(R.id.title) TextView title;
+    @Bind(R.id.title)
+    TextView title;
 
     private Author author;
 
@@ -41,9 +45,9 @@ public class EditAuthorActivity extends AppCompatActivity {
 
         int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
 
-        if(authorId == -1){
+        if (authorId == -1) {
             drawNewAuthor();
-        }else{
+        } else {
             Author.Source.getLocal(authorId, new Source.QueryCallback<Author>() {
                 @Override
                 public void onResult(@org.jetbrains.annotations.Nullable Author result) {
@@ -58,28 +62,28 @@ public class EditAuthorActivity extends AppCompatActivity {
         }
     }
 
-    public static void edit(Context context, int authorId){
-        Intent i  = new Intent(context, EditAuthorActivity.class);
+    public static void edit(Context context, int authorId) {
+        Intent i = new Intent(context, EditAuthorActivity.class);
         i.putExtra(EXTRA_AUTHOR_ID, authorId);
         context.startActivity(i);
     }
 
-    public static void add(Context context){
-        Intent i  = new Intent(context, EditAuthorActivity.class);
+    public static void add(Context context) {
+        Intent i = new Intent(context, EditAuthorActivity.class);
         context.startActivity(i);
     }
 
-    private void drawNewAuthor(){
+    private void drawNewAuthor() {
         author = new Author();
         title.setText("Add Author");
     }
 
-    private void drawExisting(){
-        title.setText("Edit Author "+author.getId());
+    private void drawExisting() {
+        title.setText("Edit Author " + author.getId());
         name.setText(author.getName());
         email.setText(author.getEmail());
         URL a = author.getAvatar();
-        if(a!=null){
+        if (a != null) {
             avatar.setText(a.toExternalForm());
         }
     }
@@ -87,12 +91,12 @@ public class EditAuthorActivity extends AppCompatActivity {
     @OnClick(R.id.submit)
     public void submit() {
         String n = name.getText().toString();
-        if(n.isEmpty()){
+        if (n.isEmpty()) {
             name.setError("Field required");
             return;
         }
         String e = email.getText().toString();
-        if(e.isEmpty()){
+        if (e.isEmpty()) {
             email.setError("Field required");
             return;
         }

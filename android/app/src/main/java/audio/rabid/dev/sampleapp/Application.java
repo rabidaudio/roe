@@ -8,12 +8,12 @@ import audio.rabid.dev.sampleapp.models.Post;
  */
 public class Application extends android.app.Application {
 
-    public void onCreate(){
+    public void onCreate() {
         super.onCreate();
 
         Database.getInstance(this); //initialize database
 
-        Author.Source.sync();
-        Post.Source.sync();
+        Author.Source.sync(null);
+        Post.Source.sync(null);
     }
 }

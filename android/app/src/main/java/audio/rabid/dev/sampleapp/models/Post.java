@@ -3,7 +3,6 @@ package audio.rabid.dev.sampleapp.models;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import org.jetbrains.annotations.Nullable;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -20,7 +19,7 @@ public class Post extends Resource<Post> {
     public static final PostSource Source = new PostSource();
 
     @Override
-    public Source<Post> getSource(){
+    public Source<Post> getSource() {
         return Source;
     }
 
@@ -63,7 +62,7 @@ public class Post extends Resource<Post> {
         liked = true;
     }
 
-    public void unlike(){
+    public void unlike() {
         liked = false;
     }
 
@@ -91,26 +90,26 @@ public class Post extends Resource<Post> {
         String b = data.getString("body");
         int l = data.getInt("likes");
 
-        if(title==null || !title.equals(t)){
+        if (title == null || !title.equals(t)) {
             title = t;
             updated = true;
         }
-        if(body==null || !body.equals(b)){
+        if (body == null || !body.equals(b)) {
             body = b;
             updated = true;
         }
-        if(l != likes){
+        if (l != likes) {
             likes = l;
             updated = true;
         }
         //TODO this is hacky...
-        if(!data.isNull("author")) {
-            int authorServerId = data.getJSONObject("author").getInt("id");
-            if (author == null || author.getServerId() != authorServerId) {
-                author = Author.Source.getServerSync(authorServerId);
-                updated = true;
-            }
-        }
+//        if (!data.isNull("author")) {
+//            int authorServerId = data.getJSONObject("author").getInt("id");
+//            if (author == null || author.getServerId() != authorServerId) {
+//                author = Author.Source.getServerSync(authorServerId);
+//                updated = true;
+//            }
+//        }
         return updated;
     }
 }

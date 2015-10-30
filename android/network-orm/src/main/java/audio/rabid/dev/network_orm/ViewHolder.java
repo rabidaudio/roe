@@ -11,21 +11,21 @@ public abstract class ViewHolder<T extends TypedObservable> implements TypedObse
     private T item;
     private View container;
 
-    public ViewHolder(View v){
+    public ViewHolder(View v) {
         container = v;
     }
 
-    public ViewHolder(Activity a){
+    public ViewHolder(Activity a) {
         container = a.getWindow().getDecorView();
     }
 
     @SuppressWarnings("unchecked")
-    public void setItem(T item){
+    public void setItem(T item) {
         this.item = item;
-        if(item != null) {
+        if (item != null) {
             item.addObserver(this);
             draw(item, container);
-        }else{
+        } else {
             onNoItem(container);
         }
     }
@@ -35,7 +35,7 @@ public abstract class ViewHolder<T extends TypedObservable> implements TypedObse
     protected abstract void onNoItem(View parent);
 
     @Override
-    public void update(T observable, Object data){
+    public void update(T observable, Object data) {
         item = observable;
         draw(item, container);
     }

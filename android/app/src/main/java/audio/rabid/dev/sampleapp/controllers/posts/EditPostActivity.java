@@ -20,8 +20,10 @@ public class EditPostActivity extends AppCompatActivity {
     public static final String EXTRA_POST_ID = "EXTRA_POST_ID";
     public static final String EXTRA_AUTHOR_ID = "EXTRA_AUTHOR_ID";
 
-    @Bind(R.id.title) EditText title;
-    @Bind(R.id.body) EditText body;
+    @Bind(R.id.title)
+    EditText title;
+    @Bind(R.id.body)
+    EditText body;
 
 //    @Bind(R.id.searchAuthor) SearchView searchAuthor;
 
@@ -38,7 +40,7 @@ public class EditPostActivity extends AppCompatActivity {
 
         final int postId = getIntent().getIntExtra(EXTRA_POST_ID, -1);
         final int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
-        if(postId == -1){
+        if (postId == -1) {
             post = new Post();
             Author.Source.getLocal(authorId, new Source.QueryCallback<Author>() {
                 @Override
@@ -47,13 +49,13 @@ public class EditPostActivity extends AppCompatActivity {
                     authorViewHolder.setItem(result);
                 }
             });
-        }else{
+        } else {
             Post.Source.getLocal(postId, new Source.QueryCallback<Post>() {
                 @Override
                 public void onResult(Post result) {
-                    if(result==null){
+                    if (result == null) {
                         post = new Post();
-                    }else{
+                    } else {
                         post = result;
 
                         title.setText(post.getTitle());
@@ -66,18 +68,18 @@ public class EditPostActivity extends AppCompatActivity {
     }
 
     @OnClick(R.id.submit)
-    void submit(){
+    void submit() {
         String t = title.getText().toString();
-        if(t.isEmpty()){
+        if (t.isEmpty()) {
             title.setError("Field required");
             return;
         }
         String b = body.getText().toString();
-        if(b.isEmpty()){
+        if (b.isEmpty()) {
             body.setError("Field required");
             return;
         }
-        synchronized (post.Lock){
+        synchronized (post.Lock) {
             post.setTitle(t);
             post.setBody(b);
             post.save(new Source.QueryCallback<Post>() {
@@ -90,13 +92,13 @@ public class EditPostActivity extends AppCompatActivity {
         }
     }
 
-    public static void edit(Context context, int postId){
+    public static void edit(Context context, int postId) {
         Intent i = new Intent(context, EditPostActivity.class);
         i.putExtra(EXTRA_POST_ID, postId);
         context.startActivity(i);
     }
 
-    public static void newPost(Context context, int authorId){
+    public static void newPost(Context context, int authorId) {
         Intent i = new Intent(context, EditPostActivity.class);
         i.putExtra(EXTRA_AUTHOR_ID, authorId);
         context.startActivity(i);
