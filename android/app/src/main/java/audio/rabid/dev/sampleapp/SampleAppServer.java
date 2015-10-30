@@ -8,12 +8,12 @@ import org.json.JSONObject;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-import audio.rabid.dev.network_orm.Server;
+import audio.rabid.dev.network_orm.RailsServer;
 
 /**
  * Created by charles on 10/28/15.
  */
-public class SampleAppServer extends Server {
+public class SampleAppServer extends RailsServer {
 
     private static final String ROOT = "http://48922cfa.ngrok.io/";
 

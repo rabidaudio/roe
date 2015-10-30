@@ -2,6 +2,7 @@ package audio.rabid.dev.network_orm;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -14,16 +15,25 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by charles on 10/28/15.
+ *
+ * The class that makes HTTP api calls to get data remotely (if available). {@link #request(String, Method, JSONObject)}
+ * is the method that does the work. Override {@link #onBeforeConnection(HttpURLConnection, JSONObject)}
+ * to set additional headers or change other connection settings before open.
  */
-public class Server {
+public abstract class Server {
 
-    String rootURL;
+    private String rootURL;
 
-    int timeout = 10*1000;
+    private int timeout = 10*1000;
 
+    /**
+     * Available HTTP verbs
+     */
     public enum Method {
         GET("GET"),
         PUT("PUT"),
@@ -32,7 +42,7 @@ public class Server {
         DELETE("DELETE");
 
         String s;
-        private Method(String s){
+        Method(String s){
             this.s = s;
         }
         public String toString(){
@@ -44,69 +54,80 @@ public class Server {
         this.rootURL = rootURL;
     }
 
+    /**
+     * Control the amount of time to wait for a connection or read to occur before connection fails.
+     * @param ms the wait time in milliseconds
+     */
     public void setTimeout(int ms){
         timeout = ms;
     }
 
+    /**
+     * Override this to set custom headers, log requests, or tweak connection settings before open.
+     * Be sure to call super though!
+     * @param connection the HTTPUrlConnection about to be open
+     * @param payload the payload included with the request, if any. If it is a GET request, it has
+     *                been worked into the query string already. Otherwise it's about to be written.
+     */
     protected void onBeforeConnection(HttpURLConnection connection, @Nullable JSONObject payload){
         connection.setRequestProperty("Content-Type", "application/json");
         connection.setRequestProperty("Accept", "application/json");
     }
 
     /**
-     * Override this to, for example, log requests
+     * Override this to, for example, log requests.
+     * @param url
+     * @param response If a {@link NetworkException} occurs, this will be null
      */
-    protected void onResponse(@Nullable URL request, @Nullable Response r){
+    protected void onResponse(URL url, @Nullable Response response){
         //default: no-op
     }
 
-    public Response index(String endpoint, @Nullable JSONObject search) throws NetworkException {
-        return request(endpoint, Method.GET, search);
-    }
+    public abstract Response getItem(Class<?> clazz, int serverId) throws NetworkException;
 
-    public Response show(String endpoint, int serverId) throws NetworkException {
-        return request(endpoint+"/"+serverId, Method.GET, null);
-    }
+    public abstract Response createItem(Class<?> clazz, JSONObject item) throws NetworkException;
 
-    public Response show(String endpoint, Resource item) throws NetworkException {
-        return request(endpoint+"/"+item.getServerId(), Method.GET, null);
-    }
+    public abstract Response getItems(Class<?> clazz, JSONObject search) throws NetworkException;
 
-    public Response create(String endpoint, String jsonObjectKey, Resource item) throws NetworkException {
-        try {
-            return request(endpoint, Method.POST, wrapItem(jsonObjectKey, item));
-        }catch (JSONException e){
-            throw new RuntimeException(e);
-        }
-    }
+    public abstract Response updateItem(Class<?> clazz, int serverId, JSONObject data) throws NetworkException;
 
-    public Response update(String endpoint, String jsonObjectKey, Resource item) throws NetworkException {
-        try {
-            return request(endpoint + "/" + item.getServerId(), Method.PUT, wrapItem(jsonObjectKey, item));
-        }catch (JSONException e){
-        throw new RuntimeException(e);
-    }
-    }
+    public abstract Response deleteItem(Class<?> clazz, int serverId) throws NetworkException;
 
-    public Response destroy(String endpoint, Resource item) throws NetworkException {
-        return request(endpoint+"/"+item.getServerId(), Method.DELETE, null);
-    }
+    public abstract boolean isErrorResponse(Response response);
 
+//    public abstract Response getItems(JSONObject searchQ)
 
-    protected JSONObject wrapItem(String key, Resource item) throws JSONException {
-        return new JSONObject().put(key, item.toJSON());
-    }
-
+    /**
+     *
+     * @param endpoint
+     * @param method
+     * @param payload
+     * @return
+     * @throws NetworkException
+     */
     public final Response request(String endpoint, Method method, @Nullable JSONObject payload) throws NetworkException {
         URL url = null;
         try {
             if (payload != null && method == Method.GET) {
+                // convert JSONObject to query string. TODO only handles arrays or objects nested one deep
                 URIBuilder builder = new URIBuilder(rootURL+endpoint);
                 Iterator<String> keys = payload.keys();
                 while (keys.hasNext()){
                     String key = keys.next();
                     Object o = payload.get(key);
-                    builder.addParameter(key, String.valueOf(o));
+                    if(o instanceof JSONArray){
+                        for(int i=0; i<((JSONArray) o).length(); i++){
+                            builder.addParameter(key+"[]", String.valueOf(((JSONArray) o).get(i)));
+                        }
+                    }else if(o instanceof JSONObject){
+                        Iterator<String> nestedKeys = ((JSONObject) o).keys();
+                        while(nestedKeys.hasNext()){
+                            String nestedKey = nestedKeys.next();
+                            builder.addParameter(key+"["+nestedKey+"]", String.valueOf(o));
+                        }
+                    }else {
+                        builder.addParameter(key, String.valueOf(o));
+                    }
                 }
                 url = builder.build().toURL();
             }else{
@@ -135,6 +156,7 @@ public class Server {
             connection.setReadTimeout(timeout);
             int responseCode = connection.getResponseCode();
 
+
             BufferedReader streamReader;
 
             if (responseCode / 100 == 2) {
@@ -148,7 +170,7 @@ public class Server {
             while ((inputStr = streamReader.readLine()) != null)
                 result.append(inputStr);
 
-            Response r = new Response(responseCode, new JSONObject(result.toString()));
+            Response r = new Response(responseCode, new JSONObject(result.toString()), connection.getHeaderFields());
             onResponse(url, r);
             return r;
 
@@ -163,12 +185,17 @@ public class Server {
         }
     }
 
+    /**
+     * An object containing the response to a request.
+     */
     public static class Response {
         private int responseCode;
         private JSONObject responseBody;
-        public Response(int code, JSONObject body){
+        private Map<String, List<String>> headers;
+        public Response(int code, JSONObject body, Map<String, List<String>> headers){
             responseCode = code;
             responseBody = body;
+            this.headers = headers;
         }
 
         public int getResponseCode() {
@@ -179,26 +206,8 @@ public class Server {
             return responseBody;
         }
 
-        public boolean wasError(){
-            return (responseCode/100 != 2) || responseBody.has("error");
-        }
-
-        public String getErrorStatus(){
-            if(!wasError()) return null;
-            try {
-                return getResponseBody().getJSONObject("error").getString("code");
-            }catch (JSONException e){
-                return null;
-            }
-        }
-
-        public String getErrorMessage(){
-            if(!wasError()) return null;
-            try {
-                return getResponseBody().getJSONObject("error").getString("message");
-            }catch (JSONException e){
-                return null;
-            }
+        public Map<String, List<String>> getHeaders(){
+            return headers;
         }
     }
 
