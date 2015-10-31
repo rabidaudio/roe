@@ -43,7 +43,7 @@ public class AuthorActivity extends AppCompatActivity {
         view = new AuthorViewHolder(this);
 
         final int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
-        Author.Source.getLocal(authorId, new Source.QueryCallback<Author>() {
+        Author.Source.getLocal(authorId, new Source.OperationCallback<Author>() {
             @Override
             public void onResult(@Nullable Author result) {
                 view.setItem(result);
@@ -51,7 +51,7 @@ public class AuthorActivity extends AppCompatActivity {
             }
         });
 
-        Post.Source.getRecentByAuthor(authorId, 5l, new Source.QueryCallback<List<Post>>() {
+        Post.Source.getRecentByAuthor(authorId, 5l, new Source.OperationCallback<List<Post>>() {
             @Override
             public void onResult(@org.jetbrains.annotations.Nullable List<Post> result) {
                 recentPosts.setAdapter(new RecentPostsAdapter(result));

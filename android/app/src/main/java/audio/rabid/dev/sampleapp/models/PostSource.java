@@ -33,7 +33,7 @@ public class PostSource extends RailsSource<Post> {
         });
     }
 
-    public void getRecentByAuthor(final int authorId, final long limit, QueryCallback<List<Post>> callback) {
+    public void getRecentByAuthor(final int authorId, final long limit, OperationCallback<List<Post>> callback) {
         doMultipleLocalQuery(callback, new MultipleLocalQuery<Post>() {
             @Override
             public List<Post> query(Dao<Post, Integer> dao) throws SQLException {
@@ -42,7 +42,7 @@ public class PostSource extends RailsSource<Post> {
         });
     }
 
-    public void allByAuthorOrAll(final int authorId, QueryCallback<List<Post>> callback) {
+    public void allByAuthorOrAll(final int authorId, OperationCallback<List<Post>> callback) {
         //first download any new items
         try {
             JSONObject query = authorId < 0 ? null : new JSONObject().put("author_id", authorId);

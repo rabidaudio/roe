@@ -21,9 +21,7 @@ import java.net.URL;
 import audio.rabid.dev.network_orm.AllowedOps;
 import audio.rabid.dev.network_orm.RailsSource;
 import audio.rabid.dev.network_orm.Resource;
-import audio.rabid.dev.network_orm.ResourceFactory;
 import audio.rabid.dev.network_orm.Source;
-import audio.rabid.dev.network_orm.SparseArrayResourceCache;
 import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.SampleAppServer;
 import audio.rabid.dev.utils.ImageCache;
@@ -75,7 +73,7 @@ public class Author extends Resource<Author> {
 
     private Bitmap avatarBitmap;
 
-    public void getAvatarBitmap(final Source.QueryCallback<Bitmap> callback) {
+    public void getAvatarBitmap(final audio.rabid.dev.network_orm.Source.OperationCallback<Bitmap> callback) {
         //no image saved
         if (avatar == null) {
             callback.onResult(null);

@@ -58,7 +58,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         if (authorId == -1) {
             author.setVisibility(View.GONE);
         } else {
-            Author.Source.getLocal(authorId, new Source.QueryCallback<Author>() {
+            Author.Source.getLocal(authorId, new Source.OperationCallback<Author>() {
                 @Override
                 public void onResult(Author result) {
                     authorViewHolder.setItem(result);
@@ -104,7 +104,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         refreshLayout.setRefreshing(true);
         final long start = System.nanoTime();
 
-        Post.Source.allByAuthorOrAll(authorId, new Source.QueryCallback<List<Post>>() {
+        Post.Source.allByAuthorOrAll(authorId, new Source.OperationCallback<List<Post>>() {
             @Override
             public void onResult(@org.jetbrains.annotations.Nullable List<Post> result) {
                 Log.d("q", "query time ms: " + (System.nanoTime() - start) / 1000f / 1000f);
@@ -148,7 +148,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                                                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                                                     @Override
                                                     public void onClick(DialogInterface dialog, int which) {
-                                                        post.delete(new Source.QueryCallback<Post>() {
+                                                        post.delete(new Source.OperationCallback<Post>() {
                                                             @Override
                                                             public void onResult(Post result) {
                                                                 finish();

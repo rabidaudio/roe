@@ -62,7 +62,7 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
     private void updateAuthors() {
         refreshLayout.setRefreshing(true);
         final long start = System.nanoTime();
-        Author.Source.getAllLocal(new Source.QueryCallback<List<Author>>() {
+        Author.Source.getAllLocal(new Source.OperationCallback<List<Author>>() {
             @Override
             public void onResult(List<Author> results) {
                 Log.d("q", "query time ms: " + (System.nanoTime() - start) / 1000f / 1000f);

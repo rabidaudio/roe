@@ -48,7 +48,7 @@ public class EditAuthorActivity extends AppCompatActivity {
         if (authorId == -1) {
             drawNewAuthor();
         } else {
-            Author.Source.getLocal(authorId, new Source.QueryCallback<Author>() {
+            Author.Source.getLocal(authorId, new Source.OperationCallback<Author>() {
                 @Override
                 public void onResult(@org.jetbrains.annotations.Nullable Author result) {
                     if (result == null) {
@@ -106,7 +106,7 @@ public class EditAuthorActivity extends AppCompatActivity {
             author.setName(n);
             author.setEmail(e);
             author.setAvatar(a);
-            author.save(new Source.QueryCallback<Author>() {
+            author.save(new Source.OperationCallback<Author>() {
                 @Override
                 public void onResult(@Nullable Author result) {
                     setResult(Activity.RESULT_OK);

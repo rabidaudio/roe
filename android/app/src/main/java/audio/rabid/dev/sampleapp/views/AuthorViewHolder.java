@@ -40,7 +40,7 @@ public class AuthorViewHolder extends ViewHolder<Author> {
         email.setText(author.getEmail());
 
         avatar.setImageResource(R.drawable.ic_keyboard_control);
-        author.getAvatarBitmap(new Source.QueryCallback<Bitmap>() {
+        author.getAvatarBitmap(new Source.OperationCallback<Bitmap>() {
             @Override
             public void onResult(@Nullable Bitmap result) {
                 avatar.setImageBitmap(result);
