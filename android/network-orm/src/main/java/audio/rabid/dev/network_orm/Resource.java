@@ -85,10 +85,15 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
     }
 
     public JSONObject toJSON() throws JSONException {
-        return new JSONObject()
-                .put("id", serverId)
-                .put("created_at", NetworkDate.encode(createdAt))
-                .put("updated_at", NetworkDate.encode(updatedAt));
+        JSONObject o = new JSONObject()
+                .put("id", serverId);
+        if (createdAt != null) {
+            o.put("created_at", NetworkDate.encode(createdAt));
+        }
+        if (updatedAt != null) {
+            o.put("updated_at", NetworkDate.encode(updatedAt));
+        }
+        return o;
     }
 
     /**

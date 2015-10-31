@@ -1,7 +1,5 @@
 package audio.rabid.dev.network_orm;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -34,9 +32,12 @@ public abstract class Synchronizer<T> implements Runnable{
     public void setResult(T result){
         this.result = result;
         resultSet = true;
+        synchronized (lock) {
+            lock.notify();
+        }
     }
 
-    public T blockUntilFinished() throws Exception {
+    public T blockUntilFinished() throws InterruptedException, TimeoutException {
         run();
         synchronized (lock){
             lock.wait(timeout);

@@ -1,7 +1,5 @@
 package audio.rabid.dev.network_orm;
 
-import android.util.Log;
-
 import com.j256.ormlite.dao.Dao;
 
 import org.jetbrains.annotations.NotNull;
@@ -13,6 +11,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * Created by charles on 10/28/15.
@@ -390,6 +389,7 @@ public class Source<T extends Resource> {
             public List<T> doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
                 try {
                     List<T> unsynced = dao.queryForEq("synced", false);
+                    List<T> returnResults = new ArrayList<T>(unsynced.size());
                     for (T item : unsynced) {
                         item = cache.putIfMissing(item);
                         try {
@@ -414,8 +414,9 @@ public class Source<T extends Resource> {
                             //oh well, still no network
                             onNetworkException(e);
                         }
+                        returnResults.add(item);
                     }
-                    return unsynced;
+                    return returnResults;
                 } catch (SQLException e) {
                     onDatabaseException(e);
                 } catch (JSONException e) {
@@ -559,7 +560,17 @@ public class Source<T extends Resource> {
             @Override
             protected List<T> runInBackground() {
                 checkPermissions(operation.requiredPermissions());
-                return operation.doInBackground(dao, server, resourceCache, resourceFactory);
+                try {
+                    //by running operation as a batch task, all database hits happen as one transaction, which should improve performance
+                    return dao.callBatchTasks(new Callable<List<T>>() {
+                        @Override
+                        public List<T> call() throws Exception {
+                            return operation.doInBackground(dao, server, resourceCache, resourceFactory);
+                        }
+                    });
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
         }).execute();
     }
