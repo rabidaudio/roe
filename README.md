@@ -10,3 +10,4 @@
 - separate factory into ResourceFactory and something to map server json to resource json (server?)
 - allow custom date formats
 - better way to create Sources (no unchecked, way to pass in programatically)
+- 0verhaul permissions crap

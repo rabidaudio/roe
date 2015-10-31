@@ -64,6 +64,18 @@ public class Source<T extends Resource> {
         return permissions;
     }
 
+    public void onDatabaseException(SQLException e){
+        throw new RuntimeException(e);
+    }
+
+    public void onJSONException(JSONException e){
+        throw new RuntimeException(e);
+    }
+
+    public void onNetworkException(Server.NetworkException e){
+        //default: no-op
+    }
+
     public void getLocal(final int localId, @NotNull OperationCallback<T> callback) {
         doSingleOperation(callback, new SingleSourceOperation<T>() {
             @Override
@@ -76,7 +88,8 @@ public class Source<T extends Resource> {
                             T resource = dao.queryForId(id);
                             return cacheGetNetworkUpdateOnMiss(resource);
                         } catch (SQLException e) {
-                            throw new RuntimeException(e);
+                            onDatabaseException(e);
+                            return null;
                         }
                     }
                 });
@@ -113,14 +126,19 @@ public class Source<T extends Resource> {
                                         }
                                     } catch (Server.NetworkException e) {
                                         //oh well, guess there's no network
+                                        onNetworkException(e);
                                     }
                                 }
                                 return null;
                             } else {
                                 return cacheGetNetworkUpdateOnMiss(results.get(0));
                             }
-                        } catch (SQLException | JSONException e) {
-                            throw new RuntimeException(e);
+                        } catch (SQLException e) {
+                            onDatabaseException(e);
+                            return null;
+                        } catch (JSONException e) {
+                            onJSONException(e);
+                            return null;
                         }
                     }
                 });
@@ -167,17 +185,17 @@ public class Source<T extends Resource> {
                                                     dao.create(newItem);
                                                     return newItem;
                                                 } catch (JSONException e) {
-                                                    throw new RuntimeException(e);
+                                                    onJSONException(e);
                                                 }
-                                            } else {
-                                                return null;
                                             }
+                                            return null;
                                         } else {
                                             //update will happen after cache return
                                             return results.get(0);
                                         }
                                     } catch (SQLException e) {
-                                        throw new RuntimeException(e);
+                                        onDatabaseException(e);
+                                        return null;
                                     }
                                 }
                             });
@@ -197,10 +215,13 @@ public class Source<T extends Resource> {
                         }
                         return returnResults;
                     }
-                } catch (JSONException | SQLException e) {
-                    throw new RuntimeException(e);
+                } catch (JSONException e) {
+                    onJSONException(e);
+                } catch (SQLException e) {
+                    onDatabaseException(e);
                 } catch (Server.NetworkException e) {
                     //oh well, no items for you
+                    onNetworkException(e);
                 }
                 return null;
             }
@@ -230,11 +251,16 @@ public class Source<T extends Resource> {
                         }
                     } catch (Server.NetworkException e) {
                         //oh well, item stays unsynced
+                        onNetworkException(e);
                     }
                     dao.create(resource);
                     return cache.put(resource);
-                } catch (SQLException | JSONException e) {
-                    throw new RuntimeException(e);
+                } catch (SQLException e) {
+                    onDatabaseException(e);
+                    return null;
+                } catch (JSONException e) {
+                    onJSONException(e);
+                    return null;
                 }
             }
 
@@ -262,6 +288,7 @@ public class Source<T extends Resource> {
                         response = server.updateItem(dao.getDataClass(), resource.getServerId(), factory.turnItemIntoValidServerPayload(resource));
                     } catch (Server.NetworkException e) {
                         //oh well, try sync again later
+                        onNetworkException(e);
                     }
                     synchronized (resource) {
                         if (response != null && !server.isErrorResponse(response)) {
@@ -273,9 +300,12 @@ public class Source<T extends Resource> {
                     }
                     dao.update(resource);
                     return resource;
-                } catch (SQLException | JSONException e) {
-                    throw new RuntimeException(e);
+                } catch (SQLException e) {
+                    onDatabaseException(e);
+                } catch (JSONException e){
+                    onJSONException(e);
                 }
+                return null;
             }
 
             @Override
@@ -306,7 +336,8 @@ public class Source<T extends Resource> {
                     }
                     return resource;
                 } catch (SQLException e) {
-                    throw new RuntimeException(e);
+                    onDatabaseException(e);
+                    return null;
                 }
             }
 
@@ -329,6 +360,7 @@ public class Source<T extends Resource> {
                     }
                 } catch (Server.NetworkException e) {
                     //TODO what to do if network delete fails?
+                    onNetworkException(e);
                 }
                 try {
                     dao.delete(resource);
@@ -339,7 +371,8 @@ public class Source<T extends Resource> {
                     }
                     return resource;
                 } catch (SQLException e) {
-                    throw new RuntimeException(e);
+                    onDatabaseException(e);
+                    return null;
                 }
             }
 
@@ -379,12 +412,16 @@ public class Source<T extends Resource> {
                             }
                         } catch (Server.NetworkException e) {
                             //oh well, still no network
+                            onNetworkException(e);
                         }
                     }
                     return unsynced;
-                } catch (SQLException | JSONException e) {
-                    throw new RuntimeException(e);
+                } catch (SQLException e) {
+                    onDatabaseException(e);
+                } catch (JSONException e) {
+                    onJSONException(e);
                 }
+                return null;
             }
 
             @Override
@@ -425,13 +462,17 @@ public class Source<T extends Resource> {
                                 if(changed){
                                     dao.update(resource); //save changes to database
                                 }
-                            } catch (JSONException | SQLException e) {
-                                throw new RuntimeException(e);
+                            } catch (JSONException e) {
+                                onJSONException(e);
+                                return null;
+                            } catch (SQLException e){
+                                onDatabaseException(e);
+                                return null;
                             }
                         }
                     } catch (Server.NetworkException e) {
-                        Log.w(this.toString(), "Network issue", e);
                         //just put in cache as it is
+                        onNetworkException(e);
                     }
                 }
                 return resource;
@@ -454,7 +495,8 @@ public class Source<T extends Resource> {
                 try {
                     return cacheGetNetworkUpdateOnMiss(query.query(dao));
                 } catch (SQLException e) {
-                    throw new RuntimeException(e);
+                    onDatabaseException(e);
+                    return null;
                 }
             }
 
@@ -477,7 +519,8 @@ public class Source<T extends Resource> {
                     }
                     return returnResults;
                 } catch (SQLException e) {
-                    throw new RuntimeException(e);
+                    onDatabaseException(e);
+                    return null;
                 }
             }
 
