@@ -10,8 +10,9 @@ import java.lang.reflect.Constructor;
 import java.sql.SQLException;
 import java.util.List;
 
-import audio.rabid.dev.network_orm.AllowedOps;
-import audio.rabid.dev.network_orm.RailsSource;
+import audio.rabid.dev.network_orm.models.AllowedOps;
+import audio.rabid.dev.network_orm.models.OperationCallback;
+import audio.rabid.dev.network_orm.models.rails.RailsSource;
 import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.SampleAppServer;
 

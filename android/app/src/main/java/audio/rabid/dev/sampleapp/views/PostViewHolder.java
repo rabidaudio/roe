@@ -1,11 +1,12 @@
 package audio.rabid.dev.sampleapp.views;
 
 import android.app.Activity;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.view.View;
 import android.widget.TextView;
 
-import audio.rabid.dev.network_orm.ViewHolder;
+import audio.rabid.dev.network_orm.views.ViewHolder;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Post;
 import butterknife.Bind;
@@ -39,7 +40,7 @@ public class PostViewHolder extends ViewHolder<Post> {
     }
 
     @Override
-    protected void draw(Post item, View parent) {
+    protected void draw(@NonNull Post item, View parent) {
         ButterKnife.bind(this, parent);
 
         title.setText(item.getTitle());

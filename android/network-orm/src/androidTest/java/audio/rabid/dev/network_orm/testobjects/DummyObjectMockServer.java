@@ -4,7 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import audio.rabid.dev.network_orm.Server;
+import audio.rabid.dev.network_orm.models.Server;
 
 /**
  * Created by charles on 10/30/15.

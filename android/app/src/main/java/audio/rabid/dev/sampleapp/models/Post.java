@@ -6,8 +6,8 @@ import com.j256.ormlite.table.DatabaseTable;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import audio.rabid.dev.network_orm.Resource;
-import audio.rabid.dev.network_orm.Source;
+import audio.rabid.dev.network_orm.models.Resource;
+import audio.rabid.dev.network_orm.models.Source;
 
 /**
  * Created by charles on 10/25/15.
@@ -84,7 +84,7 @@ public class Post extends Resource<Post> {
     }
 
     @Override
-    protected synchronized boolean updateFromJSON(JSONObject data) throws JSONException {
+    public synchronized boolean updateFromJSON(JSONObject data) throws JSONException {
         boolean updated = super.updateFromJSON(data);
         String t = data.getString("title");
         String b = data.getString("body");

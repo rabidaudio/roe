@@ -1,4 +1,4 @@
-package audio.rabid.dev.network_orm;
+package audio.rabid.dev.network_orm.models.rails;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;

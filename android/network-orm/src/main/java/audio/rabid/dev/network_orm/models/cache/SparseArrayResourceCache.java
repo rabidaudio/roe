@@ -1,9 +1,10 @@
-package audio.rabid.dev.network_orm;
+package audio.rabid.dev.network_orm.models.cache;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.SparseArray;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import audio.rabid.dev.network_orm.models.Resource;
 
 /**
  * Created by charles on 10/29/15.
@@ -43,7 +44,7 @@ public class SparseArrayResourceCache<T extends Resource> implements ResourceCac
     }
 
     @Override
-    public synchronized T getByLocalId(int localId, @NotNull CacheMissCallback<T> callback) {
+    public synchronized T getByLocalId(int localId, @NonNull CacheMissCallback<T> callback) {
         T cached = instanceCache.get(localId);
         if (cached == null) {
             return put(callback.onCacheMiss(localId));
@@ -53,7 +54,7 @@ public class SparseArrayResourceCache<T extends Resource> implements ResourceCac
     }
 
     @Override
-    public synchronized T getByServerId(int serverId, @NotNull CacheMissCallback<T> callback) {
+    public synchronized T getByServerId(int serverId, @NonNull CacheMissCallback<T> callback) {
         Integer localId = serverLocalIDMap.get(serverId);
         if (localId == null) {
             return put(callback.onCacheMiss(serverId));

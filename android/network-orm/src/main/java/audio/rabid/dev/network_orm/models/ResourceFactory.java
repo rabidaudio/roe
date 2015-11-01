@@ -1,4 +1,4 @@
-package audio.rabid.dev.network_orm;
+package audio.rabid.dev.network_orm.models;
 
 import org.json.JSONException;
 import org.json.JSONObject;

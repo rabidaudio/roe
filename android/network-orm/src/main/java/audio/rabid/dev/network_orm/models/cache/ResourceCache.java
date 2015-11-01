@@ -1,7 +1,9 @@
-package audio.rabid.dev.network_orm;
+package audio.rabid.dev.network_orm.models.cache;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
+import audio.rabid.dev.network_orm.models.Resource;
 
 /**
  * Created by charles on 10/29/15.
@@ -17,9 +19,9 @@ public interface ResourceCache<T extends Resource> {
 
     T delete(T object);
 
-    T getByLocalId(int localId, @NotNull CacheMissCallback<T> callback);
+    T getByLocalId(int localId, @NonNull CacheMissCallback<T> callback);
 
-    T getByServerId(int serverId, @NotNull CacheMissCallback<T> callback);
+    T getByServerId(int serverId, @NonNull CacheMissCallback<T> callback);
 
     /**
      * This block is called if the item wasn't in the cache. Return an item to be put in the cache

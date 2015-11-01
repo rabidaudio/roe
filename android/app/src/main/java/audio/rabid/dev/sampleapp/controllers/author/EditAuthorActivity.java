@@ -11,7 +11,8 @@ import android.widget.TextView;
 
 import java.net.URL;
 
-import audio.rabid.dev.network_orm.Source;
+import audio.rabid.dev.network_orm.models.OperationCallback;
+import audio.rabid.dev.network_orm.models.Source;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import butterknife.Bind;
@@ -48,9 +49,9 @@ public class EditAuthorActivity extends AppCompatActivity {
         if (authorId == -1) {
             drawNewAuthor();
         } else {
-            Author.Source.getLocal(authorId, new Source.OperationCallback<Author>() {
+            Author.Source.getLocal(authorId, new OperationCallback<Author>() {
                 @Override
-                public void onResult(@org.jetbrains.annotations.Nullable Author result) {
+                public void onResult(@Nullable Author result) {
                     if (result == null) {
                         drawNewAuthor();
                     } else {
@@ -102,11 +103,11 @@ public class EditAuthorActivity extends AppCompatActivity {
         }
         String a = avatar.getText().toString();
 
-        synchronized (author.Lock) {
+        synchronized (author) {
             author.setName(n);
             author.setEmail(e);
             author.setAvatar(a);
-            author.save(new Source.OperationCallback<Author>() {
+            author.save(new OperationCallback<Author>() {
                 @Override
                 public void onResult(@Nullable Author result) {
                     setResult(Activity.RESULT_OK);

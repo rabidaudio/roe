@@ -1,4 +1,4 @@
-package audio.rabid.dev.network_orm;
+package audio.rabid.dev.network_orm.models;
 
 /**
  * Created by charles on 10/25/15.

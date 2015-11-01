@@ -1,7 +1,8 @@
-package audio.rabid.dev.network_orm;
+package audio.rabid.dev.network_orm.models;
+
+import android.support.annotation.Nullable;
 
 import org.apache.http.client.utils.URIBuilder;
-import org.jetbrains.annotations.Nullable;
 import org.json.JSONArray;
 import org.json.JSONObject;
 

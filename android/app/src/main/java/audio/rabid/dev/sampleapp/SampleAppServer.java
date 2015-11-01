@@ -1,14 +1,14 @@
 package audio.rabid.dev.sampleapp;
 
+import android.support.annotation.Nullable;
 import android.util.Log;
 
-import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-import audio.rabid.dev.network_orm.RailsServer;
+import audio.rabid.dev.network_orm.models.rails.RailsServer;
 
 /**
  * Created by charles on 10/28/15.

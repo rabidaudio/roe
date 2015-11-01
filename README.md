@@ -1,4 +1,12 @@
 
+More MVC-like Android framework
+
+Powerful model system built on ORMLite with automatic handling of network APIs
+
+Activities are your controllers. They can manipulate simple views directly, but for more complicated views,
+use ViewHolder. 
+
+
 ## TODO
 
 - document methods
@@ -12,6 +20,7 @@
 - better way to create Sources (no unchecked, way to pass in programatically)
 - 0verhaul permissions crap
 - support ids that aren't integers
+- allow for resorces without network apis
 
 
 Creating new threads seems to be about 15% faster than a single background looper thread when crunching a whole bunch of inserts. (`52220.965 ms` compared to `61390.46 ms`)
@@ -80,10 +89,19 @@ Then make your models. These should extend `Resource`. This gives you built-in f
     Date createdAt - the (local) create timestamp (independant of server create timestamp)
     Date updatedAt - the (local) update timestamp (independant of server update timestamp)
 
-
+Use `@DatabaseTable` and `@DatabaseField` annotations as appropriate. Also override the 
 
 ```java
+@DatabaseTable(tableName = "my_models")
 public class MyModel extends Resource<MyModel> {
-  
+    
+    ...
+
+    @Override
+    protected synchronized boolean updateFromJSON(JSONObject data) throws JSONException {
+        boolean updated = super.updateFromJSON(data);
+        ... update values ...
+        return updated;
+    }
 }
 ```

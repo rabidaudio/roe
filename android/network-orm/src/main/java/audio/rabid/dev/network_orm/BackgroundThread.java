@@ -51,6 +51,5 @@ public class BackgroundThread extends Thread {
 
     public static void postBackground(Runnable r) {
         getBackgroundHandler().post(r);
-//        new Thread(r).start();
     }
 }

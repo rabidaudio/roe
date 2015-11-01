@@ -1,8 +1,9 @@
-package audio.rabid.dev.network_orm;
+package audio.rabid.dev.network_orm.models.rails;
+
+import android.support.annotation.NonNull;
 
 import com.j256.ormlite.dao.Dao;
 
-import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -10,13 +11,19 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
+import audio.rabid.dev.network_orm.models.AllowedOps;
+import audio.rabid.dev.network_orm.models.Resource;
+import audio.rabid.dev.network_orm.models.ResourceFactory;
+import audio.rabid.dev.network_orm.models.Source;
+import audio.rabid.dev.network_orm.models.cache.SparseArrayResourceCache;
+
 /**
  * Created by charles on 10/29/15.
  */
 public class RailsSource<T extends Resource> extends Source<T> {
 
-    public RailsSource(@NotNull RailsServer server, @NotNull Dao<T, Integer> dao, @NotNull String endpoint,
-                       @NotNull RailsResourceFactory<T> resourceFactory, @NotNull AllowedOps permissions) {
+    public RailsSource(@NonNull RailsServer server, @NonNull Dao<T, Integer> dao, @NonNull String endpoint,
+                       @NonNull RailsResourceFactory<T> resourceFactory, @NonNull AllowedOps permissions) {
 
         super(server, dao, new SparseArrayResourceCache<T>(50), resourceFactory, permissions);
         server.addEndpoint(dao.getDataClass(), endpoint);

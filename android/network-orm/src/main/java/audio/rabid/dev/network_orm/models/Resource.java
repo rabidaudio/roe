@@ -1,12 +1,15 @@
-package audio.rabid.dev.network_orm;
+package audio.rabid.dev.network_orm.models;
+
+import android.support.annotation.Nullable;
 
 import com.j256.ormlite.field.DatabaseField;
 
-import org.jetbrains.annotations.Nullable;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Date;
+
+import audio.rabid.dev.network_orm.models.rails.NetworkDate;
 
 /**
  * Created by charles on 10/23/15.
@@ -17,8 +20,6 @@ import java.util.Date;
 public abstract class Resource<T extends Resource> extends TypedObservable<T> {
 
     public abstract Source<T> getSource();
-
-    public final Object Lock = new Object();
 
     @DatabaseField(generatedId = true)
     protected int id = -1;
@@ -66,12 +67,12 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public synchronized void save(@Nullable Source.OperationCallback<T> callback) {
+    public synchronized void save(@Nullable OperationCallback<T> callback) {
         getSource().createOrUpdate((T) this, callback);
     }
 
     @SuppressWarnings("unchecked")
-    public synchronized void delete(@Nullable Source.OperationCallback<T> callback) {
+    public synchronized void delete(@Nullable OperationCallback<T> callback) {
         getSource().deleteLocal((T) this, callback);
     }
 
@@ -88,7 +89,7 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
         JSONObject o = new JSONObject()
                 .put("id", serverId);
         if (createdAt != null) {
-            o.put("created_at", NetworkDate.encode(createdAt));
+            o.put("created_at", NetworkDate.encode(createdAt));  //TODO allow custom date formats
         }
         if (updatedAt != null) {
             o.put("updated_at", NetworkDate.encode(updatedAt));
@@ -101,7 +102,7 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
      *
      * @return were any object fields changed?
      */
-    protected synchronized boolean updateFromJSON(JSONObject data) throws JSONException {
+    public synchronized boolean updateFromJSON(JSONObject data) throws JSONException {
         int id = data.getInt("id");
         boolean updated = serverId != id;
         if (updated) {

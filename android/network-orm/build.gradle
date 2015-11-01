@@ -20,7 +20,8 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
     compile 'com.j256.ormlite:ormlite-android:4.48'
     compile group: 'org.apache.httpcomponents' , name: 'httpclient-android' , version: '4.3.5.1'
-    compile 'com.intellij:annotations:+@jar'
+    compile 'com.android.support:appcompat-v7:23.1.0'
 }

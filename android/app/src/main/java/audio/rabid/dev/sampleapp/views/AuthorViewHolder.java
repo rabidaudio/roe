@@ -2,13 +2,15 @@ package audio.rabid.dev.sampleapp.views;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import audio.rabid.dev.network_orm.Source;
-import audio.rabid.dev.network_orm.ViewHolder;
+import audio.rabid.dev.network_orm.models.OperationCallback;
+import audio.rabid.dev.network_orm.models.Source;
+import audio.rabid.dev.network_orm.views.ViewHolder;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import butterknife.Bind;
@@ -34,16 +36,16 @@ public class AuthorViewHolder extends ViewHolder<Author> {
     }
 
     @Override
-    protected void draw(Author author, View parent) {
+    protected void draw(@NonNull Author author, View parent) {
         ButterKnife.bind(this, parent);
         name.setText(author.getName());
         email.setText(author.getEmail());
 
         avatar.setImageResource(R.drawable.ic_keyboard_control);
-        author.getAvatarBitmap(new Source.OperationCallback<Bitmap>() {
+        author.getAvatarBitmap(new Author.BitmapCallback() {
             @Override
-            public void onResult(@Nullable Bitmap result) {
-                avatar.setImageBitmap(result);
+            public void onBitmapReady(@Nullable Bitmap bitmap) {
+                avatar.setImageBitmap(bitmap);
             }
         });
     }

@@ -1,13 +1,15 @@
-package audio.rabid.dev.network_orm;
+package audio.rabid.dev.network_orm.models;
 
+import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.test.AndroidTestCase;
 import android.test.suitebuilder.annotation.Suppress;
 import android.util.Log;
 
-import org.jetbrains.annotations.Nullable;
-
 import java.util.List;
 
+import audio.rabid.dev.network_orm.ChangeDetectorObserver;
+import audio.rabid.dev.network_orm.Synchronizer;
 import audio.rabid.dev.network_orm.testobjects.DummyObject;
 import audio.rabid.dev.network_orm.testobjects.DummyObjectMockServer;
 import audio.rabid.dev.network_orm.testobjects.GenericDatabase;
@@ -18,12 +20,13 @@ import audio.rabid.dev.network_orm.testobjects.GenericDatabase;
 public class GenericSourceTest extends AndroidTestCase {
 
     public void setUp(){
-        long start = System.nanoTime();
         GenericDatabase.getInstance(getContext()).clearDatabase(); //initialize database
-        Log.i("GenericSourceTest", "database dump took ms " + (System.nanoTime() - start) / 1000f / 1000f);
         DummyObjectMockServer.getInstance().setNetworkAvailable(true);
     }
 
+    /**
+     * Test each CRUD operation on a single object while network connectivity exists
+     */
     public void testBasicSingleOperationsWithNetwork() throws Exception {
         DummyObjectMockServer.getInstance().setNetworkAvailable(true);
 
@@ -39,7 +42,7 @@ public class GenericSourceTest extends AndroidTestCase {
         start = System.nanoTime();
         DummyObject result = (new Synchronizer<DummyObject>(){
             public void run(){
-                d.save(new Source.OperationCallback<DummyObject>() {
+                d.save(new OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject r) {
                         setResult(r);
@@ -61,7 +64,7 @@ public class GenericSourceTest extends AndroidTestCase {
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {
-                DummyObject.SOURCE.getLocal(d.getId(), new Source.OperationCallback<DummyObject>() {
+                DummyObject.SOURCE.getLocal(d.getId(), new OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject result) {
                         setResult(result);
@@ -79,7 +82,7 @@ public class GenericSourceTest extends AndroidTestCase {
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {
-                d.save(new Source.OperationCallback<DummyObject>() {
+                d.save(new OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject result) {
                         setResult(result);
@@ -100,7 +103,7 @@ public class GenericSourceTest extends AndroidTestCase {
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {
-                d.delete(new Source.OperationCallback<DummyObject>() {
+                d.delete(new OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject result) {
                         setResult(result);
@@ -114,11 +117,11 @@ public class GenericSourceTest extends AndroidTestCase {
         assertNull("item should no longer be in database", DummyObject.SOURCE.getDao().queryForId(d.getId()));
     }
 
-
+    /**
+     * Test CRUD operations on a single object without network, and then enabling network and syncing
+     */
     public void testBasicSingleOperationsWithoutNetwork() throws Exception {
         DummyObjectMockServer.getInstance().setNetworkAvailable(false);
-
-        long start;
 
         final DummyObject d = new DummyObject("meow", 0, null);
 
@@ -127,10 +130,9 @@ public class GenericSourceTest extends AndroidTestCase {
         assertFalse("new object should not be synced", d.isSynced());
 
         //CREATE
-        start = System.nanoTime();
         DummyObject result = (new Synchronizer<DummyObject>(){
             public void run(){
-                d.save(new Source.OperationCallback<DummyObject>() {
+                d.save(new OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject r) {
                         setResult(r);
@@ -138,7 +140,6 @@ public class GenericSourceTest extends AndroidTestCase {
                 });
             }
         }).blockUntilFinished();
-        Log.i("GenericSourceTestNoNet", "create took ms " + (System.nanoTime() - start) / 1000f / 1000f);
 
         assertNotNull("saved object should be returned in callback", result);
         assertTrue("saved object should have a local id", result.getId() > 0);
@@ -148,11 +149,10 @@ public class GenericSourceTest extends AndroidTestCase {
         assertNotNull("item should be in database", DummyObject.SOURCE.getDao().queryForId(d.getId()));
 
         //READ
-        start = System.nanoTime();
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {
-                DummyObject.SOURCE.getLocal(d.getId(), new Source.OperationCallback<DummyObject>() {
+                DummyObject.SOURCE.getLocal(d.getId(), new OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject result) {
                         setResult(result);
@@ -160,17 +160,16 @@ public class GenericSourceTest extends AndroidTestCase {
                 });
             }
         }.blockUntilFinished();
-        Log.i("GenericSourceTestNoNet", "read took ms " + (System.nanoTime() - start) / 1000f / 1000f);
 
         assertEquals("object by id should be the same instance", d, result);
 
         //UPDATE
         d.age = 10;
-        start = System.nanoTime();
+
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {
-                d.save(new Source.OperationCallback<DummyObject>() {
+                d.save(new OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject result) {
                         setResult(result);
@@ -178,7 +177,6 @@ public class GenericSourceTest extends AndroidTestCase {
                 });
             }
         }.blockUntilFinished();
-        Log.i("GenericSourceTestNoNet", "update took ms " + (System.nanoTime() - start) / 1000f / 1000f);
 
         assertNotNull("updated object should be returned in callback", result);
         assertFalse("saved object should NOT have a server id", result.getServerId() > 0);
@@ -187,14 +185,12 @@ public class GenericSourceTest extends AndroidTestCase {
         assertEquals("updated object should have the new values", 10, result.age);
         assertEquals("updated object should be the same instance", d, result);
 
-        //SYNC
-        DummyObjectMockServer.getInstance().setNetworkAvailable(true);
+        //SYNC NO NET
         long prevUpdateTime = d.getUpdatedAt().getTime();
-        start = System.nanoTime();
         List<DummyObject> synced = new Synchronizer<List<DummyObject>>() {
             @Override
             public void run() {
-                DummyObject.SOURCE.sync(new Source.OperationCallback<List<DummyObject>>() {
+                DummyObject.SOURCE.sync(new OperationCallback<List<DummyObject>>() {
                     @Override
                     public void onResult(@Nullable List<DummyObject> result) {
                         setResult(result);
@@ -202,7 +198,26 @@ public class GenericSourceTest extends AndroidTestCase {
                 });
             }
         }.blockUntilFinished();
-        Log.i("GenericSourceTestNoNet", "delete took ms " + (System.nanoTime() - start) / 1000f / 1000f);
+
+        assertTrue("no items should have synced", synced.isEmpty());
+        assertFalse("the item should not be marked as synced", d.isSynced());
+        assertEquals("the new update time should be the same as the old one", prevUpdateTime, d.getUpdatedAt().getTime());
+
+        //SYNC NET
+        DummyObjectMockServer.getInstance().setNetworkAvailable(true); //enable network
+
+        prevUpdateTime = d.getUpdatedAt().getTime();
+        synced = new Synchronizer<List<DummyObject>>() {
+            @Override
+            public void run() {
+                DummyObject.SOURCE.sync(new OperationCallback<List<DummyObject>>() {
+                    @Override
+                    public void onResult(@Nullable List<DummyObject> result) {
+                        setResult(result);
+                    }
+                });
+            }
+        }.blockUntilFinished();
 
         assertEquals("one item should have synced", 1, synced.size());
         assertEquals("the synced item should be the same instance", d, synced.get(0));
@@ -210,14 +225,17 @@ public class GenericSourceTest extends AndroidTestCase {
         assertTrue("the new update time should be larger than the old one", d.getUpdatedAt().getTime()>prevUpdateTime);
     }
 
-
+    /**
+     * Test that observables
+     * @throws Exception
+     */
     public void testObservablesOnBasicSingleOperationsWithNetwork() throws Exception {
         DummyObjectMockServer.getInstance().setNetworkAvailable(true);
 
         final DummyObject d = new DummyObject("meow", 0, null);
 
-        ChangeCatcher<DummyObject> catcher1 = new ChangeCatcher<>();
-        ChangeCatcher<DummyObject> catcher2 = new ChangeCatcher<>();
+        ChangeDetectorObserver<DummyObject> catcher1 = new ChangeDetectorObserver<>();
+        ChangeDetectorObserver<DummyObject> catcher2 = new ChangeDetectorObserver<>();
 
         d.addObserver(catcher1);
         d.addObserver(catcher2);
@@ -225,7 +243,7 @@ public class GenericSourceTest extends AndroidTestCase {
         //CREATE
         DummyObject result = (new Synchronizer<DummyObject>() {
             public void run() {
-                d.save(new Source.OperationCallback<DummyObject>() {
+                d.save(new OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject r) {
                         setResult(r);
@@ -243,7 +261,7 @@ public class GenericSourceTest extends AndroidTestCase {
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {
-                d.save(new Source.OperationCallback<DummyObject>() {
+                d.save(new OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject result) {
                         setResult(result);
@@ -255,12 +273,13 @@ public class GenericSourceTest extends AndroidTestCase {
         assertNotNull(result);
         assertTrue("observer should see update", catcher1.sawChange());
         assertTrue("observer should see update", catcher2.sawChange());
+        assertEquals("observers should be called on main thread", Looper.getMainLooper().getThread(), catcher1.getCallingThread());
 
         //DELETE
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {
-                d.delete(new Source.OperationCallback<DummyObject>() {
+                d.delete(new OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject result) {
                         setResult(result);
@@ -272,8 +291,12 @@ public class GenericSourceTest extends AndroidTestCase {
         assertNotNull(result);
         assertTrue("observer should see delete", catcher1.sawChange());
         assertTrue("observer should see delete", catcher2.sawChange());
+        assertEquals("observers should be called on main thread", Looper.getMainLooper().getThread(), catcher1.getCallingThread());
     }
 
+    /**
+     * This is a slow running test of performance. It is disabled
+     */
     @Suppress
     public void testBackgroundOperationSpeed() throws Exception {
         int testSize = 1000;
@@ -288,7 +311,7 @@ public class GenericSourceTest extends AndroidTestCase {
             new Synchronizer<DummyObject>() {
                 @Override
                 public void run() {
-                    d.save(new Source.OperationCallback<DummyObject>() {
+                    d.save(new OperationCallback<DummyObject>() {
                         @Override
                         public void onResult(@Nullable DummyObject result) {
                             setResult(result);
@@ -304,7 +327,7 @@ public class GenericSourceTest extends AndroidTestCase {
             new Synchronizer<List<DummyObject>>() {
                 @Override
                 public void run() {
-                    DummyObject.SOURCE.createOrUpdateManyFromNetwork(null, new Source.OperationCallback<List<DummyObject>>() {
+                    DummyObject.SOURCE.createOrUpdateManyFromNetwork(null, new OperationCallback<List<DummyObject>>() {
                         @Override
                         public void onResult(@Nullable List<DummyObject> result) {
                             setResult(result);
@@ -314,26 +337,5 @@ public class GenericSourceTest extends AndroidTestCase {
             }.blockUntilFinished();
         }
         Log.w("OpSpeed", "Remote fetch total time was: " + ((System.nanoTime() - start) / 1000f / 1000f) + " ms");
-    }
-
-
-    private static class ChangeCatcher<T extends TypedObservable> implements TypedObserver<T> {
-
-        private boolean sawChange = false;
-
-        @Override
-        public void update(T observable, Object data) {
-            sawChange = true;
-        }
-
-        public boolean sawChange() {
-            if (sawChange) {
-                sawChange = false;
-                return true;
-            } else {
-                sawChange = true;
-                return false;
-            }
-        }
     }
 }

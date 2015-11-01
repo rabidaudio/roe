@@ -6,7 +6,8 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.EditText;
 
-import audio.rabid.dev.network_orm.Source;
+import audio.rabid.dev.network_orm.models.OperationCallback;
+import audio.rabid.dev.network_orm.models.Source;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.sampleapp.models.Post;
@@ -42,7 +43,7 @@ public class EditPostActivity extends AppCompatActivity {
         final int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
         if (postId == -1) {
             post = new Post();
-            Author.Source.getLocal(authorId, new Source.OperationCallback<Author>() {
+            Author.Source.getLocal(authorId, new OperationCallback<Author>() {
                 @Override
                 public void onResult(Author result) {
                     post.setAuthor(result);
@@ -50,7 +51,7 @@ public class EditPostActivity extends AppCompatActivity {
                 }
             });
         } else {
-            Post.Source.getLocal(postId, new Source.OperationCallback<Post>() {
+            Post.Source.getLocal(postId, new OperationCallback<Post>() {
                 @Override
                 public void onResult(Post result) {
                     if (result == null) {
@@ -79,10 +80,10 @@ public class EditPostActivity extends AppCompatActivity {
             body.setError("Field required");
             return;
         }
-        synchronized (post.Lock) {
+        synchronized (post) {
             post.setTitle(t);
             post.setBody(b);
-            post.save(new Source.OperationCallback<Post>() {
+            post.save(new OperationCallback<Post>() {
                 @Override
                 public void onResult(Post result) {
                     setResult(RESULT_OK);

@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.support.annotation.Nullable;
 
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -18,10 +19,10 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import audio.rabid.dev.network_orm.AllowedOps;
-import audio.rabid.dev.network_orm.RailsSource;
-import audio.rabid.dev.network_orm.Resource;
-import audio.rabid.dev.network_orm.Source;
+import audio.rabid.dev.network_orm.models.AllowedOps;
+import audio.rabid.dev.network_orm.models.rails.RailsSource;
+import audio.rabid.dev.network_orm.models.Resource;
+import audio.rabid.dev.network_orm.models.Source;
 import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.SampleAppServer;
 import audio.rabid.dev.utils.ImageCache;
@@ -73,22 +74,22 @@ public class Author extends Resource<Author> {
 
     private Bitmap avatarBitmap;
 
-    public void getAvatarBitmap(final audio.rabid.dev.network_orm.Source.OperationCallback<Bitmap> callback) {
+    public void getAvatarBitmap(final BitmapCallback callback) {
         //no image saved
         if (avatar == null) {
-            callback.onResult(null);
+            callback.onBitmapReady(null);
             return;
         }
 
         //image cached locally
         if (avatarBitmap != null) {
-            callback.onResult(avatarBitmap);
+            callback.onBitmapReady(avatarBitmap);
             return;
         }
         URL url = getAvatar();
         //invalid url
         if (url == null) {
-            callback.onResult(null);
+            callback.onBitmapReady(null);
             return;
         }
         //fetch from network
@@ -114,9 +115,13 @@ public class Author extends Resource<Author> {
                 if (bitmap != null && avatar != null) {
                     ImageCache.getInstance().put(avatar, bitmap);
                 }
-                callback.onResult(bitmap);
+                callback.onBitmapReady(bitmap);
             }
         }).execute(url);
+    }
+
+    public interface BitmapCallback {
+        void onBitmapReady(@Nullable Bitmap bitmap);
     }
 
     public void setAvatar(String avatar) {
@@ -153,7 +158,7 @@ public class Author extends Resource<Author> {
     }
 
     @Override
-    protected synchronized boolean updateFromJSON(JSONObject data) throws JSONException {
+    public synchronized boolean updateFromJSON(JSONObject data) throws JSONException {
         boolean changed = super.updateFromJSON(data);
         String n = data.getString("name");
         String e = data.getString("email");

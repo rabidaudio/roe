@@ -10,7 +10,8 @@ import android.widget.ListView;
 
 import java.util.List;
 
-import audio.rabid.dev.network_orm.Source;
+import audio.rabid.dev.network_orm.models.OperationCallback;
+import audio.rabid.dev.network_orm.models.Source;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.posts.PostActivity;
 import audio.rabid.dev.sampleapp.controllers.posts.PostsActivity;
@@ -18,7 +19,7 @@ import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.sampleapp.models.Post;
 import audio.rabid.dev.sampleapp.views.AuthorViewHolder;
 import audio.rabid.dev.sampleapp.views.PostViewHolder;
-import audio.rabid.dev.utils.EasyArrayAdapter;
+import audio.rabid.dev.network_orm.views.EasyArrayAdapter;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
@@ -43,7 +44,7 @@ public class AuthorActivity extends AppCompatActivity {
         view = new AuthorViewHolder(this);
 
         final int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
-        Author.Source.getLocal(authorId, new Source.OperationCallback<Author>() {
+        Author.Source.getLocal(authorId, new OperationCallback<Author>() {
             @Override
             public void onResult(@Nullable Author result) {
                 view.setItem(result);
@@ -51,9 +52,9 @@ public class AuthorActivity extends AppCompatActivity {
             }
         });
 
-        Post.Source.getRecentByAuthor(authorId, 5l, new Source.OperationCallback<List<Post>>() {
+        Post.Source.getRecentByAuthor(authorId, 5l, new OperationCallback<List<Post>>() {
             @Override
-            public void onResult(@org.jetbrains.annotations.Nullable List<Post> result) {
+            public void onResult(@Nullable List<Post> result) {
                 recentPosts.setAdapter(new RecentPostsAdapter(result));
             }
         });

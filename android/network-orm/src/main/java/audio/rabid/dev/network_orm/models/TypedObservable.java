@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-package audio.rabid.dev.network_orm;
+package audio.rabid.dev.network_orm.models;
 
 import java.util.ArrayList;
 import java.util.List;

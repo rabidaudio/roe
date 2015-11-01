@@ -10,11 +10,11 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-import audio.rabid.dev.network_orm.AllowedOps;
-import audio.rabid.dev.network_orm.Resource;
-import audio.rabid.dev.network_orm.ResourceFactory;
-import audio.rabid.dev.network_orm.Source;
-import audio.rabid.dev.network_orm.SparseArrayResourceCache;
+import audio.rabid.dev.network_orm.models.AllowedOps;
+import audio.rabid.dev.network_orm.models.Resource;
+import audio.rabid.dev.network_orm.models.ResourceFactory;
+import audio.rabid.dev.network_orm.models.Source;
+import audio.rabid.dev.network_orm.models.cache.SparseArrayResourceCache;
 
 /**
  * Created by charles on 10/30/15.

@@ -1,9 +1,10 @@
-package audio.rabid.dev.network_orm;
+package audio.rabid.dev.network_orm.models;
+
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import com.j256.ormlite.dao.Dao;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -12,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
+
+import audio.rabid.dev.network_orm.models.cache.ResourceCache;
 
 /**
  * Created by charles on 10/28/15.
@@ -42,8 +45,8 @@ public class Source<T extends Resource> {
      * @param resourceFactory the factory for generating new Resources
      * @param permissions     the operations allowed to be done on the resource
      */
-    public Source(@NotNull Server server, @NotNull Dao<T, Integer> dao, @NotNull ResourceCache<T> resourceCache,
-                  @NotNull ResourceFactory<T> resourceFactory, @NotNull AllowedOps permissions) {
+    public Source(@NonNull Server server, @NonNull Dao<T, Integer> dao, @NonNull ResourceCache<T> resourceCache,
+                  @NonNull ResourceFactory<T> resourceFactory, @NonNull AllowedOps permissions) {
         this.server = server;
         this.dao = dao;
         this.resourceCache = resourceCache;
@@ -75,7 +78,7 @@ public class Source<T extends Resource> {
         //default: no-op
     }
 
-    public void getLocal(final int localId, @NotNull OperationCallback<T> callback) {
+    public void getLocal(final int localId, @NonNull OperationCallback<T> callback) {
         doSingleOperation(callback, new SingleSourceOperation<T>() {
             @Override
             public T doInBackground(final Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
@@ -95,13 +98,13 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps requiredPermissions() {
-                return new AllowedOps(AllowedOps.Op.READ);
+            public AllowedOps.Op[] requiredPermissions() {
+                return new AllowedOps.Op[]{AllowedOps.Op.READ};
             }
         });
     }
 
-    public void getByServerId(final int serverId, @NotNull OperationCallback<T> callback) {
+    public void getByServerId(final int serverId, @NonNull OperationCallback<T> callback) {
         doSingleOperation(callback, new SingleSourceOperation<T>() {
             @Override
             public T doInBackground(final Dao<T, Integer> dao, final Server server, ResourceCache<T> cache, final ResourceFactory<T> factory) {
@@ -144,13 +147,13 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps requiredPermissions() {
-                return new AllowedOps(AllowedOps.Op.READ);
+            public AllowedOps.Op[] requiredPermissions() {
+                return new AllowedOps.Op[]{AllowedOps.Op.READ};
             }
         });
     }
 
-    public void getAllLocal(@NotNull OperationCallback<List<T>> callback) {
+    public void getAllLocal(@NonNull OperationCallback<List<T>> callback) {
         doMultipleLocalQuery(callback, new MultipleLocalQuery<T>() {
             @Override
             public List<T> query(Dao<T, Integer> dao) throws SQLException {
@@ -226,8 +229,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps requiredPermissions() {
-                return new AllowedOps(AllowedOps.Op.UPDATE);
+            public AllowedOps.Op[] requiredPermissions() {
+                return new AllowedOps.Op[]{AllowedOps.Op.UPDATE};
             }
         });
     }
@@ -264,8 +267,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps requiredPermissions() {
-                return new AllowedOps(AllowedOps.Op.CREATE);
+            public AllowedOps.Op[] requiredPermissions() {
+                return new AllowedOps.Op[]{AllowedOps.Op.CREATE};
             }
         });
     }
@@ -308,8 +311,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps requiredPermissions() {
-                return new AllowedOps(AllowedOps.Op.UPDATE);
+            public AllowedOps.Op[] requiredPermissions() {
+                return new AllowedOps.Op[]{AllowedOps.Op.UPDATE};
             }
         });
     }
@@ -341,8 +344,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps requiredPermissions() {
-                return new AllowedOps(AllowedOps.Op.DELETE);
+            public AllowedOps.Op[] requiredPermissions() {
+                return new AllowedOps.Op[]{AllowedOps.Op.DELETE};
             }
         });
     }
@@ -374,10 +377,9 @@ public class Source<T extends Resource> {
                     return null;
                 }
             }
-
             @Override
-            public AllowedOps requiredPermissions() {
-                return new AllowedOps(AllowedOps.Op.DELETE);
+            public AllowedOps.Op[] requiredPermissions() {
+                return new AllowedOps.Op[]{AllowedOps.Op.DELETE};
             }
         });
     }
@@ -409,12 +411,12 @@ public class Source<T extends Resource> {
                                     item.setChanged();
                                 }
                                 dao.update(item);
+                                returnResults.add(item);
                             }
                         } catch (Server.NetworkException e) {
                             //oh well, still no network
                             onNetworkException(e);
                         }
-                        returnResults.add(item);
                     }
                     return returnResults;
                 } catch (SQLException e) {
@@ -426,8 +428,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps requiredPermissions() {
-                return new AllowedOps();
+            public AllowedOps.Op[] requiredPermissions() {
+                return new AllowedOps.Op[0];
             }
         });
     }
@@ -481,15 +483,15 @@ public class Source<T extends Resource> {
         });
     }
 
-    private void checkPermissions(AllowedOps required) {
-        for (AllowedOps.Op r : required.getOps()) {
+    private void checkPermissions(AllowedOps.Op[] required) {
+        for (AllowedOps.Op r : required) {
             if (!getPermissions().can(r)) {
                 throw new RuntimeException("Permission " + r.toString() + " denied for " + dao.getDataClass().toString());
             }
         }
     }
 
-    protected void doSingleLocalQuery(@Nullable OperationCallback<T> callback, @NotNull final SingleLocalQuery<T> query) {
+    protected void doSingleLocalQuery(@Nullable OperationCallback<T> callback, @NonNull final SingleLocalQuery<T> query) {
         doSingleOperation(callback, new SingleSourceOperation<T>() {
             @Override
             public T doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
@@ -502,13 +504,13 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps requiredPermissions() {
-                return new AllowedOps(AllowedOps.Op.READ);
+            public AllowedOps.Op[] requiredPermissions() {
+                return new AllowedOps.Op[]{AllowedOps.Op.READ};
             }
         });
     }
 
-    protected void doMultipleLocalQuery(@Nullable OperationCallback<List<T>> callback, @NotNull final MultipleLocalQuery<T> query) {
+    protected void doMultipleLocalQuery(@Nullable OperationCallback<List<T>> callback, @NonNull final MultipleLocalQuery<T> query) {
         doMultipleOperation(callback, new MultipleSourceOperation<T>() {
             @Override
             public List<T> doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
@@ -526,8 +528,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps requiredPermissions() {
-                return new AllowedOps(AllowedOps.Op.READ);
+            public AllowedOps.Op[] requiredPermissions() {
+                return new AllowedOps.Op[]{AllowedOps.Op.READ};
             }
         });
     }
@@ -538,8 +540,8 @@ public class Source<T extends Resource> {
      * @param callback  the callback to return results on main
      * @param operation the operation to run
      */
-    protected void doSingleOperation(@Nullable OperationCallback<T> callback, @NotNull final SingleSourceOperation<T> operation) {
-        (new SingleSourceAsyncTask<T>(callback) {
+    protected void doSingleOperation(@Nullable OperationCallback<T> callback, @NonNull final SingleSourceOperation<T> operation) {
+        (new SourceAsyncTask.SingleSourceAsyncTask<T>(callback) {
             @Override
             protected T runInBackground() {
                 checkPermissions(operation.requiredPermissions());
@@ -554,9 +556,9 @@ public class Source<T extends Resource> {
      * @param callback  the callback to return results on main
      * @param operation the operation to run
      */
-    protected void doMultipleOperation(@Nullable OperationCallback<List<T>> callback, @NotNull final MultipleSourceOperation<T> operation) {
+    protected void doMultipleOperation(@Nullable OperationCallback<List<T>> callback, @NonNull final MultipleSourceOperation<T> operation) {
         checkPermissions(operation.requiredPermissions());
-        (new MultipleSourceAsyncTask<T>(callback) {
+        (new SourceAsyncTask.MultipleSourceAsyncTask<T>(callback) {
             @Override
             protected List<T> runInBackground() {
                 checkPermissions(operation.requiredPermissions());
@@ -576,88 +578,16 @@ public class Source<T extends Resource> {
     }
 
 
-    /**
-     * Handles running queries in background and callbacks on main thread
-     *
-     * @param <A> the data type returned by the query
-     */
-    private abstract static class SingleSourceAsyncTask<A extends TypedObservable> implements Runnable {
-
-        @Nullable
-        private OperationCallback<A> callback;
-
-        public SingleSourceAsyncTask(@Nullable OperationCallback<A> callback) {
-            this.callback = callback;
-        }
-
-        public void execute() {
-            BackgroundThread.postBackground(this);
-        }
-
-        public void run() {
-            final A result = runInBackground();
-            if (callback != null)
-                BackgroundThread.postMain(new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.onResult(result);
-                        result.notifyObservers();
-                    }
-                });
-        }
-
-        protected abstract A runInBackground();
-    }
-
-    /**
-     * Handles running queries in background and callbacks on main thread
-     *
-     * @param <A> the data type returned by the query
-     */
-    private abstract static class MultipleSourceAsyncTask<A extends TypedObservable> implements Runnable {
-
-        @Nullable
-        private OperationCallback<List<A>> callback;
-
-        public MultipleSourceAsyncTask(@Nullable OperationCallback<List<A>> callback) {
-            this.callback = callback;
-        }
-
-        public void execute() {
-            BackgroundThread.postBackground(this);
-        }
-
-        public void run() {
-            final List<A> results = runInBackground();
-            if (callback != null)
-                BackgroundThread.postMain(new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.onResult(results);
-                        for(A result : results) {
-                            result.notifyObservers();
-                        }
-                    }
-                });
-        }
-
-        protected abstract List<A> runInBackground();
-    }
-
-    public interface OperationCallback<Q> {
-        void onResult(@Nullable Q result);
-    }
-
     protected interface SingleSourceOperation<Q extends Resource> {
         Q doInBackground(Dao<Q, Integer> dao, Server server, ResourceCache<Q> cache, ResourceFactory<Q> factory);
 
-        AllowedOps requiredPermissions();
+        AllowedOps.Op[] requiredPermissions();
     }
 
     protected interface MultipleSourceOperation<Q extends Resource> {
         List<Q> doInBackground(Dao<Q, Integer> dao, Server server, ResourceCache<Q> cache, ResourceFactory<Q> factory);
 
-        AllowedOps requiredPermissions();
+        AllowedOps.Op[] requiredPermissions();
     }
 
     protected interface SingleLocalQuery<Q extends Resource> {

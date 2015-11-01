@@ -1,12 +1,16 @@
-package audio.rabid.dev.network_orm;
+package audio.rabid.dev.network_orm.models.rails;
+
+import android.support.annotation.Nullable;
 
 import com.j256.ormlite.table.DatabaseTable;
 
-import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import audio.rabid.dev.network_orm.models.Resource;
+import audio.rabid.dev.network_orm.models.Server;
 
 /**
  * Created by charles on 10/29/15.

@@ -1,4 +1,4 @@
-package audio.rabid.dev.utils;
+package audio.rabid.dev.network_orm.views;
 
 import android.content.Context;
 import android.support.annotation.Nullable;
@@ -6,8 +6,7 @@ import android.view.View;
 
 import java.util.List;
 
-import audio.rabid.dev.network_orm.TypedObservable;
-import audio.rabid.dev.network_orm.ViewHolder;
+import audio.rabid.dev.network_orm.models.TypedObservable;
 
 /**
  * Created by charles on 10/25/15.

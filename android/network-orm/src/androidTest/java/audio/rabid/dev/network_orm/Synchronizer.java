@@ -19,11 +19,11 @@ public abstract class Synchronizer<T> implements Runnable{
 
     private int timeout = 5*1000;
 
+    private boolean resultSet = false;
+
     public Synchronizer(){
 
     }
-
-    private boolean resultSet = false;
 
     public Synchronizer(int timeout){
         this.timeout = timeout;
@@ -43,7 +43,7 @@ public abstract class Synchronizer<T> implements Runnable{
             lock.wait(timeout);
         }
         if(!resultSet){
-            throw new TimeoutException("Async task timed out");
+            throw new TimeoutException();
         }else{
             return result;
         }

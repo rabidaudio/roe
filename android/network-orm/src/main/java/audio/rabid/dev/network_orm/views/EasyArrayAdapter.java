@@ -1,4 +1,4 @@
-package audio.rabid.dev.utils;
+package audio.rabid.dev.network_orm.views;
 
 import android.content.Context;
 import android.support.annotation.Nullable;
@@ -24,7 +24,7 @@ import java.util.List;
  *         }
  * </pre>
  * <p/>
- * The other method you need is {@link #onDrawView(Object, Object)} which gives you the model and the
+ * The other method you need is {@link #onDrawView(Object, Object, View)} which gives you the model and the
  * ViewHolder and allows you to map the data to the view.
  * <p/>
  * Everything else is handled for you (all the inflation bullshit, keeping track of the collection, etc.).
