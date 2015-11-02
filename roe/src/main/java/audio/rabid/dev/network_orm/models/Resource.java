@@ -67,12 +67,12 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public synchronized void save(@Nullable OperationCallback<T> callback) {
+    public synchronized void save(@Nullable Source.OperationCallback<T> callback) {
         getSource().createOrUpdate((T) this, callback);
     }
 
     @SuppressWarnings("unchecked")
-    public synchronized void delete(@Nullable OperationCallback<T> callback) {
+    public synchronized void delete(@Nullable Source.OperationCallback<T> callback) {
         getSource().deleteLocal((T) this, callback);
     }
 

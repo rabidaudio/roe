@@ -9,7 +9,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
-import audio.rabid.dev.network_orm.models.OperationCallback;
 import audio.rabid.dev.network_orm.models.Source;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.author.AuthorActivity;
@@ -39,7 +38,7 @@ public class PostActivity extends AppCompatActivity {
 
         int postID = getIntent().getIntExtra(EXTRA_POST_ID, -1);
 
-        Post.Source.getLocal(postID, new OperationCallback<Post>() {
+        Post.Source.getLocal(postID, new Source.OperationCallback<Post>() {
             @Override
             public void onResult(@Nullable Post result) {
                 postViewHolder.setItem(result);

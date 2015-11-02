@@ -24,8 +24,8 @@ import audio.rabid.dev.network_orm.models.cache.ResourceCache;
  * caches and deciding when to update values. A resource can override this to handle these interactions
  * in a custom way or add more.
  * <p/>
- * Use {@link #doSingleOperation(OperationCallback, SingleSourceOperation)}  and
- * {@link #doMultipleOperation(OperationCallback, MultipleSourceOperation)}  for your public facing methods.
+ * Use {@link #doSingleOperation(SingleSourceOperation, OperationCallback)}  and
+ * {@link #doMultipleOperation(MultipleSourceOperation, OperationCallback)}  for your public facing methods.
  * This will handle running operations in the background and returning on main.
  */
 public class Source<T extends Resource> {
@@ -79,91 +79,91 @@ public class Source<T extends Resource> {
     }
 
     public void getLocal(final int localId, @NonNull OperationCallback<T> callback) {
-        doSingleOperation(callback, new SingleSourceOperation<T>() {
-            @Override
-            public T doInBackground(final Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
-                return cache.getByLocalId(localId, new ResourceCache.CacheMissCallback<T>() {
-                    @Nullable
+        doSingleOperation(new SingleSourceOperation<T>() {
                     @Override
-                    public T onCacheMiss(int id) {
-                        try {
-                            T resource = dao.queryForId(id);
-                            return cacheGetNetworkUpdateOnMiss(resource);
-                        } catch (SQLException e) {
-                            onDatabaseException(e);
-                            return null;
-                        }
+                    public T doInBackground(final Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
+                        return cache.getByLocalId(localId, new ResourceCache.CacheMissCallback<T>() {
+                            @Nullable
+                            @Override
+                            public T onCacheMiss(int id) {
+                                try {
+                                    T resource = dao.queryForId(id);
+                                    return cacheGetNetworkUpdateOnMiss(resource);
+                                } catch (SQLException e) {
+                                    onDatabaseException(e);
+                                    return null;
+                                }
+                            }
+                        });
                     }
-                });
-            }
 
             @Override
             public AllowedOps.Op[] requiredPermissions() {
                 return new AllowedOps.Op[]{AllowedOps.Op.READ};
             }
-        });
+        }, callback);
     }
 
     public void getByServerId(final int serverId, @NonNull OperationCallback<T> callback) {
-        doSingleOperation(callback, new SingleSourceOperation<T>() {
-            @Override
-            public T doInBackground(final Dao<T, Integer> dao, final Server server, ResourceCache<T> cache, final ResourceFactory<T> factory) {
-                return resourceCache.getByServerId(serverId, new ResourceCache.CacheMissCallback<T>() {
-                    @Nullable
+        doSingleOperation(new SingleSourceOperation<T>() {
                     @Override
-                    public T onCacheMiss(int id) {
-                        try {
-                            List<T> results = dao.queryForEq("serverId", id);
-                            if (results.isEmpty()) {
-                                if (getPermissions().canCreate()) {
-                                    //try and create from server
-                                    try {
-                                        Server.Response response = server.getItem(dao.getDataClass(), id);
-                                        if (!server.isErrorResponse(response)) {
-                                            T newResource = factory.createFromJSON(response.getResponseBody());
-                                            newResource.synced = true;
-                                            newResource.createdAt = newResource.updatedAt = new Date();
-                                            dao.create(newResource);
-                                            return newResource;
+                    public T doInBackground(final Dao<T, Integer> dao, final Server server, ResourceCache<T> cache, final ResourceFactory<T> factory) {
+                        return resourceCache.getByServerId(serverId, new ResourceCache.CacheMissCallback<T>() {
+                            @Nullable
+                            @Override
+                            public T onCacheMiss(int id) {
+                                try {
+                                    List<T> results = dao.queryForEq("serverId", id);
+                                    if (results.isEmpty()) {
+                                        if (getPermissions().canCreate()) {
+                                            //try and create from server
+                                            try {
+                                                Server.Response response = server.getItem(dao.getDataClass(), id);
+                                                if (!server.isErrorResponse(response)) {
+                                                    T newResource = factory.createFromJSON(response.getResponseBody());
+                                                    newResource.synced = true;
+                                                    newResource.createdAt = newResource.updatedAt = new Date();
+                                                    dao.create(newResource);
+                                                    return newResource;
+                                                }
+                                            } catch (Server.NetworkException e) {
+                                                //oh well, guess there's no network
+                                                onNetworkException(e);
+                                            }
                                         }
-                                    } catch (Server.NetworkException e) {
-                                        //oh well, guess there's no network
-                                        onNetworkException(e);
+                                        return null;
+                                    } else {
+                                        return cacheGetNetworkUpdateOnMiss(results.get(0));
                                     }
+                                } catch (SQLException e) {
+                                    onDatabaseException(e);
+                                    return null;
+                                } catch (JSONException e) {
+                                    onJSONException(e);
+                                    return null;
                                 }
-                                return null;
-                            } else {
-                                return cacheGetNetworkUpdateOnMiss(results.get(0));
                             }
-                        } catch (SQLException e) {
-                            onDatabaseException(e);
-                            return null;
-                        } catch (JSONException e) {
-                            onJSONException(e);
-                            return null;
-                        }
+                        });
                     }
-                });
-            }
 
             @Override
             public AllowedOps.Op[] requiredPermissions() {
                 return new AllowedOps.Op[]{AllowedOps.Op.READ};
             }
-        });
+        }, callback);
     }
 
     public void getAllLocal(@NonNull OperationCallback<List<T>> callback) {
-        doMultipleLocalQuery(callback, new MultipleLocalQuery<T>() {
+        doMultipleLocalQuery(new MultipleLocalQuery<T>() {
             @Override
             public List<T> query(Dao<T, Integer> dao) throws SQLException {
                 return dao.queryForAll();
             }
-        });
+        }, callback);
     }
 
     public void createOrUpdateManyFromNetwork(@Nullable final JSONObject search, @Nullable final OperationCallback<List<T>> callback) {
-        doMultipleOperation(callback, new MultipleSourceOperation<T>() {
+        doMultipleOperation(new MultipleSourceOperation<T>() {
             @Override
             public List<T> doInBackground(final Dao<T, Integer> dao, Server server, ResourceCache<T> cache, final ResourceFactory<T> factory) {
                 try {
@@ -232,11 +232,11 @@ public class Source<T extends Resource> {
             public AllowedOps.Op[] requiredPermissions() {
                 return new AllowedOps.Op[]{AllowedOps.Op.UPDATE};
             }
-        });
+        }, callback);
     }
 
     public void create(final T resource, @Nullable OperationCallback<T> callback) {
-        doSingleOperation(callback, new SingleSourceOperation<T>() {
+        doSingleOperation(new SingleSourceOperation<T>() {
             @Override
             public T doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
                 try {
@@ -270,11 +270,11 @@ public class Source<T extends Resource> {
             public AllowedOps.Op[] requiredPermissions() {
                 return new AllowedOps.Op[]{AllowedOps.Op.CREATE};
             }
-        });
+        }, callback);
     }
 
     public void update(final T resource, @Nullable OperationCallback<T> callback) {
-        doSingleOperation(callback, new SingleSourceOperation<T>() {
+        doSingleOperation(new SingleSourceOperation<T>() {
             @Override
             public T doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
                 cache.getByLocalId(resource.getId(), new ResourceCache.CacheMissCallback<T>() {
@@ -283,7 +283,8 @@ public class Source<T extends Resource> {
                     public T onCacheMiss(int id) {
                         throw new IllegalArgumentException("Instance must be in the cache before calling update");
                     }
-                });;
+                });
+                ;
                 try {
                     Server.Response response = null;
                     try {
@@ -304,7 +305,7 @@ public class Source<T extends Resource> {
                     return resource;
                 } catch (SQLException e) {
                     onDatabaseException(e);
-                } catch (JSONException e){
+                } catch (JSONException e) {
                     onJSONException(e);
                 }
                 return null;
@@ -314,7 +315,7 @@ public class Source<T extends Resource> {
             public AllowedOps.Op[] requiredPermissions() {
                 return new AllowedOps.Op[]{AllowedOps.Op.UPDATE};
             }
-        });
+        }, callback);
     }
 
     public void createOrUpdate(T resource, @Nullable OperationCallback<T> callback) {
@@ -326,7 +327,7 @@ public class Source<T extends Resource> {
     }
 
     public void deleteLocal(final T resource, @Nullable OperationCallback<T> callback) {
-        doSingleOperation(callback, new SingleSourceOperation<T>() {
+        doSingleOperation(new SingleSourceOperation<T>() {
             @Override
             public T doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
                 try {
@@ -341,18 +342,18 @@ public class Source<T extends Resource> {
                     onDatabaseException(e);
                     return null;
                 }
-            }
+                    }
 
             @Override
             public AllowedOps.Op[] requiredPermissions() {
                 return new AllowedOps.Op[]{AllowedOps.Op.DELETE};
             }
-        });
+        }, callback);
     }
 
     @Deprecated
     public void deleteBoth(final T resource, @Nullable OperationCallback<T> callback) {
-        doSingleOperation(callback, new SingleSourceOperation<T>() {
+        doSingleOperation(new SingleSourceOperation<T>() {
             @Override
             public T doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
                 try {
@@ -376,17 +377,18 @@ public class Source<T extends Resource> {
                     onDatabaseException(e);
                     return null;
                 }
-            }
+                    }
+
             @Override
             public AllowedOps.Op[] requiredPermissions() {
                 return new AllowedOps.Op[]{AllowedOps.Op.DELETE};
             }
-        });
+        }, callback);
     }
 
     public void sync(@Nullable OperationCallback<List<T>> callback) {
         if (!(getPermissions().canUpdate() || getPermissions().canCreate())) return; //nothing to do
-        doMultipleOperation(callback, new MultipleSourceOperation<T>() {
+        doMultipleOperation(new MultipleSourceOperation<T>() {
             @Override
             public List<T> doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
                 try {
@@ -431,7 +433,7 @@ public class Source<T extends Resource> {
             public AllowedOps.Op[] requiredPermissions() {
                 return new AllowedOps.Op[0];
             }
-        });
+        }, callback);
     }
 
     /******************************************************************************************/
@@ -491,8 +493,16 @@ public class Source<T extends Resource> {
         }
     }
 
-    protected void doSingleLocalQuery(@Nullable OperationCallback<T> callback, @NonNull final SingleLocalQuery<T> query) {
-        doSingleOperation(callback, new SingleSourceOperation<T>() {
+    /**
+     * A utility method for getting a resource by database query. In your {@link SingleLocalQuery},
+     * use the provided {@link Dao} to run a database query and return the result. This method will
+     * handle all the other stuff (caching, updating from network, etc). Use this for getting data
+     * available locally only.
+     * @param callback
+     * @param query
+     */
+    protected void doSingleLocalQuery(@NonNull final SingleLocalQuery<T> query, @Nullable OperationCallback<T> callback) {
+        doSingleOperation(new SingleSourceOperation<T>() {
             @Override
             public T doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
                 try {
@@ -507,11 +517,11 @@ public class Source<T extends Resource> {
             public AllowedOps.Op[] requiredPermissions() {
                 return new AllowedOps.Op[]{AllowedOps.Op.READ};
             }
-        });
+        }, callback);
     }
 
-    protected void doMultipleLocalQuery(@Nullable OperationCallback<List<T>> callback, @NonNull final MultipleLocalQuery<T> query) {
-        doMultipleOperation(callback, new MultipleSourceOperation<T>() {
+    protected void doMultipleLocalQuery(@NonNull final MultipleLocalQuery<T> query, @Nullable OperationCallback<List<T>> callback) {
+        doMultipleOperation(new MultipleSourceOperation<T>() {
             @Override
             public List<T> doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
                 try {
@@ -531,16 +541,16 @@ public class Source<T extends Resource> {
             public AllowedOps.Op[] requiredPermissions() {
                 return new AllowedOps.Op[]{AllowedOps.Op.READ};
             }
-        });
+        }, callback);
     }
 
     /**
      * Run some operation for one item off the main thread, calling the callback back on the main thread
      *
-     * @param callback  the callback to return results on main
      * @param operation the operation to run
+     * @param callback  the callback to return results on main
      */
-    protected void doSingleOperation(@Nullable OperationCallback<T> callback, @NonNull final SingleSourceOperation<T> operation) {
+    protected void doSingleOperation(@NonNull final SingleSourceOperation<T> operation, @Nullable OperationCallback<T> callback) {
         (new SourceAsyncTask.SingleSourceAsyncTask<T>(callback) {
             @Override
             protected T runInBackground() {
@@ -553,10 +563,10 @@ public class Source<T extends Resource> {
     /**
      * Run some operation for many items off the main thread, calling the callback back on the main thread
      *
-     * @param callback  the callback to return results on main
      * @param operation the operation to run
+     * @param callback  the callback to return results on main
      */
-    protected void doMultipleOperation(@Nullable OperationCallback<List<T>> callback, @NonNull final MultipleSourceOperation<T> operation) {
+    protected void doMultipleOperation(@NonNull final MultipleSourceOperation<T> operation, @Nullable OperationCallback<List<T>> callback) {
         checkPermissions(operation.requiredPermissions());
         (new SourceAsyncTask.MultipleSourceAsyncTask<T>(callback) {
             @Override
@@ -577,13 +587,34 @@ public class Source<T extends Resource> {
         }).execute();
     }
 
-
+    /**
+     * Used to run a CRUD operation on a single Resource
+     *
+     * @param <Q>
+     */
     protected interface SingleSourceOperation<Q extends Resource> {
+
+        /**
+         * The method you use to do the operation
+         * @param dao for accessing the local database
+         * @param server for making api calls
+         * @param cache for accessing the instance cache
+         * @param factory for creating new instances
+         * @return the item
+         */
         Q doInBackground(Dao<Q, Integer> dao, Server server, ResourceCache<Q> cache, ResourceFactory<Q> factory);
 
+        /**
+         * @return An array of permissions that must be had for the operation to be allowed
+         */
         AllowedOps.Op[] requiredPermissions();
     }
 
+    /**
+     * Used to run a CRUD operation on a collection of Resources
+     * @see SingleSourceOperation
+     * @param <Q>
+     */
     protected interface MultipleSourceOperation<Q extends Resource> {
         List<Q> doInBackground(Dao<Q, Integer> dao, Server server, ResourceCache<Q> cache, ResourceFactory<Q> factory);
 
@@ -596,5 +627,9 @@ public class Source<T extends Resource> {
 
     protected interface MultipleLocalQuery<Q extends Resource> {
         List<Q> query(Dao<Q, Integer> dao) throws SQLException;
+    }
+
+    public interface OperationCallback<Q> {
+        void onResult(@Nullable Q result);
     }
 }

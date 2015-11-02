@@ -18,8 +18,8 @@ import android.widget.ListView;
 
 import java.util.List;
 
-import audio.rabid.dev.network_orm.models.OperationCallback;
 import audio.rabid.dev.network_orm.models.Source;
+import audio.rabid.dev.network_orm.views.EasyArrayAdapter;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.author.AuthorActivity;
 import audio.rabid.dev.sampleapp.controllers.author.AuthorsActivity;
@@ -27,7 +27,6 @@ import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.sampleapp.models.Post;
 import audio.rabid.dev.sampleapp.views.AuthorViewHolder;
 import audio.rabid.dev.sampleapp.views.PostViewHolder;
-import audio.rabid.dev.network_orm.views.EasyArrayAdapter;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 
@@ -59,7 +58,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         if (authorId == -1) {
             author.setVisibility(View.GONE);
         } else {
-            Author.Source.getLocal(authorId, new OperationCallback<Author>() {
+            Author.Source.getLocal(authorId, new Source.OperationCallback<Author>() {
                 @Override
                 public void onResult(@Nullable Author result) {
                     authorViewHolder.setItem(result);
@@ -105,7 +104,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         refreshLayout.setRefreshing(true);
         final long start = System.nanoTime();
 
-        Post.Source.allByAuthorOrAll(authorId, new OperationCallback<List<Post>>() {
+        Post.Source.allByAuthorOrAll(authorId, new Source.OperationCallback<List<Post>>() {
             @Override
             public void onResult(@Nullable List<Post> result) {
                 Log.d("q", "query time ms: " + (System.nanoTime() - start) / 1000f / 1000f);
@@ -149,7 +148,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                                                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                                                     @Override
                                                     public void onClick(DialogInterface dialog, int which) {
-                                                        post.delete(new OperationCallback<Post>() {
+                                                        post.delete(new Source.OperationCallback<Post>() {
                                                             @Override
                                                             public void onResult(@Nullable Post result) {
                                                                 finish();

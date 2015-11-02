@@ -42,7 +42,7 @@ public class GenericSourceTest extends AndroidTestCase {
         start = System.nanoTime();
         DummyObject result = (new Synchronizer<DummyObject>(){
             public void run(){
-                d.save(new OperationCallback<DummyObject>() {
+                d.save(new Source.OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject r) {
                         setResult(r);
@@ -64,7 +64,7 @@ public class GenericSourceTest extends AndroidTestCase {
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {
-                DummyObject.SOURCE.getLocal(d.getId(), new OperationCallback<DummyObject>() {
+                DummyObject.SOURCE.getLocal(d.getId(), new Source.OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject result) {
                         setResult(result);
@@ -82,7 +82,7 @@ public class GenericSourceTest extends AndroidTestCase {
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {
-                d.save(new OperationCallback<DummyObject>() {
+                d.save(new Source.OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject result) {
                         setResult(result);
@@ -103,7 +103,7 @@ public class GenericSourceTest extends AndroidTestCase {
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {
-                d.delete(new OperationCallback<DummyObject>() {
+                d.delete(new Source.OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject result) {
                         setResult(result);
@@ -132,7 +132,7 @@ public class GenericSourceTest extends AndroidTestCase {
         //CREATE
         DummyObject result = (new Synchronizer<DummyObject>(){
             public void run(){
-                d.save(new OperationCallback<DummyObject>() {
+                d.save(new Source.OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject r) {
                         setResult(r);
@@ -152,7 +152,7 @@ public class GenericSourceTest extends AndroidTestCase {
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {
-                DummyObject.SOURCE.getLocal(d.getId(), new OperationCallback<DummyObject>() {
+                DummyObject.SOURCE.getLocal(d.getId(), new Source.OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject result) {
                         setResult(result);
@@ -169,7 +169,7 @@ public class GenericSourceTest extends AndroidTestCase {
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {
-                d.save(new OperationCallback<DummyObject>() {
+                d.save(new Source.OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject result) {
                         setResult(result);
@@ -190,7 +190,7 @@ public class GenericSourceTest extends AndroidTestCase {
         List<DummyObject> synced = new Synchronizer<List<DummyObject>>() {
             @Override
             public void run() {
-                DummyObject.SOURCE.sync(new OperationCallback<List<DummyObject>>() {
+                DummyObject.SOURCE.sync(new Source.OperationCallback<List<DummyObject>>() {
                     @Override
                     public void onResult(@Nullable List<DummyObject> result) {
                         setResult(result);
@@ -210,7 +210,7 @@ public class GenericSourceTest extends AndroidTestCase {
         synced = new Synchronizer<List<DummyObject>>() {
             @Override
             public void run() {
-                DummyObject.SOURCE.sync(new OperationCallback<List<DummyObject>>() {
+                DummyObject.SOURCE.sync(new Source.OperationCallback<List<DummyObject>>() {
                     @Override
                     public void onResult(@Nullable List<DummyObject> result) {
                         setResult(result);
@@ -243,7 +243,7 @@ public class GenericSourceTest extends AndroidTestCase {
         //CREATE
         DummyObject result = (new Synchronizer<DummyObject>() {
             public void run() {
-                d.save(new OperationCallback<DummyObject>() {
+                d.save(new Source.OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject r) {
                         setResult(r);
@@ -261,7 +261,7 @@ public class GenericSourceTest extends AndroidTestCase {
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {
-                d.save(new OperationCallback<DummyObject>() {
+                d.save(new Source.OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject result) {
                         setResult(result);
@@ -279,7 +279,7 @@ public class GenericSourceTest extends AndroidTestCase {
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {
-                d.delete(new OperationCallback<DummyObject>() {
+                d.delete(new Source.OperationCallback<DummyObject>() {
                     @Override
                     public void onResult(@Nullable DummyObject result) {
                         setResult(result);
@@ -311,7 +311,7 @@ public class GenericSourceTest extends AndroidTestCase {
             new Synchronizer<DummyObject>() {
                 @Override
                 public void run() {
-                    d.save(new OperationCallback<DummyObject>() {
+                    d.save(new Source.OperationCallback<DummyObject>() {
                         @Override
                         public void onResult(@Nullable DummyObject result) {
                             setResult(result);
@@ -327,7 +327,7 @@ public class GenericSourceTest extends AndroidTestCase {
             new Synchronizer<List<DummyObject>>() {
                 @Override
                 public void run() {
-                    DummyObject.SOURCE.createOrUpdateManyFromNetwork(null, new OperationCallback<List<DummyObject>>() {
+                    DummyObject.SOURCE.createOrUpdateManyFromNetwork(null, new Source.OperationCallback<List<DummyObject>>() {
                         @Override
                         public void onResult(@Nullable List<DummyObject> result) {
                             setResult(result);

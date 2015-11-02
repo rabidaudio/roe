@@ -18,9 +18,9 @@ public class SourceAsyncTask {
     protected abstract static class SingleSourceAsyncTask<A extends TypedObservable> implements Runnable {
 
         @Nullable
-        private OperationCallback<A> callback;
+        private Source.OperationCallback<A> callback;
 
-        public SingleSourceAsyncTask(@Nullable OperationCallback<A> callback) {
+        public SingleSourceAsyncTask(@Nullable Source.OperationCallback<A> callback) {
             this.callback = callback;
         }
 
@@ -53,9 +53,9 @@ public class SourceAsyncTask {
     protected abstract static class MultipleSourceAsyncTask<A extends TypedObservable> implements Runnable {
 
         @Nullable
-        private OperationCallback<List<A>> callback;
+        private Source.OperationCallback<List<A>> callback;
 
-        public MultipleSourceAsyncTask(@Nullable OperationCallback<List<A>> callback) {
+        public MultipleSourceAsyncTask(@Nullable Source.OperationCallback<List<A>> callback) {
             this.callback = callback;
         }
 

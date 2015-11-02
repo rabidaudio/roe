@@ -15,13 +15,12 @@ import android.widget.ListView;
 
 import java.util.List;
 
-import audio.rabid.dev.network_orm.models.OperationCallback;
 import audio.rabid.dev.network_orm.models.Source;
+import audio.rabid.dev.network_orm.views.EasyArrayAdapter;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.posts.PostsActivity;
 import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.sampleapp.views.AuthorViewHolder;
-import audio.rabid.dev.network_orm.views.EasyArrayAdapter;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 
@@ -63,7 +62,7 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
     private void updateAuthors() {
         refreshLayout.setRefreshing(true);
         final long start = System.nanoTime();
-        Author.Source.getAllLocal(new OperationCallback<List<Author>>() {
+        Author.Source.getAllLocal(new Source.OperationCallback<List<Author>>() {
             @Override
             public void onResult(@Nullable List<Author> results) {
                 Log.d("q", "query time ms: " + (System.nanoTime() - start) / 1000f / 1000f);

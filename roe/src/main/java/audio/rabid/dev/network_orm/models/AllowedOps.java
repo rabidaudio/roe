@@ -1,9 +1,11 @@
 package audio.rabid.dev.network_orm.models;
 
+import java.util.Arrays;
+
 /**
  * Created by charles on 10/25/15.
  * <p/>
- * TODO allow for Resource-specific permissions
+ * TODO allow for instance-specific permissions
  */
 public class AllowedOps {
 
@@ -14,63 +16,30 @@ public class AllowedOps {
         DELETE
     }
 
-    private boolean read, create, update, delete = false;
-
     private Op[] list;
 
     public AllowedOps(Op... allowed) {
         list = allowed;
-        for (Op o : allowed) {
-            switch (o) {
-                case READ:
-                    read = true;
-                    break;
-                case CREATE:
-                    create = true;
-                    break;
-                case UPDATE:
-                    update = true;
-                    break;
-                case DELETE:
-                    delete = true;
-                    break;
-            }
-        }
     }
 
     public boolean canRead() {
-        return read;
+        return can(Op.READ);
     }
 
     public boolean canCreate() {
-        return create;
+        return can(Op.CREATE);
     }
 
     public boolean canUpdate() {
-        return update;
+        return can(Op.UPDATE);
     }
 
     public boolean canDelete() {
-        return delete;
+        return can(Op.DELETE);
     }
 
     public boolean can(Op permission) {
-        switch (permission) {
-            case READ:
-                return read;
-            case CREATE:
-                return create;
-            case UPDATE:
-                return update;
-            case DELETE:
-                return delete;
-            default:
-                return false;
-        }
-    }
-
-    public Op[] getOps() {
-        return list;
+        return Arrays.asList(list).contains(permission);
     }
 
     public static AllowedOps READ_ONLY = new AllowedOps(Op.READ);

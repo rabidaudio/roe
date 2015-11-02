@@ -11,7 +11,6 @@ import java.sql.SQLException;
 import java.util.List;
 
 import audio.rabid.dev.network_orm.models.AllowedOps;
-import audio.rabid.dev.network_orm.models.OperationCallback;
 import audio.rabid.dev.network_orm.models.rails.RailsSource;
 import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.SampleAppServer;
@@ -35,12 +34,12 @@ public class PostSource extends RailsSource<Post> {
     }
 
     public void getRecentByAuthor(final int authorId, final long limit, OperationCallback<List<Post>> callback) {
-        doMultipleLocalQuery(callback, new MultipleLocalQuery<Post>() {
-            @Override
-            public List<Post> query(Dao<Post, Integer> dao) throws SQLException {
-                return dao.queryBuilder().orderBy("createdAt", false).limit(limit).where().eq("author_id", authorId).query();
-            }
-        });
+        doMultipleLocalQuery(new MultipleLocalQuery<Post>() {
+                    @Override
+                    public List<Post> query(Dao<Post, Integer> dao) throws SQLException {
+                        return dao.queryBuilder().orderBy("createdAt", false).limit(limit).where().eq("author_id", authorId).query();
+                    }
+                }, callback);
     }
 
     public void allByAuthorOrAll(final int authorId, OperationCallback<List<Post>> callback) {
@@ -53,16 +52,16 @@ public class PostSource extends RailsSource<Post> {
         }
 
         //then get all local items, which should be fast for the ones returned by the last call since they are already cached
-        doMultipleLocalQuery(callback, new MultipleLocalQuery<Post>() {
-            @Override
-            public List<Post> query(Dao<Post, Integer> dao) throws SQLException {
-                if (authorId < 0) {
-                    return dao.queryForAll();
-                } else {
-                    return getDao().queryForEq("author_id", authorId);
-                }
-            }
-        });
+        doMultipleLocalQuery(new MultipleLocalQuery<Post>() {
+                    @Override
+                    public List<Post> query(Dao<Post, Integer> dao) throws SQLException {
+                        if (authorId < 0) {
+                            return dao.queryForAll();
+                        } else {
+                            return getDao().queryForEq("author_id", authorId);
+                        }
+                    }
+                }, callback);
     }
 
     public static class PostResourceFactory extends RailsResourceFactory<Post> {

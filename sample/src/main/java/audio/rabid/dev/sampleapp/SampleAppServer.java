@@ -15,7 +15,7 @@ import audio.rabid.dev.network_orm.models.rails.RailsServer;
  */
 public class SampleAppServer extends RailsServer {
 
-    private static final String ROOT = "http://4786e086.ngrok.io/";
+    private static final String ROOT = "https://c68c723f.ngrok.io/";
 
     private static SampleAppServer instance = new SampleAppServer();
 
