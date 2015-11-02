@@ -1,9 +1,11 @@
 package audio.rabid.dev.network_orm.models;
 
+import android.net.Uri;
 import android.support.annotation.Nullable;
+import android.util.Pair;
 
-import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -13,7 +15,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -113,27 +117,7 @@ public abstract class Server {
         URL url = null;
         try {
             if (payload != null && method == Method.GET) {
-                // convert JSONObject to query string. TODO only handles arrays or objects nested one deep
-                URIBuilder builder = new URIBuilder(rootURL + endpoint);
-                Iterator<String> keys = payload.keys();
-                while (keys.hasNext()) {
-                    String key = keys.next();
-                    Object o = payload.get(key);
-                    if (o instanceof JSONArray) {
-                        for (int i = 0; i < ((JSONArray) o).length(); i++) {
-                            builder.addParameter(key + "[]", String.valueOf(((JSONArray) o).get(i)));
-                        }
-                    } else if (o instanceof JSONObject) {
-                        Iterator<String> nestedKeys = ((JSONObject) o).keys();
-                        while (nestedKeys.hasNext()) {
-                            String nestedKey = nestedKeys.next();
-                            builder.addParameter(key + "[" + nestedKey + "]", String.valueOf(o));
-                        }
-                    } else {
-                        builder.addParameter(key, String.valueOf(o));
-                    }
-                }
-                url = builder.build().toURL();
+                url = buildQueryString(rootURL+endpoint, payload);
             } else {
                 url = new URL(rootURL + endpoint);
             }
@@ -157,7 +141,7 @@ public abstract class Server {
                 }
             }
 
-            connection.setReadTimeout(timeout);
+//            connection.setReadTimeout(timeout);
             int responseCode = connection.getResponseCode();
 
 
@@ -188,6 +172,44 @@ public abstract class Server {
             throw new NetworkException(e);
         }
     }
+
+    protected static URL buildQueryString(String url, JSONObject query) throws URISyntaxException, JSONException, MalformedURLException {
+        if(query==null){
+            return new URL(url);
+        }
+        Uri.Builder builder = Uri.parse(url).buildUpon();
+        Iterator<String> keys = query.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            Object object = query.get(key);
+            List<Pair<String, String>> params = new ArrayList<>();
+            jsonToMap(key, object, params);
+            for(Pair<String,String> entry : params){
+                builder.appendQueryParameter(entry.first, entry.second);
+            }
+        }
+        return new URL(builder.build().toString());
+    }
+
+    /**
+     * Recursively create key-value pairs from JSON
+     */
+    private static void jsonToMap(String key, Object object, List<Pair<String, String>> currentMap) throws JSONException {
+        if (object instanceof JSONArray) {
+            for (int i = 0; i < ((JSONArray) object).length(); i++) {
+                jsonToMap(key + "[]", ((JSONArray) object).get(i), currentMap);
+            }
+        } else if (object instanceof JSONObject) {
+            Iterator<String> nestedKeys = ((JSONObject) object).keys();
+            while (nestedKeys.hasNext()) {
+                String nestedKey = nestedKeys.next();
+                jsonToMap(key + "[" + nestedKey + "]", ((JSONObject) object).get(nestedKey), currentMap);
+            }
+        } else {
+            currentMap.add(new Pair<>(key, object==null ? "null" : String.valueOf(object)));
+        }
+    }
+
 
     /**
      * An object containing the response to a request.

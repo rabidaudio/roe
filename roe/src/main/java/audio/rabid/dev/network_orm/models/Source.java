@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import audio.rabid.dev.network_orm.BackgroundThread;
 import audio.rabid.dev.network_orm.models.cache.ResourceCache;
 
 /**
@@ -165,7 +166,7 @@ public class Source<T extends Resource> {
     public void createOrUpdateManyFromNetwork(@Nullable final JSONObject search, @Nullable final OperationCallback<List<T>> callback) {
         doMultipleOperation(new MultipleSourceOperation<T>() {
             @Override
-            public List<T> doInBackground(final Dao<T, Integer> dao, Server server, ResourceCache<T> cache, final ResourceFactory<T> factory) {
+            public List<T> doInBackgroundBeforeReturn(final Dao<T, Integer> dao, Server server, ResourceCache<T> cache, final ResourceFactory<T> factory) {
                 try {
                     Server.Response response = server.getItems(dao.getDataClass(), search);
                     if (!server.isErrorResponse(response)) {
@@ -390,7 +391,7 @@ public class Source<T extends Resource> {
         if (!(getPermissions().canUpdate() || getPermissions().canCreate())) return; //nothing to do
         doMultipleOperation(new MultipleSourceOperation<T>() {
             @Override
-            public List<T> doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
+            public List<T> doInBackgroundBeforeReturn(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
                 try {
                     List<T> unsynced = dao.queryForEq("synced", false);
                     List<T> returnResults = new ArrayList<T>(unsynced.size());
@@ -451,34 +452,43 @@ public class Source<T extends Resource> {
             public T onCacheMiss(int id) {
                 if (resource.getServerId() > 0 && getPermissions().canUpdate()) {
                     //has a server id, so see if network has update
-                    try {
-                        Server.Response response = server.getItem(dao.getDataClass(), resource.getServerId());
-                        if (!server.isErrorResponse(response)) {
+                    BackgroundThread.postBackground(new Runnable() {
+                        @Override
+                        public void run() {
                             try {
-                                boolean changed;
-                                synchronized (resource) {
-                                    changed = resourceFactory.updateItem(resource, response.getResponseBody());
-                                    if (changed) {
-                                        resource.synced = true;
-                                        resource.updatedAt = new Date();
-                                        resource.setChanged();
+                                Server.Response response = server.getItem(dao.getDataClass(), resource.getServerId());
+                                if (!server.isErrorResponse(response)) {
+                                    try {
+                                        boolean changed;
+                                        synchronized (resource) {
+                                            changed = resourceFactory.updateItem(resource, response.getResponseBody());
+                                            if (changed) {
+                                                resource.synced = true;
+                                                resource.updatedAt = new Date();
+                                                resource.setChanged();
+                                            }
+                                        }
+                                        if(changed){
+                                            dao.update(resource); //save changes to database
+                                            BackgroundThread.postMain(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    resource.notifyObservers();
+                                                }
+                                            });
+                                        }
+                                    } catch (JSONException e) {
+                                        onJSONException(e);
+                                    } catch (SQLException e){
+                                        onDatabaseException(e);
                                     }
                                 }
-                                if(changed){
-                                    dao.update(resource); //save changes to database
-                                }
-                            } catch (JSONException e) {
-                                onJSONException(e);
-                                return null;
-                            } catch (SQLException e){
-                                onDatabaseException(e);
-                                return null;
+                            } catch (Server.NetworkException e) {
+                                //just put in cache as it is
+                                onNetworkException(e);
                             }
                         }
-                    } catch (Server.NetworkException e) {
-                        //just put in cache as it is
-                        onNetworkException(e);
-                    }
+                    });
                 }
                 return resource;
             }
@@ -523,7 +533,7 @@ public class Source<T extends Resource> {
     protected void doMultipleLocalQuery(@NonNull final MultipleLocalQuery<T> query, @Nullable OperationCallback<List<T>> callback) {
         doMultipleOperation(new MultipleSourceOperation<T>() {
             @Override
-            public List<T> doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
+            public List<T> doInBackgroundBeforeReturn(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
                 try {
                     List<T> results = query.query(dao);
                     List<T> returnResults = new ArrayList<T>(results.size());
@@ -577,7 +587,7 @@ public class Source<T extends Resource> {
                     return dao.callBatchTasks(new Callable<List<T>>() {
                         @Override
                         public List<T> call() throws Exception {
-                            return operation.doInBackground(dao, server, resourceCache, resourceFactory);
+                            return operation.doInBackgroundBeforeReturn(dao, server, resourceCache, resourceFactory);
                         }
                     });
                 } catch (Exception e) {
@@ -616,7 +626,7 @@ public class Source<T extends Resource> {
      * @param <Q>
      */
     protected interface MultipleSourceOperation<Q extends Resource> {
-        List<Q> doInBackground(Dao<Q, Integer> dao, Server server, ResourceCache<Q> cache, ResourceFactory<Q> factory);
+        List<Q> doInBackgroundBeforeReturn(Dao<Q, Integer> dao, Server server, ResourceCache<Q> cache, ResourceFactory<Q> factory);
 
         AllowedOps.Op[] requiredPermissions();
     }
