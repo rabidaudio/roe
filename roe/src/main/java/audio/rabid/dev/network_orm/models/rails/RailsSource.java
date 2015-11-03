@@ -1,69 +1,132 @@
 package audio.rabid.dev.network_orm.models.rails;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
+import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.support.ConnectionSource;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.SQLException;
 
 import audio.rabid.dev.network_orm.models.PermissionsManager;
 import audio.rabid.dev.network_orm.models.Resource;
-import audio.rabid.dev.network_orm.models.ResourceFactory;
+import audio.rabid.dev.network_orm.models.SimplePermissionsManager;
 import audio.rabid.dev.network_orm.models.Source;
-import audio.rabid.dev.network_orm.models.cache.SparseArrayResourceCache;
 
 /**
  * Created by charles on 10/29/15.
  */
 public class RailsSource<T extends Resource> extends Source<T> {
 
-    public RailsSource(@NonNull RailsServer server, @NonNull Dao<T, Integer> dao, @NonNull String endpoint,
-                       @NonNull RailsResourceFactory<T> resourceFactory, @NonNull PermissionsManager<T> permissions, @NonNull ConnectionSource connectionSource) {
+    protected RailsSource(@NonNull RailsServer server,
+                          @NonNull Dao<T, Integer> dao,
+                          @NonNull ConnectionSource connectionSource,
+                          @Nullable String endpoint,
+                          @Nullable RailsResourceFactory<T> resourceFactory,
+                          @Nullable PermissionsManager<T> permissions) {
 
-        super(server, dao, new SparseArrayResourceCache<T>(50), resourceFactory, permissions, new NetworkDateFormat(), connectionSource);
-        server.addEndpoint(dao.getDataClass(), endpoint);
+        super(server, dao, connectionSource, null,
+                resourceFactory == null ? new RailsResourceFactory<T>(dao.getDataClass()) : resourceFactory,
+                permissions == null ? new SimplePermissionsManager<T>().all() : permissions,
+                new NetworkDateFormat());
+
+        if (endpoint != null) {
+            server.addEndpoint(dao.getDataClass(), endpoint);
+        }
     }
 
-    public abstract static class RailsResourceFactory<R extends Resource> implements ResourceFactory<R> {
+//    protected RailsSource(@NonNull RailsServer server,
+//                          @NonNull OrmLiteSqliteOpenHelper database,
+//                          Class<T> tClass,
+//                          @Nullable String endpoint,
+//                          @Nullable RailsResourceFactory<T> resourceFactory,
+//                          @Nullable PermissionsManager<T> permissionsManager){
+//        this(server, database.getDao(tClass), database.getConnectionSource(), endpoint, resourceFactory, permissionsManager);
+//    }
 
-        private String jsonSingleObjectKey;
-        private String jsonArrayObjectKey;
+    public static class Builder<T extends Resource> {
 
-        public RailsResourceFactory(String jsonSingleObjectKey, String jsonArrayObjectKey) {
-            this.jsonSingleObjectKey = jsonSingleObjectKey;
-            this.jsonArrayObjectKey = jsonArrayObjectKey;
+        RailsServer server;
+        ConnectionSource connectionSource;
+        Dao<T, Integer> dao;
+
+        String endpoint;
+        RailsResourceFactory<T> resourceFactory;
+        PermissionsManager<T> permissionsManager = new SimplePermissionsManager<T>().all();
+
+        public Builder() {
+
         }
 
-        @Override
-        public boolean updateItem(R item, JSONObject data) throws JSONException {
-            return item.updateFromJSON(data.getJSONObject(jsonSingleObjectKey));
+        public Builder(RailsServer server, OrmLiteSqliteOpenHelper database, Class<T> tClass) {
+            setServer(server);
+            setDatabase(database, tClass);
         }
 
-        @Override
-        public boolean updateItemDirect(R item, JSONObject data) throws JSONException {
-            return item.updateFromJSON(data);
+        public Builder(RailsServer server, Dao<T, Integer> dao, ConnectionSource connectionSource) {
+            setServer(server);
+            setDao(dao);
+            setConnectionSource(connectionSource);
         }
 
-        @Override
-        public List<JSONObject> splitMultipleNetworkQuery(JSONObject data) throws JSONException {
-            JSONArray array = data.getJSONArray(jsonArrayObjectKey);
-            List<JSONObject> result = new ArrayList<>(array.length());
-            for (int i = 0; i < array.length(); i++) {
-                result.add(array.getJSONObject(i));
+        public Builder<T> setServer(@NonNull RailsServer server) {
+            this.server = server;
+            return this;
+        }
+
+        public Builder<T> setServerURL(String rootURL) {
+            this.server = new RailsServer(rootURL);
+            return this;
+        }
+
+        public Builder<T> setDatabase(@NonNull OrmLiteSqliteOpenHelper database, Class<T> tClass) {
+            this.connectionSource = database.getConnectionSource();
+            try {
+                this.dao = database.getDao(tClass);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
             }
-            return result;
+            return this;
         }
 
-        @Override
-        public JSONObject turnItemIntoValidServerPayload(R item) throws JSONException {
-            return new JSONObject().put(jsonSingleObjectKey, item.toJSON());
+        public Builder<T> setDao(@NonNull Dao<T, Integer> dao) {
+            this.dao = dao;
+            return this;
+        }
+
+        public Builder<T> setConnectionSource(@NonNull ConnectionSource connectionSource) {
+            this.connectionSource = connectionSource;
+            return this;
+        }
+
+        public Builder<T> setEndpoint(String endpoint) {
+            this.endpoint = endpoint;
+            return this;
+        }
+
+        public Builder<T> setPermissionsManager(PermissionsManager<T> permissionsManager) {
+            this.permissionsManager = permissionsManager;
+            return this;
+        }
+
+        public Builder<T> setPermissions(Op... allowedOps) {
+            this.permissionsManager = new SimplePermissionsManager<>(allowedOps);
+            return this;
+        }
+
+        public Builder<T> setResourceFactory(RailsResourceFactory<T> resourceFactory) {
+            this.resourceFactory = resourceFactory;
+            return this;
+        }
+
+        public RailsSource<T> build() {
+            if (server == null)
+                throw new IllegalArgumentException("Must supply a Server instance");
+            if (connectionSource == null || dao == null)
+                throw new IllegalArgumentException("Must supply either a Dao and ConnectionSource or a Database instance");
+
+            return new RailsSource<>(server, dao, connectionSource, endpoint, resourceFactory, permissionsManager);
         }
     }
 }

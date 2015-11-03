@@ -1,5 +1,7 @@
 package audio.rabid.dev.network_orm.models;
 
+import audio.rabid.dev.network_orm.models.rails.Op;
+
 /**
  * Created by charles on 10/25/15.
  * <p/>
@@ -13,16 +15,6 @@ package audio.rabid.dev.network_orm.models;
  * @see Source.MultipleSourceOperation#getPermissions()
  */
 public abstract class PermissionsManager<T> {
-
-    /**
-     * The possible CRUD operations
-     */
-    public enum Op {
-        READ,
-        CREATE,
-        UPDATE,
-        DELETE
-    }
 
     public boolean canRead() {
         return can(Op.READ, null);

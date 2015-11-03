@@ -97,10 +97,25 @@ public class RailsServer extends Server {
     private String getEndpoint(Class<?> clazz) {
         String endpoint = endpoints.get(clazz);
         if (endpoint == null && clazz.isAssignableFrom(Resource.class)) {
-            //try to get from Resource table name
             try {
-                DatabaseTable table = clazz.getAnnotation(DatabaseTable.class);
-                return table.tableName();
+                //try to get from annotation
+                RailsResource railsResource = clazz.getAnnotation(RailsResource.class);
+                if (railsResource != null) {
+                    if (!railsResource.endpoint().isEmpty()) {
+                        endpoint = railsResource.endpoint();
+                    } else if (!railsResource.pluralJSONKey().isEmpty()) {
+                        endpoint = railsResource.pluralJSONKey();
+                    }
+                } else {
+                    //try to get from Resource table name
+                    DatabaseTable table = clazz.getAnnotation(DatabaseTable.class);
+                    if (table != null) {
+                        endpoint = table.tableName();
+                    } else {
+                        endpoint = clazz.getSimpleName().toLowerCase();
+                    }
+                }
+                endpoints.put(clazz, endpoint);
             } catch (Exception e) {
                 throw new IllegalArgumentException("Endpoint was never sent to RailsServer and couldn't be inferred from Resource");
             }

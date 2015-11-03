@@ -11,20 +11,17 @@ import android.support.annotation.Nullable;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import audio.rabid.dev.network_orm.models.PermissionsManager;
 import audio.rabid.dev.network_orm.models.JSONField;
-import audio.rabid.dev.network_orm.models.SimplePermissionsManager;
-import audio.rabid.dev.network_orm.models.rails.RailsSource;
 import audio.rabid.dev.network_orm.models.Resource;
 import audio.rabid.dev.network_orm.models.Source;
+import audio.rabid.dev.network_orm.models.rails.Op;
+import audio.rabid.dev.network_orm.models.rails.RailsResource;
+import audio.rabid.dev.network_orm.models.rails.RailsSource;
 import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.SampleAppServer;
@@ -34,13 +31,13 @@ import audio.rabid.dev.utils.ImageCache;
  * Created by charles on 10/23/15.
  */
 @DatabaseTable(tableName = "authors")
+@RailsResource(endpoint = "authors", singularJSONKey = "author", pluralJSONKey = "authors")
 public class Author extends Resource<Author> {
 
-    @SuppressWarnings("unchecked")
-    public static final RailsSource<Author> Source = new RailsSource<>(SampleAppServer.getInstance(),
-            Database.getDaoOrThrow(Author.class), "authors", new AuthorResourceFactory(),
-            new SimplePermissionsManager<Author>(PermissionsManager.Op.CREATE, PermissionsManager.Op.READ, PermissionsManager.Op.UPDATE),
-            Database.getInstance().getConnectionSource());
+    public static final RailsSource<Author> Source = new RailsSource.Builder<>(
+            SampleAppServer.getInstance(), Database.getInstance(), Author.class)
+            .setPermissions(Op.CREATE, Op.READ, Op.UPDATE).build();
+
 
     @JSONField
     @DatabaseField
@@ -156,46 +153,32 @@ public class Author extends Resource<Author> {
         return Source;
     }
 
-    @Override
-    public JSONObject toJSON() throws JSONException {
-        return super.toJSON()
-                .put("name", name)
-                .put("email", email)
-                .put("avatar", avatar);
-    }
-
-    @Override
-    public synchronized boolean updateFromJSON(JSONObject data) throws JSONException {
-        boolean changed = super.updateFromJSON(data);
-        String n = data.getString("name");
-        String e = data.getString("email");
-        String a = data.getString("avatar");
-        if (name == null || !name.equals(n)) {
-            name = n;
-            changed = true;
-        }
-        if (email == null || !email.equals(e)) {
-            email = n;
-            changed = true;
-        }
-        if (avatar == null || !avatar.equals(a)) {
-            setAvatar(a);
-            changed = true;
-        }
-        return changed;
-    }
-
-    private static class AuthorResourceFactory extends RailsSource.RailsResourceFactory<Author> {
-
-        public AuthorResourceFactory() {
-            super("author", "authors");
-        }
-
-        @Override
-        public Author createFromJSON(JSONObject json) throws JSONException {
-            Author a = new Author();
-            a.updateFromJSON(json);
-            return a;
-        }
-    }
+//    @Override
+//    public JSONObject toJSON() throws JSONException {
+//        return super.toJSON()
+//                .put("name", name)
+//                .put("email", email)
+//                .put("avatar", avatar);
+//    }
+//
+//    @Override
+//    public synchronized boolean updateFromJSON(JSONObject data) throws JSONException {
+//        boolean changed = super.updateFromJSON(data);
+//        String n = data.getString("name");
+//        String e = data.getString("email");
+//        String a = data.getString("avatar");
+//        if (name == null || !name.equals(n)) {
+//            name = n;
+//            changed = true;
+//        }
+//        if (email == null || !email.equals(e)) {
+//            email = n;
+//            changed = true;
+//        }
+//        if (avatar == null || !avatar.equals(a)) {
+//            setAvatar(a);
+//            changed = true;
+//        }
+//        return changed;
+//    }
 }

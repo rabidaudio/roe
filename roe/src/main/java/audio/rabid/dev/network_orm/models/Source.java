@@ -3,6 +3,7 @@ package audio.rabid.dev.network_orm.models;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.support.ConnectionSource;
@@ -21,6 +22,8 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import audio.rabid.dev.network_orm.models.cache.ResourceCache;
+import audio.rabid.dev.network_orm.models.cache.SparseArrayResourceCache;
+import audio.rabid.dev.network_orm.models.rails.Op;
 
 /**
  * Created by charles on 10/28/15.
@@ -49,16 +52,24 @@ public class Source<T extends Resource> {
      *
      * @param server          the server instance to use for network operations
      * @param dao             the dao instance to use for database operations
+     * @param connectionSource the ConnectionSource for the database
      * @param resourceCache   the cache to use for keeping instances consistent
      * @param resourceFactory the factory for generating new Resources
      * @param permissions     the operations allowed to be done on the resource
+     * @param dateFormat      the formatter used to map dates to json
      */
-    public Source(@NonNull Server server, @NonNull Dao<T, Integer> dao, @NonNull ResourceCache<T> resourceCache,
-                  @NonNull ResourceFactory<T> resourceFactory, @NonNull PermissionsManager<T> permissions,
-                  @Nullable DateFormat dateFormat, @NonNull ConnectionSource connectionSource) {
+    public Source(@Nullable Server server, @NonNull Dao<T, Integer> dao, @NonNull ConnectionSource connectionSource,
+                  @Nullable ResourceCache<T> resourceCache,
+                  @NonNull ResourceFactory<T> resourceFactory,
+                  @NonNull PermissionsManager<T> permissions,
+                  @Nullable DateFormat dateFormat) {
         this.server = server;
         this.dao = dao;
-        this.resourceCache = resourceCache;
+        if (resourceCache == null) {
+            this.resourceCache = new SparseArrayResourceCache<>(50);
+        } else {
+            this.resourceCache = resourceCache;
+        }
         this.resourceFactory = resourceFactory;
         this.permissions = permissions;
         if(dateFormat==null){
@@ -71,7 +82,9 @@ public class Source<T extends Resource> {
                 @Override
                 public Date parse(String string, ParsePosition position) {
                     try {
-                        return new Date(Long.parseLong(string));
+                        Date d = new Date(Long.parseLong(string));
+                        position.setIndex(string.length());
+                        return d;
                     } catch (NumberFormatException e) {
                         position.setErrorIndex(0);
                         return null;
@@ -89,6 +102,21 @@ public class Source<T extends Resource> {
         }
     }
 
+    @SuppressWarnings({"ConstantConditions", "unchecked"})
+    public Source(@Nullable Server server, @NonNull OrmLiteSqliteOpenHelper database,
+                  @Nullable ResourceCache<T> resourceCache,
+                  @NonNull ResourceFactory<T> resourceFactory,
+                  @NonNull PermissionsManager<T> permissions,
+                  @Nullable DateFormat dateFormat) {
+        this(server, null, database.getConnectionSource(), resourceCache, resourceFactory, permissions, dateFormat);
+        try {
+            this.dao = (Dao<T, Integer>) database.getDao((Class) getClass());
+        } catch (SQLException e) {
+            onDatabaseException(e);
+        }
+    }
+
+
     /**
      * Return the {@link Dao} used for database operations. You shouldn't need to access this, as
      * using the <code>doOperation</code> methods should give you the instance to use.
@@ -101,6 +129,7 @@ public class Source<T extends Resource> {
      * Return the {@link Server} used for network operations. You shouldn't need to access this, as
      * using the <code>doOperation</code> methods should give you the instance to use.
      */
+    @Nullable
     protected Server getServer() {
         return server;
     }
@@ -169,8 +198,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public PermissionsManager.Op[] requiredPermissions() {
-                return new PermissionsManager.Op[]{PermissionsManager.Op.READ};
+            public Op[] requiredPermissions() {
+                return new Op[]{Op.READ};
             }
         }, callback);
     }
@@ -222,8 +251,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public PermissionsManager.Op[] requiredPermissions() {
-                return new PermissionsManager.Op[]{PermissionsManager.Op.READ};
+            public Op[] requiredPermissions() {
+                return new Op[]{Op.READ};
             }
         }, callback);
     }
@@ -317,8 +346,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public PermissionsManager.Op[] requiredPermissions() {
-                return new PermissionsManager.Op[]{PermissionsManager.Op.UPDATE};
+            public Op[] requiredPermissions() {
+                return new Op[]{Op.UPDATE};
             }
         }, callback);
     }
@@ -355,8 +384,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public PermissionsManager.Op[] requiredPermissions() {
-                return new PermissionsManager.Op[]{PermissionsManager.Op.CREATE};
+            public Op[] requiredPermissions() {
+                return new Op[]{Op.CREATE};
             }
         }, callback);
     }
@@ -403,8 +432,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public PermissionsManager.Op[] requiredPermissions() {
-                return new PermissionsManager.Op[]{PermissionsManager.Op.UPDATE};
+            public Op[] requiredPermissions() {
+                return new Op[]{Op.UPDATE};
             }
         }, callback);
     }
@@ -436,8 +465,8 @@ public class Source<T extends Resource> {
                     }
 
             @Override
-            public PermissionsManager.Op[] requiredPermissions() {
-                return new PermissionsManager.Op[]{PermissionsManager.Op.DELETE};
+            public Op[] requiredPermissions() {
+                return new Op[]{Op.DELETE};
             }
         }, callback);
     }
@@ -471,8 +500,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public PermissionsManager.Op[] requiredPermissions() {
-                return new PermissionsManager.Op[]{PermissionsManager.Op.DELETE};
+            public Op[] requiredPermissions() {
+                return new Op[]{Op.DELETE};
             }
         }, callback);
     }
@@ -517,7 +546,7 @@ public class Source<T extends Resource> {
                                 deletedResourceDao.delete(deleted);
                                 //TODO not returning items that we finally deleted on the server
                             }
-                        }catch (Server.NetworkException e){
+                        } catch (Server.NetworkException e) {
                             onNetworkException(e);
                         }
                     }
@@ -531,8 +560,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public PermissionsManager.Op[] requiredPermissions() {
-                return new PermissionsManager.Op[0];
+            public Op[] requiredPermissions() {
+                return new Op[0];
             }
         }, callback);
     }
@@ -595,8 +624,8 @@ public class Source<T extends Resource> {
         });
     }
 
-    private void checkPermissions(PermissionsManager.Op[] required, T object) {
-        for (PermissionsManager.Op r : required) {
+    private void checkPermissions(Op[] required, T object) {
+        for (Op r : required) {
             if (!getPermissions().can(r, object)) {
                 throw new RuntimeException("Permission " + r.toString() + " denied for " + dao.getDataClass().toString());
             }
@@ -610,7 +639,7 @@ public class Source<T extends Resource> {
      * available locally only. To run a query for more than one result, use
      * {@link #doMultipleLocalQuery(MultipleLocalQuery, OperationCallback)}.
      *
-     * This assumes that the only permission required for your query is {@link PermissionsManager.Op#READ}.
+     * This assumes that the only permission required for your query is {@link Op#READ}.
      * If you are doing anything that results in a SQL query other than SELECT, DO NOT use this, use
      * {@link #doSingleOperation(SingleSourceOperation, OperationCallback)} instead.
      */
@@ -627,8 +656,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public PermissionsManager.Op[] requiredPermissions() {
-                return new PermissionsManager.Op[]{PermissionsManager.Op.READ};
+            public Op[] requiredPermissions() {
+                return new Op[]{Op.READ};
             }
         }, callback);
     }
@@ -637,7 +666,7 @@ public class Source<T extends Resource> {
      * The same as {@link #doSingleLocalQuery(SingleLocalQuery, OperationCallback)}, but for queries
      * that return multiple items from the database.
      *
-     * This assumes that the only permission required for your query is {@link PermissionsManager.Op#READ}.
+     * This assumes that the only permission required for your query is {@link Op#READ}.
      * If you are doing anything that results in a SQL query other than SELECT, DO NOT use this, use
      * {@link #doMultipleOperation(MultipleSourceOperation, OperationCallback)} instead.
      *
@@ -661,8 +690,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public PermissionsManager.Op[] requiredPermissions() {
-                return new PermissionsManager.Op[]{PermissionsManager.Op.READ};
+            public Op[] requiredPermissions() {
+                return new Op[]{Op.READ};
             }
         }, callback);
     }
@@ -727,7 +756,7 @@ public class Source<T extends Resource> {
         /**
          * @return An array of permissions that must be had for the operation to be allowed
          */
-        PermissionsManager.Op[] requiredPermissions();
+        Op[] requiredPermissions();
     }
 
     /**
@@ -738,7 +767,7 @@ public class Source<T extends Resource> {
     protected interface MultipleSourceOperation<Q extends Resource> {
         List<Q> doInBackground(Dao<Q, Integer> dao, Server server, ResourceCache<Q> cache, ResourceFactory<Q> factory);
 
-        PermissionsManager.Op[] requiredPermissions();
+        Op[] requiredPermissions();
     }
 
     /**

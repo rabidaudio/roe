@@ -13,8 +13,8 @@ import java.lang.reflect.Constructor;
 import java.sql.SQLException;
 import java.util.List;
 
-import audio.rabid.dev.network_orm.models.PermissionsManager;
 import audio.rabid.dev.network_orm.models.SimplePermissionsManager;
+import audio.rabid.dev.network_orm.models.rails.RailsResourceFactory;
 import audio.rabid.dev.network_orm.models.rails.RailsSource;
 import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.SampleAppServer;
@@ -26,7 +26,11 @@ public class PostSource extends RailsSource<Post> {
 
     @SuppressWarnings("unchecked")
     public PostSource() {
-        super(SampleAppServer.getInstance(), Database.getDaoOrThrow(Post.class), "posts", new PostResourceFactory(), SimplePermissionsManager.ALL, Database.getInstance().getConnectionSource());
+        super(SampleAppServer.getInstance(),
+                Database.getDaoOrThrow(Post.class),
+                Database.getInstance().getConnectionSource(), "posts",
+                new RailsResourceFactory<>(Post.class, "post", "posts"),
+                new SimplePermissionsManager<Post>().all());
 
         //should be faster than reflection at creating new instances
         getDao().setObjectFactory(new ObjectFactory<Post>() {
@@ -67,19 +71,4 @@ public class PostSource extends RailsSource<Post> {
                     }
                 }, callback);
     }
-
-    public static class PostResourceFactory extends RailsResourceFactory<Post> {
-
-        public PostResourceFactory() {
-            super("post", "posts");
-        }
-
-        @Override
-        public Post createFromJSON(JSONObject json) throws JSONException {
-            Post p = new Post();
-            p.updateFromJSON(json);
-            return p;
-        }
-    }
-
 }
