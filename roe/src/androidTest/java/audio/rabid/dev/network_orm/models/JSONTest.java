@@ -1,23 +1,27 @@
 package audio.rabid.dev.network_orm.models;
 
-import android.net.Uri;
+import android.support.annotation.Nullable;
 import android.test.AndroidTestCase;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.Date;
+
+import audio.rabid.dev.network_orm.Synchronizer;
+import audio.rabid.dev.network_orm.models.rails.NetworkDate;
+import audio.rabid.dev.network_orm.testobjects.DummyObject;
+
 /**
  * Created by charles on 11/2/15.
  */
-public class JSONToQueryStringTest extends AndroidTestCase {
+public class JSONTest extends AndroidTestCase {
 
     public void testJSONToQueryString() throws Exception {
 
         String root = "http://example.com/api/";
 
         assertEquals(root, Server.buildQueryString(root, null).toExternalForm());
-
-//        assertEquals(root, Server.buildQueryString(root, new JSONObject("")).toExternalForm());
 
         JSONObject simpleSingleKey = new JSONObject().put("q", "my search");
         assertEquals(root+"?q=my%20search", Server.buildQueryString(root, simpleSingleKey).toExternalForm());
@@ -45,5 +49,60 @@ public class JSONToQueryStringTest extends AndroidTestCase {
                 .put("key", JSONObject.NULL);
         assertEquals(root+"?q%5Ba%5D=b&q%5Bc%5D%5Bcat%5D=meow&q%5Bc%5D%5Bdog%5D=bark&q%5Bd%5D%5B%5D=1&q%5Bd%5D%5B%5D=2&key=null",
                 Server.buildQueryString(root, hardMode).toExternalForm());
+    }
+
+    public void testReflectiveConvertToJSON() throws Exception {
+
+        final DummyObject o = new DummyObject("meow", 15, null);
+
+        JSONObject json = o.toJSON();
+
+        assertEquals("meow", json.getString("name"));
+        assertEquals(15, json.getInt("age"));
+        assertFalse(json.has("createdAt"));
+        assertFalse(json.has("id"));
+
+        new Synchronizer<DummyObject>() {
+            @Override
+            public void run() {
+                o.save(new Source.OperationCallback<DummyObject>() {
+                    @Override
+                    public void onResult(@Nullable DummyObject result) {
+                        setResult(result);
+                    }
+                });
+            }
+        }.blockUntilFinished();
+
+        json = o.toJSON();
+
+        assertEquals("meow", json.getString("name"));
+        assertEquals(15, json.getInt("age"));
+        assertEquals(o.getCreatedAt().getTime(), NetworkDate.decode(json.getString("created_at")).getTime());
+        assertTrue(json.getInt("id") > 0);
+    }
+
+    public void testReflectivePopulateFromJSON() throws Exception {
+
+        DummyObject o = new DummyObject();
+
+        JSONObject data = new JSONObject()
+                .put("id", 25)
+                .put("name", "meow")
+                .put("age", 15)
+                .put("created_at", NetworkDate.encode(new Date()))
+                .put("updated_at", NetworkDate.encode(new Date()));
+
+        boolean changed = o.updateFromJSON(data);
+
+        assertTrue(changed);
+        assertEquals("meow", o.name);
+        assertEquals(15, o.age);
+        assertEquals(Integer.valueOf(25), o.getServerId());
+        assertNull(o.createdAt);
+        assertNull(o.updatedAt);
+
+        changed = o.updateFromJSON(data);
+        assertFalse(changed);
     }
 }

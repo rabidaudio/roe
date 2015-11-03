@@ -1,5 +1,8 @@
 package audio.rabid.dev.sampleapp.models;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.table.ObjectFactory;
 
@@ -33,7 +36,7 @@ public class PostSource extends RailsSource<Post> {
         });
     }
 
-    public void getRecentByAuthor(final int authorId, final long limit, OperationCallback<List<Post>> callback) {
+    public void getRecentByAuthor(final @NonNull Integer authorId, final long limit, OperationCallback<List<Post>> callback) {
         doMultipleLocalQuery(new MultipleLocalQuery<Post>() {
                     @Override
                     public List<Post> query(Dao<Post, Integer> dao) throws SQLException {
@@ -42,10 +45,10 @@ public class PostSource extends RailsSource<Post> {
                 }, callback);
     }
 
-    public void allByAuthorOrAll(final int authorId, OperationCallback<List<Post>> callback) {
+    public void allByAuthorOrAll(final @Nullable Integer authorId, OperationCallback<List<Post>> callback) {
         //first download any new items
         try {
-            JSONObject query = authorId < 0 ? null : new JSONObject().put("author_id", authorId);
+            JSONObject query = authorId == null ? null : new JSONObject().put("author_id", authorId);
             createOrUpdateManyFromNetwork(query, null);
         } catch (JSONException e) {
             throw new RuntimeException(e);
@@ -55,7 +58,7 @@ public class PostSource extends RailsSource<Post> {
         doMultipleLocalQuery(new MultipleLocalQuery<Post>() {
                     @Override
                     public List<Post> query(Dao<Post, Integer> dao) throws SQLException {
-                        if (authorId < 0) {
+                        if (authorId == null) {
                             return dao.queryForAll();
                         } else {
                             return getDao().queryForEq("author_id", authorId);

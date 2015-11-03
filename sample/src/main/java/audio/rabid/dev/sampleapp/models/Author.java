@@ -20,10 +20,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import audio.rabid.dev.network_orm.models.AllowedOps;
+import audio.rabid.dev.network_orm.models.JSONField;
 import audio.rabid.dev.network_orm.models.rails.RailsSource;
 import audio.rabid.dev.network_orm.models.Resource;
 import audio.rabid.dev.network_orm.models.Source;
 import audio.rabid.dev.sampleapp.Database;
+import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.SampleAppServer;
 import audio.rabid.dev.utils.ImageCache;
 
@@ -38,12 +40,15 @@ public class Author extends Resource<Author> {
             Database.getDaoOrThrow(Author.class), "authors", new AuthorResourceFactory(),
             new AllowedOps(AllowedOps.Op.CREATE, AllowedOps.Op.READ, AllowedOps.Op.UPDATE));
 
+    @JSONField
     @DatabaseField
     private String name;
 
+    @JSONField
     @DatabaseField
     private String email;
 
+    @JSONField
     @DatabaseField
     private String avatar;
 
@@ -140,7 +145,7 @@ public class Author extends Resource<Author> {
         if (email == null) return;
         Intent i = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", getEmail(), null));
         i.putExtra(Intent.EXTRA_EMAIL, new String[]{getEmail()});
-        context.startActivity(Intent.createChooser(i, "Contact the author"));
+        context.startActivity(Intent.createChooser(i, context.getString(R.string.contact_author)));
     }
 
 

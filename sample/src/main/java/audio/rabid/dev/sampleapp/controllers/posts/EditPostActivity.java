@@ -3,6 +3,7 @@ package audio.rabid.dev.sampleapp.controllers.posts;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.EditText;
 
@@ -79,26 +80,25 @@ public class EditPostActivity extends AppCompatActivity {
             body.setError("Field required");
             return;
         }
-        synchronized (post) {
-            post.setTitle(t);
-            post.setBody(b);
-            post.save(new Source.OperationCallback<Post>() {
-                @Override
-                public void onResult(Post result) {
-                    setResult(RESULT_OK);
-                    finish();
-                }
-            });
-        }
+
+        post.setTitle(t);
+        post.setBody(b);
+        post.save(new Source.OperationCallback<Post>() {
+            @Override
+            public void onResult(Post result) {
+                setResult(RESULT_OK);
+                finish();
+            }
+        });
     }
 
-    public static void edit(Context context, int postId) {
+    public static void edit(Context context, @Nullable Integer postId) {
         Intent i = new Intent(context, EditPostActivity.class);
         i.putExtra(EXTRA_POST_ID, postId);
         context.startActivity(i);
     }
 
-    public static void newPost(Context context, int authorId) {
+    public static void newPost(Context context, @Nullable Integer authorId) {
         Intent i = new Intent(context, EditPostActivity.class);
         i.putExtra(EXTRA_AUTHOR_ID, authorId);
         context.startActivity(i);

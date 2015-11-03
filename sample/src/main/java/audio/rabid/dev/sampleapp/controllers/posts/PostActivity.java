@@ -56,14 +56,14 @@ public class PostActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add("Author Details").setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+        menu.add(R.string.author_details).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
                 AuthorActivity.open(PostActivity.this, post.getAuthor().getId());
                 return true;
             }
         });
-        menu.add("Edit Post").setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+        menu.add(R.string.edit_post).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
                 EditPostActivity.edit(PostActivity.this, post.getId());
@@ -73,7 +73,7 @@ public class PostActivity extends AppCompatActivity {
         return super.onCreateOptionsMenu(menu);
     }
 
-    public static void open(Context context, int postId) {
+    public static void open(Context context, @Nullable Integer postId) {
         Intent i = new Intent(context, PostActivity.class);
         i.putExtra(EXTRA_POST_ID, postId);
         context.startActivity(i);

@@ -62,7 +62,7 @@ public class EditAuthorActivity extends AppCompatActivity {
         }
     }
 
-    public static void edit(Context context, int authorId) {
+    public static void edit(Context context, @Nullable Integer authorId) {
         Intent i = new Intent(context, EditAuthorActivity.class);
         i.putExtra(EXTRA_AUTHOR_ID, authorId);
         context.startActivity(i);
@@ -75,11 +75,11 @@ public class EditAuthorActivity extends AppCompatActivity {
 
     private void drawNewAuthor() {
         author = new Author();
-        title.setText("Add Author");
+        title.setText(R.string.add_author);
     }
 
     private void drawExisting() {
-        title.setText("Edit Author " + author.getId());
+        title.setText(String.format(getString(R.string.edit_author), author.getId()));
         name.setText(author.getName());
         email.setText(author.getEmail());
         URL a = author.getAvatar();
@@ -92,27 +92,25 @@ public class EditAuthorActivity extends AppCompatActivity {
     public void submit() {
         String n = name.getText().toString();
         if (n.isEmpty()) {
-            name.setError("Field required");
+            name.setError(getString(R.string.field_required));
             return;
         }
         String e = email.getText().toString();
         if (e.isEmpty()) {
-            email.setError("Field required");
+            email.setError(getString(R.string.field_required));
             return;
         }
         String a = avatar.getText().toString();
 
-        synchronized (author) {
-            author.setName(n);
-            author.setEmail(e);
-            author.setAvatar(a);
-            author.save(new Source.OperationCallback<Author>() {
-                @Override
-                public void onResult(@Nullable Author result) {
-                    setResult(Activity.RESULT_OK);
-                    finish();
-                }
-            });
-        }
+        author.setName(n);
+        author.setEmail(e);
+        author.setAvatar(a);
+        author.save(new Source.OperationCallback<Author>() {
+            @Override
+            public void onResult(@Nullable Author result) {
+                setResult(Activity.RESULT_OK);
+                finish();
+            }
+        });
     }
 }

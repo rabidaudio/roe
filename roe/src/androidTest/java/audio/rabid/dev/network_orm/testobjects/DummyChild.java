@@ -3,6 +3,7 @@ package audio.rabid.dev.network_orm.testobjects;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
+import audio.rabid.dev.network_orm.models.JSONField;
 import audio.rabid.dev.network_orm.models.Resource;
 import audio.rabid.dev.network_orm.models.Source;
 
@@ -12,6 +13,7 @@ import audio.rabid.dev.network_orm.models.Source;
 @DatabaseTable(tableName = "children")
 public class DummyChild extends Resource<DummyChild> {
 
+    @JSONField
     @DatabaseField
     String name;
 

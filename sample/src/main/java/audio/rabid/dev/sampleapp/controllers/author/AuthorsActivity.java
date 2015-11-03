@@ -78,7 +78,7 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
 
     public void openMenu(final Author author) {
         new AlertDialog.Builder(this)
-                .setItems(new String[]{"Open", "Edit", "Email"},
+                .setItems(new String[]{getString(R.string.open), getString(R.string.edit), getString(R.string.email)},
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {

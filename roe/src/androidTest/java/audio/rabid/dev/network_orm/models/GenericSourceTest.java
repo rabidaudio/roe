@@ -34,8 +34,8 @@ public class GenericSourceTest extends AndroidTestCase {
 
         final DummyObject d = new DummyObject("meow", 0, null);
 
-        assertTrue("new object should not have a local id", d.getId() < 0);
-        assertTrue("new object should not have a server id", d.getServerId() < 0);
+        assertNull("new object should not have a local id", d.getId());
+        assertNull("new object should not have a server id", d.getServerId());
         assertFalse("new object should not be synced", d.isSynced());
 
         //CREATE
@@ -53,8 +53,8 @@ public class GenericSourceTest extends AndroidTestCase {
         Log.i("GenericSourceTest", "create took ms " + (System.nanoTime() - start) / 1000f / 1000f);
 
         assertNotNull("saved object should be returned in callback", result);
-        assertTrue("saved object should have a local id", result.getId() > 0);
-        assertTrue("saved object should have a server id", result.getServerId() > 0);
+        assertNotNull("saved object should have a local id", result.getId());
+        assertNotNull("saved object should have a server id", result.getServerId());
         assertTrue("saved object should be synced", result.isSynced());
         assertEquals("saved object should be the same instance", d, result);
         assertNotNull("item should be in database", DummyObject.SOURCE.getDao().queryForId(d.getId()));
@@ -125,8 +125,8 @@ public class GenericSourceTest extends AndroidTestCase {
 
         final DummyObject d = new DummyObject("meow", 0, null);
 
-        assertTrue("new object should not have a local id", d.getId() < 0);
-        assertTrue("new object should not have a server id", d.getServerId() < 0);
+        assertNull("new object should not have a local id", d.getId());
+        assertNull("new object should not have a server id", d.getServerId());
         assertFalse("new object should not be synced", d.isSynced());
 
         //CREATE
@@ -142,8 +142,8 @@ public class GenericSourceTest extends AndroidTestCase {
         }).blockUntilFinished();
 
         assertNotNull("saved object should be returned in callback", result);
-        assertTrue("saved object should have a local id", result.getId() > 0);
-        assertFalse("saved object should NOT have a server id", result.getServerId() > 0);
+        assertNotNull("saved object should have a local id", result.getId());
+        assertNull("saved object should NOT have a server id", result.getServerId());
         assertFalse("saved object should NOT be synced", result.isSynced());
         assertEquals("saved object should be the same instance", d, result);
         assertNotNull("item should be in database", DummyObject.SOURCE.getDao().queryForId(d.getId()));
@@ -179,7 +179,7 @@ public class GenericSourceTest extends AndroidTestCase {
         }.blockUntilFinished();
 
         assertNotNull("updated object should be returned in callback", result);
-        assertFalse("saved object should NOT have a server id", result.getServerId() > 0);
+        assertNull("saved object should NOT have a server id", result.getServerId());
         assertFalse("saved object should NOT be synced", result.isSynced());
         assertEquals("updated object should have the same local id", d.getId(), result.getId());
         assertEquals("updated object should have the new values", 10, result.age);

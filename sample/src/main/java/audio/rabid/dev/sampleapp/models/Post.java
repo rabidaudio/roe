@@ -6,6 +6,7 @@ import com.j256.ormlite.table.DatabaseTable;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import audio.rabid.dev.network_orm.models.JSONField;
 import audio.rabid.dev.network_orm.models.Resource;
 import audio.rabid.dev.network_orm.models.Source;
 
@@ -23,15 +24,19 @@ public class Post extends Resource<Post> {
         return Source;
     }
 
+    @JSONField
     @DatabaseField
     private String title;
 
+    @JSONField
     @DatabaseField
     private String body;
 
+    @JSONField
     @DatabaseField
     private int likes;
 
+    @JSONField
     @DatabaseField
     private boolean liked;
 

@@ -59,7 +59,7 @@ public class AuthorActivity extends AppCompatActivity {
         });
     }
 
-    public static void open(Context context, int id) {
+    public static void open(Context context, @Nullable Integer id) {
         Intent i = new Intent(context, AuthorActivity.class);
         i.putExtra(AuthorActivity.EXTRA_AUTHOR_ID, id);
         context.startActivity(i);

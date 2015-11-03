@@ -22,11 +22,11 @@ public class SparseArrayResourceCache<T extends Resource> implements ResourceCac
     }
 
     public synchronized T put(@Nullable T object) {
-        if (object == null) {
+        if (object == null || object.getId()==null) {
             return null;
         } else {
             instanceCache.put(object.getId(), object);
-            if (object.getServerId() > 0) {
+            if (object.getServerId() != null) {
                 serverLocalIDMap.put(object.getServerId(), object.getId());
             }
             return object;
@@ -34,6 +34,9 @@ public class SparseArrayResourceCache<T extends Resource> implements ResourceCac
     }
 
     public synchronized T putIfMissing(T object) {
+        if (object == null || object.getId()==null) {
+            return null;
+        }
         T cached = instanceCache.get(object.getId());
         if (cached == null) {
             instanceCache.put(object.getId(), object);
@@ -44,7 +47,7 @@ public class SparseArrayResourceCache<T extends Resource> implements ResourceCac
     }
 
     @Override
-    public synchronized T getByLocalId(int localId, @NonNull CacheMissCallback<T> callback) {
+    public synchronized T getByLocalId(Integer localId, @NonNull CacheMissCallback<T> callback) {
         T cached = instanceCache.get(localId);
         if (cached == null) {
             return put(callback.onCacheMiss(localId));
@@ -54,7 +57,7 @@ public class SparseArrayResourceCache<T extends Resource> implements ResourceCac
     }
 
     @Override
-    public synchronized T getByServerId(int serverId, @NonNull CacheMissCallback<T> callback) {
+    public synchronized T getByServerId(Integer serverId, @NonNull CacheMissCallback<T> callback) {
         Integer localId = serverLocalIDMap.get(serverId);
         if (localId == null) {
             return put(callback.onCacheMiss(serverId));
@@ -65,8 +68,8 @@ public class SparseArrayResourceCache<T extends Resource> implements ResourceCac
 
     @Override
     public synchronized T delete(T object) {
-        serverLocalIDMap.delete(object.getServerId());
-        instanceCache.delete(object.getId());
+        if(object.getServerId()!=null) serverLocalIDMap.delete(object.getServerId());
+        if(object.getId()!=null) instanceCache.delete(object.getId());
         return object;
     }
 }

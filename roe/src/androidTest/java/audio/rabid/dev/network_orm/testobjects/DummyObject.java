@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import audio.rabid.dev.network_orm.models.AllowedOps;
+import audio.rabid.dev.network_orm.models.JSONField;
 import audio.rabid.dev.network_orm.models.Resource;
 import audio.rabid.dev.network_orm.models.ResourceFactory;
 import audio.rabid.dev.network_orm.models.Source;
@@ -31,12 +32,15 @@ public class DummyObject extends Resource<DummyObject> {
         this.child = child;
     }
 
+    @JSONField
     @DatabaseField
     public String name;
 
+    @JSONField
     @DatabaseField
     public int age = 0;
 
+    @JSONField
     @DatabaseField(foreign = true)
     public DummyChild child;
 
@@ -52,30 +56,6 @@ public class DummyObject extends Resource<DummyObject> {
     public Source<DummyObject> getSource() {
         return SOURCE;
     }
-
-    @Override
-    public JSONObject toJSON() throws JSONException {
-        return super.toJSON().put("name", name)
-                .put("age", age)
-                .put("child_id", (child == null ? null : child.getServerId()));
-    }
-
-    @Override
-    public boolean updateFromJSON(JSONObject data) throws JSONException {
-        boolean changed = super.updateFromJSON(data);
-        String n = data.getString("name");
-        if (name == null || !name.equals(n)) {
-            name = n;
-            changed = true;
-        }
-        int a = data.getInt("age");
-        if (age != a) {
-            age = a;
-            changed = true;
-        }
-        return changed;
-    }
-
 
     private static class DummyObjectResourceFactory implements ResourceFactory<DummyObject> {
 

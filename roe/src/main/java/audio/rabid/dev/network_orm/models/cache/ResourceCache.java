@@ -19,9 +19,9 @@ public interface ResourceCache<T extends Resource> {
 
     T delete(T object);
 
-    T getByLocalId(int localId, @NonNull CacheMissCallback<T> callback);
+    T getByLocalId(Integer localId, @NonNull CacheMissCallback<T> callback);
 
-    T getByServerId(int serverId, @NonNull CacheMissCallback<T> callback);
+    T getByServerId(Integer serverId, @NonNull CacheMissCallback<T> callback);
 
     /**
      * This block is called if the item wasn't in the cache. Return an item to be put in the cache

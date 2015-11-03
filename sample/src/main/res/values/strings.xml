@@ -7,4 +7,13 @@
     <string name="action_settings">Settings</string>
     <string name="title_activity_author">Authors</string>
     <string name="title_activity_posts">PostsActivity</string>
+    <string name="add_author">Add Author</string>
+    <string name="edit_author">Edit Author %d</string>
+    <string name="field_required">Field required</string>
+    <string name="author_details">Author Details</string>
+    <string name="edit_post">Edit Post</string>
+    <string name="open">Open</string>
+    <string name="edit">Edit</string>
+    <string name="email">Email</string>
+    <string name="contact_author">Contact the author</string>
 </resources>

@@ -114,7 +114,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         });
     }
 
-    public static void openForAuthor(Context context, int authorId) {
+    public static void openForAuthor(Context context, @Nullable Integer authorId) {
         Intent i = new Intent(context, PostsActivity.class);
         i.putExtra(EXTRA_AUTHOR_ID, authorId);
         context.startActivity(i);

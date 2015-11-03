@@ -79,24 +79,24 @@ public class Source<T extends Resource> {
         //default: no-op
     }
 
-    public void getLocal(final int localId, @NonNull OperationCallback<T> callback) {
+    public void getLocal(final @NonNull Integer localId, @NonNull OperationCallback<T> callback) {
         doSingleOperation(new SingleSourceOperation<T>() {
+            @Override
+            public T doInBackground(final Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
+                return cache.getByLocalId(localId, new ResourceCache.CacheMissCallback<T>() {
+                    @Nullable
                     @Override
-                    public T doInBackground(final Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
-                        return cache.getByLocalId(localId, new ResourceCache.CacheMissCallback<T>() {
-                            @Nullable
-                            @Override
-                            public T onCacheMiss(int id) {
-                                try {
-                                    T resource = dao.queryForId(id);
-                                    return cacheGetNetworkUpdateOnMiss(resource);
-                                } catch (SQLException e) {
-                                    onDatabaseException(e);
-                                    return null;
-                                }
-                            }
-                        });
+                    public T onCacheMiss(int id) {
+                        try {
+                            T resource = dao.queryForId(id);
+                            return cacheGetNetworkUpdateOnMiss(resource);
+                        } catch (SQLException e) {
+                            onDatabaseException(e);
+                            return null;
+                        }
                     }
+                });
+            }
 
             @Override
             public AllowedOps.Op[] requiredPermissions() {
@@ -105,47 +105,47 @@ public class Source<T extends Resource> {
         }, callback);
     }
 
-    public void getByServerId(final int serverId, @NonNull OperationCallback<T> callback) {
+    public void getByServerId(final @NonNull Integer serverId, @NonNull OperationCallback<T> callback) {
         doSingleOperation(new SingleSourceOperation<T>() {
+            @Override
+            public T doInBackground(final Dao<T, Integer> dao, final Server server, ResourceCache<T> cache, final ResourceFactory<T> factory) {
+                return resourceCache.getByServerId(serverId, new ResourceCache.CacheMissCallback<T>() {
+                    @Nullable
                     @Override
-                    public T doInBackground(final Dao<T, Integer> dao, final Server server, ResourceCache<T> cache, final ResourceFactory<T> factory) {
-                        return resourceCache.getByServerId(serverId, new ResourceCache.CacheMissCallback<T>() {
-                            @Nullable
-                            @Override
-                            public T onCacheMiss(int id) {
-                                try {
-                                    List<T> results = dao.queryForEq("serverId", id);
-                                    if (results.isEmpty()) {
-                                        if (getPermissions().canCreate()) {
-                                            //try and create from server
-                                            try {
-                                                Server.Response response = server.getItem(dao.getDataClass(), id);
-                                                if (!server.isErrorResponse(response)) {
-                                                    T newResource = factory.createFromJSON(response.getResponseBody());
-                                                    newResource.synced = true;
-                                                    newResource.createdAt = newResource.updatedAt = new Date();
-                                                    dao.create(newResource);
-                                                    return newResource;
-                                                }
-                                            } catch (Server.NetworkException e) {
-                                                //oh well, guess there's no network
-                                                onNetworkException(e);
-                                            }
+                    public T onCacheMiss(int id) {
+                        try {
+                            List<T> results = dao.queryForEq("serverId", id);
+                            if (results.isEmpty()) {
+                                if (getPermissions().canCreate()) {
+                                    //try and create from server
+                                    try {
+                                        Server.Response response = server.getItem(dao.getDataClass(), id);
+                                        if (!server.isErrorResponse(response)) {
+                                            T newResource = factory.createFromJSON(response.getResponseBody());
+                                            newResource.synced = true;
+                                            newResource.createdAt = newResource.updatedAt = new Date();
+                                            dao.create(newResource);
+                                            return newResource;
                                         }
-                                        return null;
-                                    } else {
-                                        return cacheGetNetworkUpdateOnMiss(results.get(0));
+                                    } catch (Server.NetworkException e) {
+                                        //oh well, guess there's no network
+                                        onNetworkException(e);
                                     }
-                                } catch (SQLException e) {
-                                    onDatabaseException(e);
-                                    return null;
-                                } catch (JSONException e) {
-                                    onJSONException(e);
-                                    return null;
                                 }
+                                return null;
+                            } else {
+                                return cacheGetNetworkUpdateOnMiss(results.get(0));
                             }
-                        });
+                        } catch (SQLException e) {
+                            onDatabaseException(e);
+                            return null;
+                        } catch (JSONException e) {
+                            onJSONException(e);
+                            return null;
+                        }
                     }
+                });
+            }
 
             @Override
             public AllowedOps.Op[] requiredPermissions() {
@@ -285,11 +285,14 @@ public class Source<T extends Resource> {
                         throw new IllegalArgumentException("Instance must be in the cache before calling update");
                     }
                 });
-                ;
                 try {
                     Server.Response response = null;
                     try {
-                        response = server.updateItem(dao.getDataClass(), resource.getServerId(), factory.turnItemIntoValidServerPayload(resource));
+                        if(resource.getServerId()==null){
+                            response = server.createItem(dao.getDataClass(), factory.turnItemIntoValidServerPayload(resource));
+                        }else {
+                            response = server.updateItem(dao.getDataClass(), resource.getServerId(), factory.turnItemIntoValidServerPayload(resource));
+                        }
                     } catch (Server.NetworkException e) {
                         //oh well, try sync again later
                         onNetworkException(e);
@@ -320,7 +323,7 @@ public class Source<T extends Resource> {
     }
 
     public void createOrUpdate(T resource, @Nullable OperationCallback<T> callback) {
-        if (resource.getId() > 0) {
+        if (resource.getId() != null) {
             update(resource, callback);
         } else {
             create(resource, callback);
@@ -357,28 +360,29 @@ public class Source<T extends Resource> {
         doSingleOperation(new SingleSourceOperation<T>() {
             @Override
             public T doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
-                try {
-                    Server.Response response = server.deleteItem(dao.getDataClass(), resource.getServerId());
-                    if (server.isErrorResponse(response)) {
+                if(resource.getServerId() != null) {
+                    try {
+                        Server.Response response = server.deleteItem(dao.getDataClass(), resource.getServerId());
+                        if (server.isErrorResponse(response)) {
+                            //TODO what to do if network delete fails?
+                        }
+                    } catch (Server.NetworkException e) {
                         //TODO what to do if network delete fails?
+                        onNetworkException(e);
                     }
-                } catch (Server.NetworkException e) {
-                    //TODO what to do if network delete fails?
-                    onNetworkException(e);
+                    try {
+                        dao.delete(resource);
+                        cache.delete(resource);
+                        synchronized (resource) {
+                            resource.deleted = true;
+                            resource.setChanged();
+                        }
+                    } catch (SQLException e) {
+                        onDatabaseException(e);
+                    }
                 }
-                try {
-                    dao.delete(resource);
-                    cache.delete(resource);
-                    synchronized (resource) {
-                        resource.deleted = true;
-                        resource.setChanged();
-                    }
-                    return resource;
-                } catch (SQLException e) {
-                    onDatabaseException(e);
-                    return null;
-                }
-                    }
+                return resource;
+            }
 
             @Override
             public AllowedOps.Op[] requiredPermissions() {
@@ -399,7 +403,7 @@ public class Source<T extends Resource> {
                         item = cache.putIfMissing(item);
                         try {
                             Server.Response response;
-                            if (item.getServerId() < 0 && getPermissions().canCreate()) {
+                            if (item.getServerId() == null && getPermissions().canCreate()) {
                                 response = server.createItem(dao.getDataClass(), factory.turnItemIntoValidServerPayload(item));
                             } else if (getPermissions().canUpdate()) {
                                 response = server.updateItem(dao.getDataClass(), item.getServerId(), factory.turnItemIntoValidServerPayload(item));
@@ -450,11 +454,11 @@ public class Source<T extends Resource> {
         return resourceCache.getByLocalId(resource.getId(), new ResourceCache.CacheMissCallback<T>() {
             @Override
             public T onCacheMiss(int id) {
-                if (resource.getServerId() > 0 && getPermissions().canUpdate()) {
+                if (resource.getServerId() != null && getPermissions().canUpdate()) {
                     //has a server id, so see if network has update
-                    BackgroundThread.postBackground(new Runnable() {
-                        @Override
-                        public void run() {
+//                    BackgroundThread.postBackground(new Runnable() {
+//                        @Override
+//                        public void run() {
                             try {
                                 Server.Response response = server.getItem(dao.getDataClass(), resource.getServerId());
                                 if (!server.isErrorResponse(response)) {
@@ -470,12 +474,12 @@ public class Source<T extends Resource> {
                                         }
                                         if(changed){
                                             dao.update(resource); //save changes to database
-                                            BackgroundThread.postMain(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    resource.notifyObservers();
-                                                }
-                                            });
+//                                            BackgroundThread.postMain(new Runnable() {
+//                                                @Override
+//                                                public void run() {
+//                                                    resource.notifyObservers();
+//                                                }
+//                                            });
                                         }
                                     } catch (JSONException e) {
                                         onJSONException(e);
@@ -488,8 +492,8 @@ public class Source<T extends Resource> {
                                 onNetworkException(e);
                             }
                         }
-                    });
-                }
+//                    });
+//                }
                 return resource;
             }
         });
