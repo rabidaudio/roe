@@ -3,12 +3,9 @@ package audio.rabid.dev.sampleapp.models;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import audio.rabid.dev.network_orm.models.JSONField;
-import audio.rabid.dev.network_orm.models.Resource;
-import audio.rabid.dev.network_orm.models.Source;
+import audio.rabid.dev.roe.models.JSONField;
+import audio.rabid.dev.roe.models.Resource;
+import audio.rabid.dev.roe.models.Source;
 
 /**
  * Created by charles on 10/25/15.

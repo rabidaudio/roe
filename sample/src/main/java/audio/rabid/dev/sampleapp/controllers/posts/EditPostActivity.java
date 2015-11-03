@@ -7,7 +7,7 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.EditText;
 
-import audio.rabid.dev.network_orm.models.Source;
+import audio.rabid.dev.roe.models.Source;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.sampleapp.models.Post;

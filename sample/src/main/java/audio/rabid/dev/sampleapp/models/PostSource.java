@@ -13,9 +13,9 @@ import java.lang.reflect.Constructor;
 import java.sql.SQLException;
 import java.util.List;
 
-import audio.rabid.dev.network_orm.models.SimplePermissionsManager;
-import audio.rabid.dev.network_orm.models.rails.RailsResourceFactory;
-import audio.rabid.dev.network_orm.models.rails.RailsSource;
+import audio.rabid.dev.roe.models.SimplePermissionsManager;
+import audio.rabid.dev.roe.models.rails.RailsResourceFactory;
+import audio.rabid.dev.roe.models.rails.RailsSource;
 import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.SampleAppServer;
 

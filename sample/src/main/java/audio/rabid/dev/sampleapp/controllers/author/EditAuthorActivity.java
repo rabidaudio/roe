@@ -11,7 +11,7 @@ import android.widget.TextView;
 
 import java.net.URL;
 
-import audio.rabid.dev.network_orm.models.Source;
+import audio.rabid.dev.roe.models.Source;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import butterknife.Bind;

@@ -8,7 +8,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import audio.rabid.dev.network_orm.views.ViewHolder;
+import audio.rabid.dev.roe.views.ViewHolder;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import butterknife.Bind;

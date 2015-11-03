@@ -16,12 +16,12 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import audio.rabid.dev.network_orm.models.JSONField;
-import audio.rabid.dev.network_orm.models.Resource;
-import audio.rabid.dev.network_orm.models.Source;
-import audio.rabid.dev.network_orm.models.rails.Op;
-import audio.rabid.dev.network_orm.models.rails.RailsResource;
-import audio.rabid.dev.network_orm.models.rails.RailsSource;
+import audio.rabid.dev.roe.models.JSONField;
+import audio.rabid.dev.roe.models.Resource;
+import audio.rabid.dev.roe.models.Source;
+import audio.rabid.dev.roe.models.rails.Op;
+import audio.rabid.dev.roe.models.rails.RailsResource;
+import audio.rabid.dev.roe.models.rails.RailsSource;
 import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.SampleAppServer;

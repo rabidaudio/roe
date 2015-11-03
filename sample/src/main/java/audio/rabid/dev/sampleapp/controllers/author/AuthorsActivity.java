@@ -15,8 +15,8 @@ import android.widget.ListView;
 
 import java.util.List;
 
-import audio.rabid.dev.network_orm.models.Source;
-import audio.rabid.dev.network_orm.views.EasyArrayAdapter;
+import audio.rabid.dev.roe.models.Source;
+import audio.rabid.dev.roe.views.EasyArrayAdapter;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.posts.PostsActivity;
 import audio.rabid.dev.sampleapp.models.Author;

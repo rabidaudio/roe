@@ -8,7 +8,7 @@ import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 
-import audio.rabid.dev.network_orm.views.ViewHolder;
+import audio.rabid.dev.roe.views.ViewHolder;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Post;
 import butterknife.Bind;

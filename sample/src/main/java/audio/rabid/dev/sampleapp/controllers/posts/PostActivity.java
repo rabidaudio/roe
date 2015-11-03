@@ -9,7 +9,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
-import audio.rabid.dev.network_orm.models.Source;
+import audio.rabid.dev.roe.models.Source;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.author.AuthorActivity;
 import audio.rabid.dev.sampleapp.models.Post;
