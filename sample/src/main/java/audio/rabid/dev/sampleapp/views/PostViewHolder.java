@@ -6,6 +6,8 @@ import android.support.annotation.Nullable;
 import android.view.View;
 import android.widget.TextView;
 
+import java.text.SimpleDateFormat;
+
 import audio.rabid.dev.network_orm.views.ViewHolder;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Post;
@@ -48,7 +50,7 @@ public class PostViewHolder extends ViewHolder<Post> {
             body.setText(item.getBody());
 
         if (createdAt != null)
-            createdAt.setText(item.getCreatedAt().toLocaleString());
+            createdAt.setText(SimpleDateFormat.getInstance().format(item.getCreatedAt()));
 
         //pass child view through
         if (author != null) {
@@ -59,6 +61,6 @@ public class PostViewHolder extends ViewHolder<Post> {
 
     @Override
     protected void onNoItem(View parent) {
-        title.setText("Post not found");
+        title.setText(R.string.post_not_found);
     }
 }

@@ -22,4 +22,6 @@
     <string name="ok">OK</string>
 
     <string name="dialog_post_delete_confirm">Are you sure you want to delete this post?</string>
+    <string name="author_not_found">Author not found</string>
+    <string name="post_not_found">Post not found</string>
 </resources>

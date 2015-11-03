@@ -8,8 +8,6 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import audio.rabid.dev.network_orm.models.OperationCallback;
-import audio.rabid.dev.network_orm.models.Source;
 import audio.rabid.dev.network_orm.views.ViewHolder;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
@@ -54,7 +52,7 @@ public class AuthorViewHolder extends ViewHolder<Author> {
     protected void onNoItem(View parent) {
         ButterKnife.bind(this, parent);
         avatar.setImageResource(R.drawable.ic_not_interested);
-        name.setText("Author not found");
+        name.setText(R.string.author_not_found);
         email.setText(null);
     }
 }
