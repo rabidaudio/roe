@@ -33,15 +33,31 @@ public class DummyObject extends Resource<DummyObject> {
 
     @JSONField
     @DatabaseField
-    public String name;
+    protected String name;
 
     @JSONField
     @DatabaseField
-    public int age = 0;
+    protected int age = 0;
 
     @JSONField
     @DatabaseField(foreign = true)
     public DummyChild child;
+
+    public String getName() {
+        return name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age){
+        this.age = age;
+    }
+
+    public DummyChild getChild() {
+        return child;
+    }
 
     @SuppressWarnings("unchecked")
     public static Source<DummyObject> SOURCE = new Source<>(

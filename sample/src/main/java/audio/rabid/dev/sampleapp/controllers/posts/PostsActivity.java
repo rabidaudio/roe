@@ -43,7 +43,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
 
     AuthorViewHolder authorViewHolder;
 
-    int authorId = -1;
+    Integer authorId = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +56,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
 
         authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
         if (authorId == -1) {
+            authorId = null;
             author.setVisibility(View.GONE);
         } else {
             Author.Source.getLocal(authorId, new Source.OperationCallback<Author>() {
@@ -79,7 +80,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add("Authors").setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+        menu.add(R.string.authors).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
                 PostsActivity.this.startActivity(new Intent(PostsActivity.this, AuthorsActivity.class));
@@ -126,7 +127,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
 
     void showMenu(final Post post) {
         new AlertDialog.Builder(this)
-                .setItems(new String[]{"Open", "Edit", "View Author", "Delete"},
+                .setItems(new String[]{getString(R.string.open), getString(R.string.edit), getString(R.string.author_details), getString(R.string.delete)},
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
@@ -142,10 +143,10 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                                         break;
                                     case 3: //delete
                                         new AlertDialog.Builder(PostsActivity.this)
-                                                .setMessage("Are you sure you want to delete this post?")
+                                                .setMessage(getString(R.string.dialog_post_delete_confirm))
                                                 .setCancelable(true)
-                                                .setNegativeButton("Cancel", null)
-                                                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                                                .setNegativeButton(getString(R.string.cancel), null)
+                                                .setPositiveButton(getString(R.string.ok), new DialogInterface.OnClickListener() {
                                                     @Override
                                                     public void onClick(DialogInterface dialog, int which) {
                                                         post.delete(new Source.OperationCallback<Post>() {

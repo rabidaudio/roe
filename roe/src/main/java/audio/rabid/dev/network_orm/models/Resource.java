@@ -168,6 +168,7 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
             JSONField jsonField = field.getAnnotation(JSONField.class);
             DatabaseField dbf = f.getValue().getAnnotation(DatabaseField.class);
             try {
+                field.setAccessible(true);
                 if(jsonField.export()) {
                     Object value;
                     if (field.getType().isAssignableFrom(Date.class)) {
@@ -193,6 +194,8 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
                 }
             } catch (Exception e) {
                 throw new JSONException(e.getMessage());
+            }finally {
+                field.setAccessible(false);
             }
         }
         return object;
@@ -231,39 +234,44 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
             String key = keys.next();
             Object value = data.get(key);
             Field f = getJSONFields().get(key);
-            JSONField jsonField = f.getAnnotation(JSONField.class);
-            try {
-                if (value != null && jsonField.accept()) {
-                    DatabaseField dbf = f.getAnnotation(DatabaseField.class);
-                    if(f.getType().isAssignableFrom(Date.class)) {
-                        try {
-                            Date newDate = getSource().getDateFormat().parse((String) value);
-                            if (newDate != null &&
-                                    (f.get(this) == null || ((Date) f.get(this)).getTime() != newDate.getTime())) {
-                                f.set(this, newDate);
-                                updated = true;
-                            }
-                        } catch (ParseException e) {
-                            throw new JSONException(e.getMessage());
-                        }
-                    }else if(dbf != null && dbf.foreign()){
-                        //TODO how to populate children?
-                        Log.w("JSON", "Didn't populate relation "+f.getName());
-                    }else{
-                        if(f.get(this) == null || !f.get(this).equals(value)) {
+            if(f != null) {
+                JSONField jsonField = f.getAnnotation(JSONField.class);
+                try {
+                    if (value != null && jsonField.accept()) {
+                        DatabaseField dbf = f.getAnnotation(DatabaseField.class);
+                    f.setAccessible(true);
+                        if (f.getType().isAssignableFrom(Date.class)) {
                             try {
-                                f.set(this, value);
-                                updated = true;
-                            } catch (Exception e) {
-                                throw new JSONException(String.format(
-                                        "Couldn't figure out how to map '%s' to field '%s' on %s",
-                                        String.valueOf(value), key, getClass().toString()));
+                                Date newDate = getSource().getDateFormat().parse((String) value);
+                                if (newDate != null &&
+                                        (f.get(this) == null || ((Date) f.get(this)).getTime() != newDate.getTime())) {
+                                    f.set(this, newDate);
+                                    updated = true;
+                                }
+                            } catch (ParseException e) {
+                                throw new JSONException(e.getMessage());
+                            }
+                        } else if (dbf != null && dbf.foreign()) {
+                            //TODO how to populate children?
+                            Log.w("JSON", "Didn't populate relation " + f.getName());
+                        } else {
+                            if (f.get(this) == null || !f.get(this).equals(value)) {
+                                try {
+                                    f.set(this, value);
+                                    updated = true;
+                                } catch (Exception e) {
+                                    throw new JSONException(String.format(
+                                            "Couldn't figure out how to map '%s' to field '%s' on %s",
+                                            String.valueOf(value), key, getClass().toString()));
+                                }
                             }
                         }
                     }
+                } catch (Exception e) {
+                    throw new JSONException(e.getMessage());
+                }finally {
+                    f.setAccessible(false);
                 }
-            }catch (IllegalAccessException e){
-                throw new JSONException(e.getMessage());
             }
         }
         return updated;

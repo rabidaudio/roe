@@ -95,8 +95,8 @@ public class JSONTest extends AndroidTestCase {
         boolean changed = o.updateFromJSON(data);
 
         assertTrue(changed);
-        assertEquals("meow", o.name);
-        assertEquals(15, o.age);
+        assertEquals("meow", o.getName());
+        assertEquals(15, o.getAge());
         assertEquals(Integer.valueOf(25), o.getServerId());
         assertNull(o.createdAt);
         assertNull(o.updatedAt);

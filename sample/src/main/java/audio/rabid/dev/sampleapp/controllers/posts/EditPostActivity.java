@@ -72,12 +72,12 @@ public class EditPostActivity extends AppCompatActivity {
     void submit() {
         String t = title.getText().toString();
         if (t.isEmpty()) {
-            title.setError("Field required");
+            title.setError(getString(R.string.field_required));
             return;
         }
         String b = body.getText().toString();
         if (b.isEmpty()) {
-            body.setError("Field required");
+            body.setError(getString(R.string.field_required));
             return;
         }
 

@@ -79,7 +79,7 @@ public class GenericSourceTest extends AndroidTestCase {
         assertEquals("object by id should be the same instance", d, result);
 
         //UPDATE
-        d.age = 10;
+        d.setAge(10);
         start = System.nanoTime();
         result = new Synchronizer<DummyObject>() {
             @Override
@@ -97,7 +97,7 @@ public class GenericSourceTest extends AndroidTestCase {
         assertNotNull("updated object should be returned in callback", result);
         assertEquals("updated object should have the same local id", d.getId(), result.getId());
         assertEquals("updated object should have the same server id", d.getServerId(), result.getServerId());
-        assertEquals("updated object should have the new values", 10, result.age);
+        assertEquals("updated object should have the new values", 10, result.getAge());
         assertEquals("updated object should be the same instance", d, result);
 
         //DELETE
@@ -166,7 +166,7 @@ public class GenericSourceTest extends AndroidTestCase {
         assertEquals("object by id should be the same instance", d, result);
 
         //UPDATE
-        d.age = 10;
+        d.setAge(10);
 
         result = new Synchronizer<DummyObject>() {
             @Override
@@ -184,7 +184,7 @@ public class GenericSourceTest extends AndroidTestCase {
         assertNull("saved object should NOT have a server id", result.getServerId());
         assertFalse("saved object should NOT be synced", result.isSynced());
         assertEquals("updated object should have the same local id", d.getId(), result.getId());
-        assertEquals("updated object should have the new values", 10, result.age);
+        assertEquals("updated object should have the new values", 10, result.getAge());
         assertEquals("updated object should be the same instance", d, result);
 
         //SYNC NO NET
@@ -259,7 +259,7 @@ public class GenericSourceTest extends AndroidTestCase {
         assertFalse("observer should not see a create", catcher2.sawChange());
 
         //UPDATE
-        d.age = 10;
+        d.setAge(10);
         result = new Synchronizer<DummyObject>() {
             @Override
             public void run() {

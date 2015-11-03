@@ -25,7 +25,7 @@ import butterknife.OnClick;
 
 public class AuthorActivity extends AppCompatActivity {
 
-    public static final String EXTRA_AUTHOR_ID = ".AUTHOR_ID";
+    public static final String EXTRA_AUTHOR_ID = "AUTHOR_ID";
 
     @Bind(R.id.recentPosts)
     ListView recentPosts;
