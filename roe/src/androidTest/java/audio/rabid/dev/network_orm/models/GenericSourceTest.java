@@ -6,6 +6,8 @@ import android.test.AndroidTestCase;
 import android.test.suitebuilder.annotation.Suppress;
 import android.util.Log;
 
+import com.j256.ormlite.dao.Dao;
+
 import java.util.List;
 
 import audio.rabid.dev.network_orm.ChangeDetectorObserver;
@@ -222,7 +224,7 @@ public class GenericSourceTest extends AndroidTestCase {
         assertEquals("one item should have synced", 1, synced.size());
         assertEquals("the synced item should be the same instance", d, synced.get(0));
         assertTrue("the item should be marked as synced", d.isSynced());
-        assertTrue("the new update time should be larger than the old one", d.getUpdatedAt().getTime()>prevUpdateTime);
+        assertTrue("the new update time should be larger than the old one", d.getUpdatedAt().getTime() > prevUpdateTime);
     }
 
     /**
@@ -292,6 +294,88 @@ public class GenericSourceTest extends AndroidTestCase {
         assertTrue("observer should see delete", catcher1.sawChange());
         assertTrue("observer should see delete", catcher2.sawChange());
         assertEquals("observers should be called on main thread", Looper.getMainLooper().getThread(), catcher1.getCallingThread());
+    }
+
+    public void testNetworkDeleteWithoutNetwork() throws Exception {
+
+        DummyObjectMockServer.getInstance().setNetworkAvailable(true);
+
+        final DummyObject object = new DummyObject("meow", 50, null);
+
+        new Synchronizer<DummyObject>() {
+            @Override
+            public void run() {
+                object.save(new Source.OperationCallback<DummyObject>() {
+                    @Override
+                    public void onResult(@Nullable DummyObject result) {
+                        setResult(result);
+                    }
+                });
+            }
+        }.blockUntilFinished();
+
+        DummyObjectMockServer.getInstance().setNetworkAvailable(false);
+
+        DummyObject deleted = new Synchronizer<DummyObject>() {
+            @Override
+            public void run() {
+                DummyObject.SOURCE.deleteBoth(object,new Source.OperationCallback<DummyObject>() {
+                    @Override
+                    public void onResult(@Nullable DummyObject result) {
+                        setResult(result);
+                    }
+                });
+            }
+        }.blockUntilFinished();
+
+        assertTrue("the object reports it was deleted", deleted.wasDeleted());
+        assertNull("the dummy object was actually deleted locally", DummyObject.SOURCE.getDao().queryForId(object.getId()));
+        Dao<DeletedResource, Integer> deletedResourceDao = GenericDatabase.getInstance().getDao(DeletedResource.class);
+        assertEquals("a DeletedResource row was created", 1, deletedResourceDao.countOf());
+
+        int initialServerDeletedCount = DummyObjectMockServer.getInstance().deletedCount;
+
+        new Synchronizer<List<DummyObject>>() {
+            /**
+             * Starts executing the active part of the class' code. This method is
+             * called when a thread is started that has been created with a class which
+             * implements {@code Runnable}.
+             */
+            @Override
+            public void run() {
+                DummyObject.SOURCE.sync(new Source.OperationCallback<List<DummyObject>>() {
+                    @Override
+                    public void onResult(@Nullable List<DummyObject> result) {
+                        setResult(result);
+                    }
+                });
+            }
+        }.blockUntilFinished();
+
+        assertEquals("no items should have been deleted on the server", initialServerDeletedCount, DummyObjectMockServer.getInstance().deletedCount);
+        assertEquals("there should still be one DeletedResource after a failed sync", 1, deletedResourceDao.countOf());
+
+        DummyObjectMockServer.getInstance().setNetworkAvailable(true);
+
+        new Synchronizer<List<DummyObject>>() {
+            /**
+             * Starts executing the active part of the class' code. This method is
+             * called when a thread is started that has been created with a class which
+             * implements {@code Runnable}.
+             */
+            @Override
+            public void run() {
+                DummyObject.SOURCE.sync(new Source.OperationCallback<List<DummyObject>>() {
+                    @Override
+                    public void onResult(@Nullable List<DummyObject> result) {
+                        setResult(result);
+                    }
+                });
+            }
+        }.blockUntilFinished();
+
+        assertEquals("there should no longer be a DeletedResource", 0, deletedResourceDao.countOf());
+        assertEquals("1 item should have been deleted on the server", initialServerDeletedCount + 1, DummyObjectMockServer.getInstance().deletedCount);
     }
 
     /**

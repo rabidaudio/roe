@@ -4,6 +4,9 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.dao.DaoManager;
+import com.j256.ormlite.support.ConnectionSource;
+import com.j256.ormlite.table.TableUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -39,6 +42,7 @@ public class Source<T extends Resource> {
     private ResourceFactory<T> resourceFactory;
     private PermissionsManager<T> permissions;
     private DateFormat dateFormat;
+    private Dao<DeletedResource, Integer> deletedResourceDao;
 
     /**
      * Create a new Source
@@ -51,7 +55,7 @@ public class Source<T extends Resource> {
      */
     public Source(@NonNull Server server, @NonNull Dao<T, Integer> dao, @NonNull ResourceCache<T> resourceCache,
                   @NonNull ResourceFactory<T> resourceFactory, @NonNull PermissionsManager<T> permissions,
-                  @Nullable DateFormat dateFormat) {
+                  @Nullable DateFormat dateFormat, @NonNull ConnectionSource connectionSource) {
         this.server = server;
         this.dao = dao;
         this.resourceCache = resourceCache;
@@ -76,6 +80,12 @@ public class Source<T extends Resource> {
             };
         }else{
             this.dateFormat = dateFormat;
+        }
+        try {
+            TableUtils.createTableIfNotExists(connectionSource, DeletedResource.class);
+            deletedResourceDao = DaoManager.createDao(connectionSource, DeletedResource.class);
+        }catch (SQLException e){
+            onDatabaseException(e);
         }
     }
 
@@ -243,7 +253,7 @@ public class Source<T extends Resource> {
     public void createOrUpdateManyFromNetwork(@Nullable final JSONObject search, @Nullable final OperationCallback<List<T>> callback) {
         doMultipleOperation(new MultipleSourceOperation<T>() {
             @Override
-            public List<T> doInBackgroundBeforeReturn(final Dao<T, Integer> dao, Server server, ResourceCache<T> cache, final ResourceFactory<T> factory) {
+            public List<T> doInBackground(final Dao<T, Integer> dao, Server server, ResourceCache<T> cache, final ResourceFactory<T> factory) {
                 try {
                     Server.Response response = server.getItems(dao.getDataClass(), search);
                     if (!server.isErrorResponse(response)) {
@@ -432,22 +442,21 @@ public class Source<T extends Resource> {
         }, callback);
     }
 
-    @Deprecated
     public void deleteBoth(final T resource, @Nullable OperationCallback<T> callback) {
         doSingleOperation(new SingleSourceOperation<T>() {
             @Override
             public T doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
                 if (resource.getServerId() != null) {
                     try {
-                        Server.Response response = server.deleteItem(dao.getDataClass(), resource.getServerId());
-                        if (server.isErrorResponse(response)) {
-                            //TODO what to do if network delete fails?
+                        try {
+                            Server.Response response = server.deleteItem(dao.getDataClass(), resource.getServerId());
+                            if (server.isErrorResponse(response)) {
+                                deletedResourceDao.create(new DeletedResource(resource));
+                            }
+                        } catch (Server.NetworkException e) {
+                            deletedResourceDao.create(new DeletedResource(resource));
+                            onNetworkException(e);
                         }
-                    } catch (Server.NetworkException e) {
-                        //TODO what to do if network delete fails?
-                        onNetworkException(e);
-                    }
-                    try {
                         dao.delete(resource);
                         cache.delete(resource);
                         synchronized (resource) {
@@ -471,7 +480,7 @@ public class Source<T extends Resource> {
     public void sync(@Nullable OperationCallback<List<T>> callback) {
         doMultipleOperation(new MultipleSourceOperation<T>() {
             @Override
-            public List<T> doInBackgroundBeforeReturn(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
+            public List<T> doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
                 try {
                     List<T> unsynced = dao.queryForEq("synced", false);
                     List<T> returnResults = new ArrayList<T>(unsynced.size());
@@ -498,6 +507,17 @@ public class Source<T extends Resource> {
                             }
                         } catch (Server.NetworkException e) {
                             //oh well, still no network
+                            onNetworkException(e);
+                        }
+                    }
+                    for (DeletedResource deleted : deletedResourceDao.queryForAll()) {
+                        try {
+                            Server.Response response = deleted.attemptDelete(server);
+                            if (!server.isErrorResponse(response)) {
+                                deletedResourceDao.delete(deleted);
+                                //TODO not returning items that we finally deleted on the server
+                            }
+                        }catch (Server.NetworkException e){
                             onNetworkException(e);
                         }
                     }
@@ -626,7 +646,7 @@ public class Source<T extends Resource> {
     protected void doMultipleLocalQuery(@NonNull final MultipleLocalQuery<T> query, @Nullable OperationCallback<List<T>> callback) {
         doMultipleOperation(new MultipleSourceOperation<T>() {
             @Override
-            public List<T> doInBackgroundBeforeReturn(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
+            public List<T> doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
                 try {
                     List<T> results = query.query(dao);
                     List<T> returnResults = new ArrayList<T>(results.size());
@@ -679,7 +699,7 @@ public class Source<T extends Resource> {
                     return dao.callBatchTasks(new Callable<List<T>>() {
                         @Override
                         public List<T> call() throws Exception {
-                            return operation.doInBackgroundBeforeReturn(dao, server, resourceCache, resourceFactory);
+                            return operation.doInBackground(dao, server, resourceCache, resourceFactory);
                         }
                     });
                 } catch (Exception e) {
@@ -716,7 +736,7 @@ public class Source<T extends Resource> {
      * @param <Q>
      */
     protected interface MultipleSourceOperation<Q extends Resource> {
-        List<Q> doInBackgroundBeforeReturn(Dao<Q, Integer> dao, Server server, ResourceCache<Q> cache, ResourceFactory<Q> factory);
+        List<Q> doInBackground(Dao<Q, Integer> dao, Server server, ResourceCache<Q> cache, ResourceFactory<Q> factory);
 
         PermissionsManager.Op[] requiredPermissions();
     }

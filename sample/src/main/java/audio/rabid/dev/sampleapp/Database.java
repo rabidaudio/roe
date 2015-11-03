@@ -26,7 +26,7 @@ public class Database extends OrmLiteSqliteOpenHelper {
         return instance;
     }
 
-    public static Database getInstance(Context context) {
+    public static Database createInstance(Context context) {
         if (instance == null) {
             instance = new Database(context);
         }

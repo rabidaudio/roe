@@ -137,7 +137,8 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
     }
 
     /**
-     * Delete the current item. Shorthand for {@link Source#deleteLocal(Resource, Source.OperationCallback)}
+     * Delete the current item. Shorthand for {@link Source#deleteLocal(Resource, Source.OperationCallback)}.
+     * Override this method if you want delete to delete from the network as well.
      *
      * @param callback (optional) callback to run when delete is complete
      */

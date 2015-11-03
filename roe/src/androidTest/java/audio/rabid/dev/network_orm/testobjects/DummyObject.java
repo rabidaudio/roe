@@ -14,8 +14,10 @@ import audio.rabid.dev.network_orm.models.PermissionsManager;
 import audio.rabid.dev.network_orm.models.JSONField;
 import audio.rabid.dev.network_orm.models.Resource;
 import audio.rabid.dev.network_orm.models.ResourceFactory;
+import audio.rabid.dev.network_orm.models.SimplePermissionsManager;
 import audio.rabid.dev.network_orm.models.Source;
 import audio.rabid.dev.network_orm.models.cache.SparseArrayResourceCache;
+import audio.rabid.dev.network_orm.models.rails.NetworkDateFormat;
 
 /**
  * Created by charles on 10/30/15.
@@ -50,7 +52,9 @@ public class DummyObject extends Resource<DummyObject> {
             GenericDatabase.getDaoOrThrow(DummyObject.class),
             new SparseArrayResourceCache<DummyObject>(50),
             new DummyObjectResourceFactory(),
-            PermissionsManager.ALL);
+            SimplePermissionsManager.ALL,
+            new NetworkDateFormat(),
+            GenericDatabase.getInstance().getConnectionSource());
 
     @Override
     public Source<DummyObject> getSource() {

@@ -3,6 +3,7 @@ package audio.rabid.dev.network_orm.models.rails;
 import android.support.annotation.NonNull;
 
 import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.support.ConnectionSource;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -23,23 +24,11 @@ import audio.rabid.dev.network_orm.models.cache.SparseArrayResourceCache;
  */
 public class RailsSource<T extends Resource> extends Source<T> {
 
-    private DateFormat dateFormat = new NetworkDateFormat();
-
     public RailsSource(@NonNull RailsServer server, @NonNull Dao<T, Integer> dao, @NonNull String endpoint,
-                       @NonNull RailsResourceFactory<T> resourceFactory, @NonNull PermissionsManager permissions) {
+                       @NonNull RailsResourceFactory<T> resourceFactory, @NonNull PermissionsManager<T> permissions, @NonNull ConnectionSource connectionSource) {
 
-        super(server, dao, new SparseArrayResourceCache<T>(50), resourceFactory, permissions);
+        super(server, dao, new SparseArrayResourceCache<T>(50), resourceFactory, permissions, new NetworkDateFormat(), connectionSource);
         server.addEndpoint(dao.getDataClass(), endpoint);
-    }
-
-    /**
-     * For Rails, we send dates formatted to the standard, always relative to GMT to avoid timezone issues.
-     *
-     * @see NetworkDateFormat
-     */
-    @Override
-    public DateFormat getDateFormat() {
-        return dateFormat;
     }
 
     public abstract static class RailsResourceFactory<R extends Resource> implements ResourceFactory<R> {

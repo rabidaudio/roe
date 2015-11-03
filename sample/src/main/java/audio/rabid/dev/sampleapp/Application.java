@@ -11,7 +11,7 @@ public class Application extends android.app.Application {
     public void onCreate() {
         super.onCreate();
 
-        Database.getInstance(this); //initialize database
+        Database.createInstance(this); //initialize database
 
         Author.Source.sync(null);
         Post.Source.sync(null);

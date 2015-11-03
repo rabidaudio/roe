@@ -21,6 +21,7 @@ import java.net.URL;
 
 import audio.rabid.dev.network_orm.models.PermissionsManager;
 import audio.rabid.dev.network_orm.models.JSONField;
+import audio.rabid.dev.network_orm.models.SimplePermissionsManager;
 import audio.rabid.dev.network_orm.models.rails.RailsSource;
 import audio.rabid.dev.network_orm.models.Resource;
 import audio.rabid.dev.network_orm.models.Source;
@@ -38,7 +39,8 @@ public class Author extends Resource<Author> {
     @SuppressWarnings("unchecked")
     public static final RailsSource<Author> Source = new RailsSource<>(SampleAppServer.getInstance(),
             Database.getDaoOrThrow(Author.class), "authors", new AuthorResourceFactory(),
-            new PermissionsManager(PermissionsManager.Op.CREATE, PermissionsManager.Op.READ, PermissionsManager.Op.UPDATE));
+            new SimplePermissionsManager<Author>(PermissionsManager.Op.CREATE, PermissionsManager.Op.READ, PermissionsManager.Op.UPDATE),
+            Database.getInstance().getConnectionSource());
 
     @JSONField
     @DatabaseField

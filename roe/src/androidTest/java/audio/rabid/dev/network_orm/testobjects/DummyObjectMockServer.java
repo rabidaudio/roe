@@ -23,6 +23,8 @@ public class DummyObjectMockServer extends Server {
 
     private int currentPK = 10;
 
+    public int deletedCount = 0;
+
     boolean networkAvailable = true;
 
     public void setNetworkAvailable(boolean available) {
@@ -82,6 +84,7 @@ public class DummyObjectMockServer extends Server {
     @Override
     public Response deleteItem(Class<?> clazz, int serverId) throws NetworkException {
         checkConnection();
+        deletedCount++;
         return new Response(200, new JSONObject(), null);
     }
 

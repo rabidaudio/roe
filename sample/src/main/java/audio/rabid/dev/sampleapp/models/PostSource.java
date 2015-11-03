@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 import audio.rabid.dev.network_orm.models.PermissionsManager;
+import audio.rabid.dev.network_orm.models.SimplePermissionsManager;
 import audio.rabid.dev.network_orm.models.rails.RailsSource;
 import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.SampleAppServer;
@@ -25,7 +26,7 @@ public class PostSource extends RailsSource<Post> {
 
     @SuppressWarnings("unchecked")
     public PostSource() {
-        super(SampleAppServer.getInstance(), Database.getDaoOrThrow(Post.class), "posts", new PostResourceFactory(), PermissionsManager.ALL);
+        super(SampleAppServer.getInstance(), Database.getDaoOrThrow(Post.class), "posts", new PostResourceFactory(), SimplePermissionsManager.ALL, Database.getInstance().getConnectionSource());
 
         //should be faster than reflection at creating new instances
         getDao().setObjectFactory(new ObjectFactory<Post>() {
