@@ -34,8 +34,8 @@ import audio.rabid.dev.utils.ImageCache;
 @RailsResource(endpoint = "authors", singularJSONKey = "author", pluralJSONKey = "authors")
 public class Author extends Resource<Author> {
 
-    public static final RailsSource<Author> Source = new RailsSource.Builder<>(
-            SampleAppServer.getInstance(), Database.getInstance(), Author.class)
+    public static final RailsSource<Author> Source = new RailsSource.Builder<>
+            (SampleAppServer.getInstance(), Database.getInstance(), Author.class)
             .setPermissions(Op.CREATE, Op.READ, Op.UPDATE).build();
 
     @JSONField

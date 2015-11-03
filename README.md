@@ -1,5 +1,11 @@
 
-More MVC-like Android framework
+# roe.
+
+> A More MVC-like Android framework
+
+[![Build Status](https://travis-ci.org/rabidaudio/roe.svg?branch=master)](https://travis-ci.org/rabidaudio/roe)
+
+----
 
 Powerful model system built on ORMLite with automatic handling of network APIs
 
@@ -22,6 +28,8 @@ use ViewHolder.
 - support ids that aren't integers
 - allow for resorces without network apis
 
+in sample:
+- how to deal with syncing authors (related to associations issue)
 
 Creating new threads seems to be about 15% faster than a single background looper thread when crunching a whole bunch of inserts. (`52220.965 ms` compared to `61390.46 ms`)
 That may not be the most realistic test though. Also a single background thread greatly reduces the chance of simultaneous changes 

@@ -60,14 +60,9 @@ public class DummyObject extends Resource<DummyObject> {
     }
 
     @SuppressWarnings("unchecked")
-    public static Source<DummyObject> SOURCE = new Source<>(
-            DummyObjectMockServer.getInstance(),
-            GenericDatabase.getDaoOrThrow(DummyObject.class),
-            GenericDatabase.getInstance().getConnectionSource(),
-            null,
-            new DummyObjectResourceFactory(),
-            new SimplePermissionsManager().all(),
-            null);
+    public static Source<DummyObject> SOURCE = new Source.Builder(GenericDatabase.getInstance(), DummyObject.class)
+            .setServer(DummyObjectMockServer.getInstance(), new DummyObjectResourceFactory())
+            .build();
 
     @Override
     public Source<DummyObject> getSource() {

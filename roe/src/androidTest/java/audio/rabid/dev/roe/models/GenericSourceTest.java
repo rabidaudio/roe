@@ -15,6 +15,7 @@ import audio.rabid.dev.roe.Synchronizer;
 import audio.rabid.dev.roe.testobjects.DummyObject;
 import audio.rabid.dev.roe.testobjects.DummyObjectMockServer;
 import audio.rabid.dev.roe.testobjects.GenericDatabase;
+import audio.rabid.dev.roe.testobjects.NoNetworkResource;
 
 /**
  * Created by charles on 10/30/15.
@@ -377,6 +378,99 @@ public class GenericSourceTest extends AndroidTestCase {
         assertEquals("there should no longer be a DeletedResource", 0, deletedResourceDao.countOf());
         assertEquals("1 item should have been deleted on the server", initialServerDeletedCount + 1, DummyObjectMockServer.getInstance().deletedCount);
     }
+
+
+    public void testSourceWithoutServer() throws Exception {
+
+        final NoNetworkResource resource = new NoNetworkResource();
+        resource.myString = "y'all";
+
+        new Synchronizer<NoNetworkResource>() {
+            @Override
+            public void run() {
+                resource.save(new Source.OperationCallback<NoNetworkResource>() {
+                    @Override
+                    public void onResult(@Nullable NoNetworkResource result) {
+                        setResult(result);
+                    }
+                });
+            }
+        }.blockUntilFinished();
+
+        assertEquals("y'all", resource.myString);
+        assertNotNull(resource.getId());
+        assertNull(resource.getServerId());
+        assertFalse(resource.isSynced());
+
+        NoNetworkResource r = new Synchronizer<NoNetworkResource>() {
+            @Override
+            public void run() {
+                NoNetworkResource.SOURCE.getLocal(resource.getId(), new Source.OperationCallback<NoNetworkResource>() {
+                    @Override
+                    public void onResult(@Nullable NoNetworkResource result) {
+                        setResult(result);
+                    }
+                });
+            }
+        }.blockUntilFinished();
+
+        assertEquals(resource, r);
+
+        resource.myString = "lla'y";
+
+        r = new Synchronizer<NoNetworkResource>() {
+            @Override
+            public void run() {
+                resource.save(new Source.OperationCallback<NoNetworkResource>() {
+                    @Override
+                    public void onResult(@Nullable NoNetworkResource result) {
+                        setResult(result);
+                    }
+                });
+            }
+        }.blockUntilFinished();
+
+        assertEquals(resource, r);
+        assertEquals("lla'y", r.myString);
+        assertNotNull(r.getId());
+        assertNull(r.getServerId());
+        assertFalse(r.isSynced());
+
+        List<NoNetworkResource> results = new Synchronizer<List<NoNetworkResource>>() {
+            @Override
+            public void run() {
+                NoNetworkResource.SOURCE.sync(new Source.OperationCallback<List<NoNetworkResource>>() {
+                    @Override
+                    public void onResult(@Nullable List<NoNetworkResource> result) {
+                        setResult(result);
+                    }
+                });
+            }
+        }.blockUntilFinished();
+
+        assertNull(results);
+        assertNull(resource.getServerId());
+        assertFalse(resource.isSynced());
+
+        new Synchronizer<NoNetworkResource>() {
+            @Override
+            public void run() {
+                resource.delete(new Source.OperationCallback<NoNetworkResource>() {
+                    @Override
+                    public void onResult(@Nullable NoNetworkResource result) {
+                        setResult(result);
+                    }
+                });
+            }
+        }.blockUntilFinished();
+
+        assertTrue(resource.wasDeleted());
+        assertFalse(resource.isSynced());
+        assertNull(resource.getServerId());
+        assertEquals(0, GenericDatabase.getInstance().getDao(DeletedResource.class).countOf());
+    }
+
+
 
     /**
      * This is a slow running test of performance. It is disabled

@@ -34,6 +34,7 @@ public class GenericDatabase extends OrmLiteSqliteOpenHelper {
         try {
             TableUtils.clearTable(getConnectionSource(), DummyObject.class);
             TableUtils.clearTable(getConnectionSource(), DummyChild.class);
+            TableUtils.clearTable(getConnectionSource(), NoNetworkResource.class);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -56,6 +57,7 @@ public class GenericDatabase extends OrmLiteSqliteOpenHelper {
         try {
             TableUtils.createTable(connectionSource, DummyObject.class);
             TableUtils.createTable(connectionSource, DummyChild.class);
+            TableUtils.createTable(connectionSource, NoNetworkResource.class);
         } catch (SQLException e) {
             throw new RuntimeException("Problem creating database", e);
         }
