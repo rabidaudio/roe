@@ -10,7 +10,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-import audio.rabid.dev.network_orm.models.AllowedOps;
+import audio.rabid.dev.network_orm.models.PermissionsManager;
 import audio.rabid.dev.network_orm.models.JSONField;
 import audio.rabid.dev.network_orm.models.Resource;
 import audio.rabid.dev.network_orm.models.ResourceFactory;
@@ -50,7 +50,7 @@ public class DummyObject extends Resource<DummyObject> {
             GenericDatabase.getDaoOrThrow(DummyObject.class),
             new SparseArrayResourceCache<DummyObject>(50),
             new DummyObjectResourceFactory(),
-            AllowedOps.ALL);
+            PermissionsManager.ALL);
 
     @Override
     public Source<DummyObject> getSource() {

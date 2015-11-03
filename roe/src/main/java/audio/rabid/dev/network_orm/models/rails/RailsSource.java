@@ -8,10 +8,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
-import audio.rabid.dev.network_orm.models.AllowedOps;
+import audio.rabid.dev.network_orm.models.PermissionsManager;
 import audio.rabid.dev.network_orm.models.Resource;
 import audio.rabid.dev.network_orm.models.ResourceFactory;
 import audio.rabid.dev.network_orm.models.Source;
@@ -22,11 +23,23 @@ import audio.rabid.dev.network_orm.models.cache.SparseArrayResourceCache;
  */
 public class RailsSource<T extends Resource> extends Source<T> {
 
+    private DateFormat dateFormat = new NetworkDateFormat();
+
     public RailsSource(@NonNull RailsServer server, @NonNull Dao<T, Integer> dao, @NonNull String endpoint,
-                       @NonNull RailsResourceFactory<T> resourceFactory, @NonNull AllowedOps permissions) {
+                       @NonNull RailsResourceFactory<T> resourceFactory, @NonNull PermissionsManager permissions) {
 
         super(server, dao, new SparseArrayResourceCache<T>(50), resourceFactory, permissions);
         server.addEndpoint(dao.getDataClass(), endpoint);
+    }
+
+    /**
+     * For Rails, we send dates formatted to the standard, always relative to GMT to avoid timezone issues.
+     *
+     * @see NetworkDateFormat
+     */
+    @Override
+    public DateFormat getDateFormat() {
+        return dateFormat;
     }
 
     public abstract static class RailsResourceFactory<R extends Resource> implements ResourceFactory<R> {

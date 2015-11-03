@@ -9,7 +9,6 @@ import org.json.JSONObject;
 import java.util.Date;
 
 import audio.rabid.dev.network_orm.Synchronizer;
-import audio.rabid.dev.network_orm.models.rails.NetworkDate;
 import audio.rabid.dev.network_orm.testobjects.DummyObject;
 
 /**
@@ -78,7 +77,7 @@ public class JSONTest extends AndroidTestCase {
 
         assertEquals("meow", json.getString("name"));
         assertEquals(15, json.getInt("age"));
-        assertEquals(o.getCreatedAt().getTime(), NetworkDate.decode(json.getString("created_at")).getTime());
+        assertEquals(o.getCreatedAt().getTime(), DummyObject.SOURCE.getDateFormat().parse(json.getString("created_at")).getTime());
         assertTrue(json.getInt("id") > 0);
     }
 
@@ -90,8 +89,8 @@ public class JSONTest extends AndroidTestCase {
                 .put("id", 25)
                 .put("name", "meow")
                 .put("age", 15)
-                .put("created_at", NetworkDate.encode(new Date()))
-                .put("updated_at", NetworkDate.encode(new Date()));
+                .put("created_at", DummyObject.SOURCE.getDateFormat().format(new Date()))
+                .put("updated_at", DummyObject.SOURCE.getDateFormat().format(new Date()));
 
         boolean changed = o.updateFromJSON(data);
 

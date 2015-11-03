@@ -9,18 +9,20 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.FieldPosition;
+import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import audio.rabid.dev.network_orm.BackgroundThread;
 import audio.rabid.dev.network_orm.models.cache.ResourceCache;
 
 /**
  * Created by charles on 10/28/15.
  * <p/>
- * This stores methods for interacting with particular Resources. It assumes all calls are from the
+ * This stores methods for interacting with particular {@link Resource}s. It assumes all calls are from the
  * main thread, and handles fetching off the main thread and returning on it. It also handles instance
  * caches and deciding when to update values. A resource can override this to handle these interactions
  * in a custom way or add more.
@@ -35,7 +37,8 @@ public class Source<T extends Resource> {
     private Dao<T, Integer> dao;
     private ResourceCache<T> resourceCache;
     private ResourceFactory<T> resourceFactory;
-    private AllowedOps permissions;
+    private PermissionsManager<T> permissions;
+    private DateFormat dateFormat;
 
     /**
      * Create a new Source
@@ -47,38 +50,95 @@ public class Source<T extends Resource> {
      * @param permissions     the operations allowed to be done on the resource
      */
     public Source(@NonNull Server server, @NonNull Dao<T, Integer> dao, @NonNull ResourceCache<T> resourceCache,
-                  @NonNull ResourceFactory<T> resourceFactory, @NonNull AllowedOps permissions) {
+                  @NonNull ResourceFactory<T> resourceFactory, @NonNull PermissionsManager<T> permissions,
+                  @Nullable DateFormat dateFormat) {
         this.server = server;
         this.dao = dao;
         this.resourceCache = resourceCache;
         this.resourceFactory = resourceFactory;
         this.permissions = permissions;
+        if(dateFormat==null){
+            this.dateFormat = new DateFormat() {
+                @Override
+                public StringBuffer format(Date date, StringBuffer buffer, FieldPosition field) {
+                    return new StringBuffer(String.valueOf(date.getTime()));
+                }
+
+                @Override
+                public Date parse(String string, ParsePosition position) {
+                    try {
+                        return new Date(Long.parseLong(string));
+                    } catch (NumberFormatException e) {
+                        position.setErrorIndex(0);
+                        return null;
+                    }
+                }
+            };
+        }else{
+            this.dateFormat = dateFormat;
+        }
     }
 
+    /**
+     * Return the {@link Dao} used for database operations. You shouldn't need to access this, as
+     * using the <code>doOperation</code> methods should give you the instance to use.
+     */
     protected Dao<T, Integer> getDao() {
         return dao;
     }
 
+    /**
+     * Return the {@link Server} used for network operations. You shouldn't need to access this, as
+     * using the <code>doOperation</code> methods should give you the instance to use.
+     */
     protected Server getServer() {
         return server;
     }
 
-    public AllowedOps getPermissions() {
+    /**
+     * Get the {@link PermissionsManager} for determining which CRUD operations are allowed on a
+     * {@link Resource}.
+     */
+    public PermissionsManager<T> getPermissions() {
         return permissions;
     }
 
+    /**
+     * Override this method to catch {@link SQLException}s thrown while trying to do database operations.
+     * The default implementation is to throw a {@link RuntimeException}.
+     */
     public void onDatabaseException(SQLException e){
         throw new RuntimeException(e);
     }
 
+    /**
+     * Override this method to catch {@link JSONException}s thrown while trying to convert {@link Resource}s to json.
+     * The default implementation is to throw a {@link RuntimeException}.
+     */
     public void onJSONException(JSONException e){
         throw new RuntimeException(e);
     }
 
+    /**
+     * Override this method to catch {@link Server.NetworkException}s thrown while doing network
+     * transactions (e.g. for logging). The default implementation is to do nothing.
+     */
     public void onNetworkException(Server.NetworkException e){
         //default: no-op
     }
 
+    /**
+     * Method for encoding a date in JSON. Default implementation is to use Unix time
+     * (milliseconds since Jan. 1, 1970, midnight GMT). Override for custom date format.
+     */
+    public DateFormat getDateFormat() {
+        return dateFormat;
+    }
+
+    /**
+     * Get a resource by it's local id. Method will try the cache, otherwise resorting to the database
+     * and checking for updates on the network if possible.
+     */
     public void getLocal(final @NonNull Integer localId, @NonNull OperationCallback<T> callback) {
         doSingleOperation(new SingleSourceOperation<T>() {
             @Override
@@ -99,12 +159,16 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps.Op[] requiredPermissions() {
-                return new AllowedOps.Op[]{AllowedOps.Op.READ};
+            public PermissionsManager.Op[] requiredPermissions() {
+                return new PermissionsManager.Op[]{PermissionsManager.Op.READ};
             }
         }, callback);
     }
 
+    /**
+     * Get a resource by it's server id. Method will try the cache, otherwise resorting to the database
+     * and checking for updates on the network if possible.
+     */
     public void getByServerId(final @NonNull Integer serverId, @NonNull OperationCallback<T> callback) {
         doSingleOperation(new SingleSourceOperation<T>() {
             @Override
@@ -148,12 +212,16 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps.Op[] requiredPermissions() {
-                return new AllowedOps.Op[]{AllowedOps.Op.READ};
+            public PermissionsManager.Op[] requiredPermissions() {
+                return new PermissionsManager.Op[]{PermissionsManager.Op.READ};
             }
         }, callback);
     }
 
+    /**
+     * Get all the instances stored locally. Will default to the cached versions, and update from the
+     * network if necessary.
+     */
     public void getAllLocal(@NonNull OperationCallback<List<T>> callback) {
         doMultipleLocalQuery(new MultipleLocalQuery<T>() {
             @Override
@@ -163,6 +231,15 @@ public class Source<T extends Resource> {
         }, callback);
     }
 
+    /**
+     * Download a number of resources from the network all at once, creating or updating the local
+     * versions as necessary. Unlike other operations, this method HAS to hit the network, so it
+     * could fail with no data if network is unavailable. It is also significantly slower than the
+     * other methods. It should be used to populate initial data from the server, but not to populate
+     * every screen in your app.
+     * @param search the query parameters to send to the network
+     * @param callback where to send the results when complete
+     */
     public void createOrUpdateManyFromNetwork(@Nullable final JSONObject search, @Nullable final OperationCallback<List<T>> callback) {
         doMultipleOperation(new MultipleSourceOperation<T>() {
             @Override
@@ -230,8 +307,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps.Op[] requiredPermissions() {
-                return new AllowedOps.Op[]{AllowedOps.Op.UPDATE};
+            public PermissionsManager.Op[] requiredPermissions() {
+                return new PermissionsManager.Op[]{PermissionsManager.Op.UPDATE};
             }
         }, callback);
     }
@@ -268,8 +345,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps.Op[] requiredPermissions() {
-                return new AllowedOps.Op[]{AllowedOps.Op.CREATE};
+            public PermissionsManager.Op[] requiredPermissions() {
+                return new PermissionsManager.Op[]{PermissionsManager.Op.CREATE};
             }
         }, callback);
     }
@@ -316,8 +393,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps.Op[] requiredPermissions() {
-                return new AllowedOps.Op[]{AllowedOps.Op.UPDATE};
+            public PermissionsManager.Op[] requiredPermissions() {
+                return new PermissionsManager.Op[]{PermissionsManager.Op.UPDATE};
             }
         }, callback);
     }
@@ -349,8 +426,8 @@ public class Source<T extends Resource> {
                     }
 
             @Override
-            public AllowedOps.Op[] requiredPermissions() {
-                return new AllowedOps.Op[]{AllowedOps.Op.DELETE};
+            public PermissionsManager.Op[] requiredPermissions() {
+                return new PermissionsManager.Op[]{PermissionsManager.Op.DELETE};
             }
         }, callback);
     }
@@ -360,7 +437,7 @@ public class Source<T extends Resource> {
         doSingleOperation(new SingleSourceOperation<T>() {
             @Override
             public T doInBackground(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
-                if(resource.getServerId() != null) {
+                if (resource.getServerId() != null) {
                     try {
                         Server.Response response = server.deleteItem(dao.getDataClass(), resource.getServerId());
                         if (server.isErrorResponse(response)) {
@@ -385,14 +462,13 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps.Op[] requiredPermissions() {
-                return new AllowedOps.Op[]{AllowedOps.Op.DELETE};
+            public PermissionsManager.Op[] requiredPermissions() {
+                return new PermissionsManager.Op[]{PermissionsManager.Op.DELETE};
             }
         }, callback);
     }
 
     public void sync(@Nullable OperationCallback<List<T>> callback) {
-        if (!(getPermissions().canUpdate() || getPermissions().canCreate())) return; //nothing to do
         doMultipleOperation(new MultipleSourceOperation<T>() {
             @Override
             public List<T> doInBackgroundBeforeReturn(Dao<T, Integer> dao, Server server, ResourceCache<T> cache, ResourceFactory<T> factory) {
@@ -405,7 +481,7 @@ public class Source<T extends Resource> {
                             Server.Response response;
                             if (item.getServerId() == null && getPermissions().canCreate()) {
                                 response = server.createItem(dao.getDataClass(), factory.turnItemIntoValidServerPayload(item));
-                            } else if (getPermissions().canUpdate()) {
+                            } else if (getPermissions().canUpdate(item)) {
                                 response = server.updateItem(dao.getDataClass(), item.getServerId(), factory.turnItemIntoValidServerPayload(item));
                             } else {
                                 continue;
@@ -435,8 +511,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps.Op[] requiredPermissions() {
-                return new AllowedOps.Op[0];
+            public PermissionsManager.Op[] requiredPermissions() {
+                return new PermissionsManager.Op[0];
             }
         }, callback);
     }
@@ -454,7 +530,7 @@ public class Source<T extends Resource> {
         return resourceCache.getByLocalId(resource.getId(), new ResourceCache.CacheMissCallback<T>() {
             @Override
             public T onCacheMiss(int id) {
-                if (resource.getServerId() != null && getPermissions().canUpdate()) {
+                if (resource.getServerId() != null && getPermissions().canUpdate(resource)) {
                     //has a server id, so see if network has update
 //                    BackgroundThread.postBackground(new Runnable() {
 //                        @Override
@@ -499,9 +575,9 @@ public class Source<T extends Resource> {
         });
     }
 
-    private void checkPermissions(AllowedOps.Op[] required) {
-        for (AllowedOps.Op r : required) {
-            if (!getPermissions().can(r)) {
+    private void checkPermissions(PermissionsManager.Op[] required, T object) {
+        for (PermissionsManager.Op r : required) {
+            if (!getPermissions().can(r, object)) {
                 throw new RuntimeException("Permission " + r.toString() + " denied for " + dao.getDataClass().toString());
             }
         }
@@ -511,9 +587,12 @@ public class Source<T extends Resource> {
      * A utility method for getting a resource by database query. In your {@link SingleLocalQuery},
      * use the provided {@link Dao} to run a database query and return the result. This method will
      * handle all the other stuff (caching, updating from network, etc). Use this for getting data
-     * available locally only.
-     * @param callback
-     * @param query
+     * available locally only. To run a query for more than one result, use
+     * {@link #doMultipleLocalQuery(MultipleLocalQuery, OperationCallback)}.
+     *
+     * This assumes that the only permission required for your query is {@link PermissionsManager.Op#READ}.
+     * If you are doing anything that results in a SQL query other than SELECT, DO NOT use this, use
+     * {@link #doSingleOperation(SingleSourceOperation, OperationCallback)} instead.
      */
     protected void doSingleLocalQuery(@NonNull final SingleLocalQuery<T> query, @Nullable OperationCallback<T> callback) {
         doSingleOperation(new SingleSourceOperation<T>() {
@@ -528,12 +607,22 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps.Op[] requiredPermissions() {
-                return new AllowedOps.Op[]{AllowedOps.Op.READ};
+            public PermissionsManager.Op[] requiredPermissions() {
+                return new PermissionsManager.Op[]{PermissionsManager.Op.READ};
             }
         }, callback);
     }
 
+    /**
+     * The same as {@link #doSingleLocalQuery(SingleLocalQuery, OperationCallback)}, but for queries
+     * that return multiple items from the database.
+     *
+     * This assumes that the only permission required for your query is {@link PermissionsManager.Op#READ}.
+     * If you are doing anything that results in a SQL query other than SELECT, DO NOT use this, use
+     * {@link #doMultipleOperation(MultipleSourceOperation, OperationCallback)} instead.
+     *
+     * @see #doSingleLocalQuery(SingleLocalQuery, OperationCallback)
+     */
     protected void doMultipleLocalQuery(@NonNull final MultipleLocalQuery<T> query, @Nullable OperationCallback<List<T>> callback) {
         doMultipleOperation(new MultipleSourceOperation<T>() {
             @Override
@@ -552,8 +641,8 @@ public class Source<T extends Resource> {
             }
 
             @Override
-            public AllowedOps.Op[] requiredPermissions() {
-                return new AllowedOps.Op[]{AllowedOps.Op.READ};
+            public PermissionsManager.Op[] requiredPermissions() {
+                return new PermissionsManager.Op[]{PermissionsManager.Op.READ};
             }
         }, callback);
     }
@@ -568,7 +657,7 @@ public class Source<T extends Resource> {
         (new SourceAsyncTask.SingleSourceAsyncTask<T>(callback) {
             @Override
             protected T runInBackground() {
-                checkPermissions(operation.requiredPermissions());
+                checkPermissions(operation.requiredPermissions(), null); //TODO better way to handle permissions
                 return operation.doInBackground(dao, server, resourceCache, resourceFactory);
             }
         }).execute();
@@ -581,11 +670,10 @@ public class Source<T extends Resource> {
      * @param callback  the callback to return results on main
      */
     protected void doMultipleOperation(@NonNull final MultipleSourceOperation<T> operation, @Nullable OperationCallback<List<T>> callback) {
-        checkPermissions(operation.requiredPermissions());
         (new SourceAsyncTask.MultipleSourceAsyncTask<T>(callback) {
             @Override
             protected List<T> runInBackground() {
-                checkPermissions(operation.requiredPermissions());
+                checkPermissions(operation.requiredPermissions(), null); //TODO better way to handle permissions
                 try {
                     //by running operation as a batch task, all database hits happen as one transaction, which should improve performance
                     return dao.callBatchTasks(new Callable<List<T>>() {
@@ -602,9 +690,7 @@ public class Source<T extends Resource> {
     }
 
     /**
-     * Used to run a CRUD operation on a single Resource
-     *
-     * @param <Q>
+     * Used to run a CRUD operation on a single {@link Resource}.
      */
     protected interface SingleSourceOperation<Q extends Resource> {
 
@@ -621,7 +707,7 @@ public class Source<T extends Resource> {
         /**
          * @return An array of permissions that must be had for the operation to be allowed
          */
-        AllowedOps.Op[] requiredPermissions();
+        PermissionsManager.Op[] requiredPermissions();
     }
 
     /**
@@ -632,17 +718,29 @@ public class Source<T extends Resource> {
     protected interface MultipleSourceOperation<Q extends Resource> {
         List<Q> doInBackgroundBeforeReturn(Dao<Q, Integer> dao, Server server, ResourceCache<Q> cache, ResourceFactory<Q> factory);
 
-        AllowedOps.Op[] requiredPermissions();
+        PermissionsManager.Op[] requiredPermissions();
     }
 
+    /**
+     * Used to run a query for a single local {@link Resource}.
+     * @see #doSingleLocalQuery(SingleLocalQuery, OperationCallback)
+     */
     protected interface SingleLocalQuery<Q extends Resource> {
         Q query(Dao<Q, Integer> dao) throws SQLException;
     }
 
+    /**
+     * Used to run a query for multiple local {@link Resource}s.
+     * @see #doMultipleLocalQuery(MultipleLocalQuery, OperationCallback)
+     */
     protected interface MultipleLocalQuery<Q extends Resource> {
         List<Q> query(Dao<Q, Integer> dao) throws SQLException;
     }
 
+    /**
+     * The general callback for operations done by {@link Source} in the background. Result could be
+     * null if the item could not be found.
+     */
     public interface OperationCallback<Q> {
         void onResult(@Nullable Q result);
     }
