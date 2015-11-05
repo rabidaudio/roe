@@ -8,8 +8,10 @@ import org.json.JSONObject;
 
 import java.util.Date;
 
+import audio.rabid.dev.roe.BackgroundThread;
 import audio.rabid.dev.roe.Synchronizer;
 import audio.rabid.dev.roe.testobjects.DummyObject;
+import audio.rabid.dev.roe.testobjects.DummyObjectSource;
 
 /**
  * Created by charles on 11/2/15.
@@ -72,12 +74,25 @@ public class JSONTest extends AndroidTestCase {
                 });
             }
         }.blockUntilFinished();
+        new Synchronizer<Void>() {
+            @Override
+            public void run() {
+                BackgroundThread.postBackground(new Runnable() {
+                    @Override
+                    public void run() {
+                        while (!DummyObjectSource.getInstance().wasCreateCompleted()) { /*block*/ }
+                        DummyObjectSource.getInstance().clearCreateCompleted();
+                        setResult(null);
+                    }
+                });
+            }
+        }.blockUntilFinished();
 
         json = o.toJSON();
 
         assertEquals("meow", json.getString("name"));
         assertEquals(15, json.getInt("age"));
-        assertEquals(o.getCreatedAt().getTime(), DummyObject.SOURCE.getDateFormat().parse(json.getString("created_at")).getTime());
+        assertEquals(o.getCreatedAt().getTime(), DummyObjectSource.getInstance().getDateFormat().parse(json.getString("created_at")).getTime());
         assertTrue(json.getInt("id") > 0);
     }
 
@@ -89,8 +104,8 @@ public class JSONTest extends AndroidTestCase {
                 .put("id", 25)
                 .put("name", "meow")
                 .put("age", 15)
-                .put("created_at", DummyObject.SOURCE.getDateFormat().format(new Date()))
-                .put("updated_at", DummyObject.SOURCE.getDateFormat().format(new Date()));
+                .put("created_at", DummyObjectSource.getInstance().getDateFormat().format(new Date()))
+                .put("updated_at", DummyObjectSource.getInstance().getDateFormat().format(new Date()));
 
         boolean changed = o.updateFromJSON(data);
 

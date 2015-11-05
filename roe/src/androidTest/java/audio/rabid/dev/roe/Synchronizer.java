@@ -31,8 +31,8 @@ public abstract class Synchronizer<T> implements Runnable{
 
     public void setResult(T result){
         this.result = result;
-        resultSet = true;
         synchronized (lock) {
+            resultSet = true;
             lock.notify();
         }
     }
@@ -41,11 +41,11 @@ public abstract class Synchronizer<T> implements Runnable{
         run();
         synchronized (lock){
             lock.wait(timeout);
-        }
-        if(!resultSet){
-            throw new TimeoutException();
-        }else{
-            return result;
+            if(!resultSet){
+                throw new TimeoutException();
+            }else{
+                return result;
+            }
         }
     }
 }

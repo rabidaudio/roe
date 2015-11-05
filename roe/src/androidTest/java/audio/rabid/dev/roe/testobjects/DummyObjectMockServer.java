@@ -25,6 +25,10 @@ public class DummyObjectMockServer extends Server {
 
     public int deletedCount = 0;
 
+    public int createCount = 0;
+
+    public int updatedCount = 0;
+
     boolean networkAvailable = true;
 
     public void setNetworkAvailable(boolean available) {
@@ -36,7 +40,7 @@ public class DummyObjectMockServer extends Server {
     }
 
     @Override
-    public Response getItem(Class<?> clazz, int serverId) throws NetworkException {
+    public synchronized Response getItem(Class<?> clazz, int serverId) throws NetworkException {
         checkConnection();
         try {
             JSONObject data = new DummyObject("dummy" + (currentPK++), 0, null).toJSON().put("id", currentPK);
@@ -47,9 +51,10 @@ public class DummyObjectMockServer extends Server {
     }
 
     @Override
-    public Response createItem(Class<?> clazz, JSONObject item) throws NetworkException {
+    public synchronized Response createItem(Class<?> clazz, JSONObject item) throws NetworkException {
         checkConnection();
         try {
+            createCount++;
             return new Response(200, item.put("id", currentPK++), null);
         }catch (JSONException e){
             throw new RuntimeException(e);
@@ -57,7 +62,7 @@ public class DummyObjectMockServer extends Server {
     }
 
     @Override
-    public Response getItems(Class<?> clazz, JSONObject search) throws NetworkException {
+    public synchronized Response getItems(Class<?> clazz, JSONObject search) throws NetworkException {
         checkConnection();
         JSONArray results = new JSONArray();
         try {
@@ -76,13 +81,14 @@ public class DummyObjectMockServer extends Server {
     }
 
     @Override
-    public Response updateItem(Class<?> clazz, int serverId, JSONObject data) throws NetworkException {
+    public synchronized Response updateItem(Class<?> clazz, int serverId, JSONObject data) throws NetworkException {
         checkConnection();
+        updatedCount++;
         return new Response(200, data, null);
     }
 
     @Override
-    public Response deleteItem(Class<?> clazz, int serverId) throws NetworkException {
+    public synchronized Response deleteItem(Class<?> clazz, int serverId) throws NetworkException {
         checkConnection();
         deletedCount++;
         return new Response(200, new JSONObject(), null);

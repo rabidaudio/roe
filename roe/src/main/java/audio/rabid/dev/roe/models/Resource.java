@@ -38,14 +38,6 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
     @JSONField(export = false, accept = false)
     protected Integer id;
 
-    @JSONField(key = "id")
-    @DatabaseField(index = true)
-    protected Integer serverId = null;
-
-    @DatabaseField
-    @JSONField(export = false, accept = false)
-    protected boolean synced = false;
-
     @DatabaseField
     @JSONField(key = "created_at", accept = false)
     protected Date createdAt;
@@ -60,27 +52,8 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
      * An auto-generated public key for the item in the local database. Can be null if the item has
      * not yet been saved locally.
      */
-    @Nullable
     public Integer getId() {
         return id;
-    }
-
-    /**
-     * The public key of the item for the network. This can (and almost surely will) be different than
-     * the local id, since if a new item is created without network availability, it must have a local
-     * id, but it doesn't yet have a server id.
-     */
-    @Nullable
-    public Integer getServerId() {
-        return serverId;
-    }
-
-    /**
-     * If the item has pending changes that have not been saved to the network, then this will return
-     * false.
-     */
-    public boolean isSynced() {
-        return synced;
     }
 
     /**
@@ -112,7 +85,7 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
      * Returns true if the item has not yet been saved locally.
      */
     public boolean isNew() {
-        return id != null;
+        return id == null;
     }
 
     /**
@@ -137,14 +110,13 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
     }
 
     /**
-     * Delete the current item. Shorthand for {@link Source#deleteLocal(Resource, Source.OperationCallback)}.
-     * Override this method if you want delete to delete from the network as well.
+     * Delete the current item. Shorthand for {@link Source#delete(Resource, Source.OperationCallback)}.
      *
      * @param callback (optional) callback to run when delete is complete
      */
     @SuppressWarnings("unchecked")
     public synchronized void delete(@Nullable Source.OperationCallback<T> callback) {
-        getSource().deleteLocal((T) this, callback);
+        getSource().delete((T) this, callback);
     }
 
     @Override
@@ -212,7 +184,9 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
                         if(key == null || key.isEmpty()){
                             key = field.getName();
                         }
-                        jsonFields.put(key, field);
+                        if(jsonFields.get(key)==null) { //subclassed keys override superclass keys
+                            jsonFields.put(key, field);
+                        }
                     }
                 }
             }

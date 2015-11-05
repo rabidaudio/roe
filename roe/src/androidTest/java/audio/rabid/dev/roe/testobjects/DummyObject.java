@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import audio.rabid.dev.roe.models.JSONField;
+import audio.rabid.dev.roe.models.NetworkResource;
+import audio.rabid.dev.roe.models.NetworkSource;
 import audio.rabid.dev.roe.models.Resource;
 import audio.rabid.dev.roe.models.ResourceFactory;
 import audio.rabid.dev.roe.models.SimplePermissionsManager;
@@ -20,7 +22,7 @@ import audio.rabid.dev.roe.models.Source;
  * Created by charles on 10/30/15.
  */
 @DatabaseTable(tableName = "dummies")
-public class DummyObject extends Resource<DummyObject> {
+public class DummyObject extends NetworkResource<DummyObject> {
 
     public DummyObject() {
     }
@@ -59,48 +61,8 @@ public class DummyObject extends Resource<DummyObject> {
         return child;
     }
 
-    @SuppressWarnings("unchecked")
-    public static Source<DummyObject> SOURCE = new Source.Builder(GenericDatabase.getInstance(), DummyObject.class)
-            .setServer(DummyObjectMockServer.getInstance(), new DummyObjectResourceFactory())
-            .build();
-
     @Override
     public Source<DummyObject> getSource() {
-        return SOURCE;
-    }
-
-    private static class DummyObjectResourceFactory implements ResourceFactory<DummyObject> {
-
-        @Override
-        public DummyObject createFromJSON(JSONObject json) throws JSONException {
-            DummyObject d = new DummyObject();
-            d.updateFromJSON(json);
-            return d;
-        }
-
-        @Override
-        public boolean updateItem(DummyObject item, JSONObject data) throws JSONException {
-            return item.updateFromJSON(data);
-        }
-
-        @Override
-        public boolean updateItemDirect(DummyObject item, JSONObject data) throws JSONException {
-            return item.updateFromJSON(data);
-        }
-
-        @Override
-        public List<JSONObject> splitMultipleNetworkQuery(JSONObject data) throws JSONException {
-            JSONArray a = data.getJSONArray("dummies");
-            List<JSONObject> results = new ArrayList<>(a.length());
-            for (int i = 0; i < a.length(); i++) {
-                results.add(a.getJSONObject(i));
-            }
-            return results;
-        }
-
-        @Override
-        public JSONObject turnItemIntoValidServerPayload(DummyObject item) throws JSONException {
-            return item.toJSON();
-        }
+        return DummyObjectSource.getInstance();
     }
 }

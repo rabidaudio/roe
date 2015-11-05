@@ -26,7 +26,7 @@ public class DeletedResource {
 
     }
 
-    protected DeletedResource(Resource deletedResource) {
+    protected DeletedResource(NetworkResource deletedResource) {
         if(deletedResource.getServerId()==null){
             throw new IllegalArgumentException("Can't network delete a resource without a server id");
         }

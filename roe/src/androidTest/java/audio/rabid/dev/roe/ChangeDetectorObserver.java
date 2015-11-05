@@ -10,27 +10,34 @@ import audio.rabid.dev.roe.models.TypedObserver;
  */
 public class ChangeDetectorObserver<T extends TypedObservable> implements TypedObserver<T> {
 
-    private boolean sawChange = false;
+    private int seenChanges = 0;
 
     private Thread callingThread;
 
     @Override
-    public void update(T observable, Object data) {
-        sawChange = true;
+    public synchronized void update(T observable, Object data) {
+        seenChanges++;
         callingThread = Thread.currentThread();
     }
 
-    public boolean sawChange() {
-        if (sawChange) {
-            sawChange = false;
+    public synchronized boolean sawChange() {
+        if (seenChanges > 0) {
+            clearChanges();
             return true;
         } else {
-            sawChange = true;
             return false;
         }
     }
 
-    public Thread getCallingThread(){
+    public synchronized void clearChanges(){
+        seenChanges = 0;
+    }
+
+    public synchronized int seenChanges(){
+        return seenChanges;
+    }
+
+    public synchronized Thread getCallingThread(){
         return callingThread;
     }
 }

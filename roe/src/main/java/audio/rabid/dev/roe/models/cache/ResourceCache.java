@@ -1,7 +1,7 @@
 package audio.rabid.dev.roe.models.cache;
 
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Pair;
 
 import audio.rabid.dev.roe.models.Resource;
 
@@ -19,9 +19,7 @@ public interface ResourceCache<T extends Resource> {
 
     T delete(T object);
 
-    T getByLocalId(Integer localId, @NonNull CacheMissCallback<T> callback);
-
-    T getByServerId(Integer serverId, @NonNull CacheMissCallback<T> callback);
+     CacheResult<T> get(int id, CacheMissCallback<T> cacheMissCallback);
 
     /**
      * This block is called if the item wasn't in the cache. Return an item to be put in the cache
@@ -32,5 +30,20 @@ public interface ResourceCache<T extends Resource> {
     interface CacheMissCallback<T> {
         @Nullable
         T onCacheMiss(int id);
+    }
+
+    class CacheResult<T> extends Pair<T, Boolean> {
+
+        public CacheResult(T item, boolean wasInCache) {
+            super(item, wasInCache);
+        }
+
+        public T getItem(){
+            return first;
+        }
+
+        public boolean wasInCache(){
+            return second;
+        }
     }
 }

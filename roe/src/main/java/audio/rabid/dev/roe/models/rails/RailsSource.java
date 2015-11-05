@@ -9,15 +9,18 @@ import com.j256.ormlite.support.ConnectionSource;
 
 import java.sql.SQLException;
 
+import audio.rabid.dev.roe.models.NetworkResource;
+import audio.rabid.dev.roe.models.NetworkSource;
 import audio.rabid.dev.roe.models.PermissionsManager;
 import audio.rabid.dev.roe.models.Resource;
 import audio.rabid.dev.roe.models.SimplePermissionsManager;
 import audio.rabid.dev.roe.models.Source;
+import audio.rabid.dev.roe.models.cache.SparseArrayNetworkResourceCache;
 
 /**
  * Created by charles on 10/29/15.
  */
-public class RailsSource<T extends Resource> extends Source<T> {
+public class RailsSource<T extends NetworkResource> extends NetworkSource<T> {
 
     protected RailsSource(@NonNull RailsServer server,
                           @NonNull Dao<T, Integer> dao,
@@ -26,8 +29,9 @@ public class RailsSource<T extends Resource> extends Source<T> {
                           @Nullable RailsResourceFactory<T> resourceFactory,
                           @Nullable PermissionsManager<T> permissions) {
 
-        super(server, dao, connectionSource, null,
-                resourceFactory == null ? new RailsResourceFactory<T>(dao.getDataClass()) : resourceFactory,
+
+        super(server, dao, connectionSource, resourceFactory == null ? new RailsResourceFactory<T>(dao.getDataClass()) : resourceFactory,
+                new SparseArrayNetworkResourceCache<T>(50),
                 permissions == null ? new SimplePermissionsManager<T>().all() : permissions,
                 new NetworkDateFormat());
 
@@ -36,16 +40,7 @@ public class RailsSource<T extends Resource> extends Source<T> {
         }
     }
 
-//    protected RailsSource(@NonNull RailsServer server,
-//                          @NonNull OrmLiteSqliteOpenHelper database,
-//                          Class<T> tClass,
-//                          @Nullable String endpoint,
-//                          @Nullable RailsResourceFactory<T> resourceFactory,
-//                          @Nullable PermissionsManager<T> permissionsManager){
-//        this(server, database.getDao(tClass), database.getConnectionSource(), endpoint, resourceFactory, permissionsManager);
-//    }
-
-    public static class Builder<T extends Resource> {
+    public static class Builder<T extends NetworkResource> {
 
         RailsServer server;
         ConnectionSource connectionSource;
@@ -126,7 +121,7 @@ public class RailsSource<T extends Resource> extends Source<T> {
             if (connectionSource == null || dao == null)
                 throw new IllegalArgumentException("Must supply either a Dao and ConnectionSource or a Database instance");
 
-            return new RailsSource<>(server, dao, connectionSource, endpoint, resourceFactory, permissionsManager);
+            return new RailsSource<T>(server, dao, connectionSource, endpoint, resourceFactory, permissionsManager);
         }
     }
 }
