@@ -4,6 +4,7 @@ import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
 import audio.rabid.dev.roe.models.JSONField;
+import audio.rabid.dev.roe.models.NetworkResource;
 import audio.rabid.dev.roe.models.Resource;
 import audio.rabid.dev.roe.models.Source;
 
@@ -11,7 +12,7 @@ import audio.rabid.dev.roe.models.Source;
  * Created by charles on 10/25/15.
  */
 @DatabaseTable(tableName = "posts")
-public class Post extends Resource<Post> {
+public class Post extends NetworkResource<Post> {
 
     @SuppressWarnings("unchecked")
     public static final PostSource Source = new PostSource();

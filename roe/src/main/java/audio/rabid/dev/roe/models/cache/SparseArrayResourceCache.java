@@ -48,7 +48,7 @@ public class SparseArrayResourceCache<T extends Resource> implements ResourceCac
     }
 
     @Override
-    public CacheResult<T> get(int id, CacheMissCallback<T> cacheMissCallback) {
+    public synchronized CacheResult<T> get(int id, CacheMissCallback<T> cacheMissCallback) {
         T cached = instanceCache.get(id);
         if(cached == null){
             cached = cacheMissCallback.onCacheMiss(id);

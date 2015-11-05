@@ -42,33 +42,86 @@ public class PostSource extends RailsSource<Post> {
     }
 
     public void getRecentByAuthor(final @NonNull Integer authorId, final long limit, OperationCallback<List<Post>> callback) {
-        doMultipleLocalQuery(new MultipleLocalQuery<Post>() {
-                    @Override
-                    public List<Post> query(Dao<Post, Integer> dao) throws SQLException {
-                        return dao.queryBuilder().orderBy("createdAt", false).limit(limit).where().eq("author_id", authorId).query();
-                    }
-                }, callback);
+        executeLocalQuery(new LocalQuery<Post>() {
+            @Override
+            public List<Post> executeQuery(Dao<Post, Integer> dao) throws SQLException {
+                return dao.queryBuilder().orderBy("createdAt", false).limit(limit).where().eq("author_id", authorId).query();
+            }
+        }, callback);
     }
 
-    public void allByAuthorOrAll(final @Nullable Integer authorId, OperationCallback<List<Post>> callback) {
-        //first download any new items
-        try {
-            JSONObject query = authorId == null ? null : new JSONObject().put("author_id", authorId);
-            createOrUpdateManyFromNetwork(query, null);
-        } catch (JSONException e) {
-            throw new RuntimeException(e);
-        }
 
-        //then get all local items, which should be fast for the ones returned by the last call since they are already cached
-        doMultipleLocalQuery(new MultipleLocalQuery<Post>() {
-                    @Override
-                    public List<Post> query(Dao<Post, Integer> dao) throws SQLException {
-                        if (authorId == null) {
-                            return dao.queryForAll();
-                        } else {
-                            return getDao().queryForEq("author_id", authorId);
+    /**
+     * This callback will be called up to two times. Once after fetching local results and possibly
+     * again after network results hit, if the results have changed. It will combine the two lists on
+     * the second call.
+     */
+    public void allByAuthorOrAll(final @Nullable Integer authorId, final OperationCallback<List<Post>> callback) {
+        //first return any local items
+        executeLocalQuery(new LocalQuery<Post>() {
+            @Override
+            public List<Post> executeQuery(Dao<Post, Integer> dao) throws SQLException {
+                if (authorId == null) {
+                    return dao.queryForAll();
+                } else {
+                    return getDao().queryForEq("author_id", authorId);
+                }
+            }
+        }, new OperationCallback<List<Post>>() {
+            @Override
+            public void onResult(@Nullable List<Post> result) {
+                final List<Post> localResults = result;
+                callback.onResult(result);
+                //then update with latest server data
+                if(authorId==null){
+                    getManyFromNetwork(null, new OperationCallback<List<Post>>() {
+                        @Override
+                        public void onResult(@Nullable List<Post> result) {
+                            if(localResults==null){
+                                if(result != null && !result.isEmpty()){
+                                    callback.onResult(result);
+                                }
+                            }else if(result != null) {
+                                for(Post r : result){
+                                    if(!localResults.contains(r)){
+                                        localResults.add(r);
+                                    }
+                                }
+                                callback.onResult(localResults);
+                            }
                         }
-                    }
-                }, callback);
+                    });
+                }else{
+                    Author.Source.find(authorId, new OperationCallback<Author>() {
+                        @Override
+                        public void onResult(@Nullable Author result) {
+                            if(result!=null) {
+                                try{
+                                    getManyFromNetwork(new JSONObject().put("author_id", result.getServerId()), new OperationCallback<List<Post>>() {
+                                        @Override
+                                        public void onResult(@Nullable List<Post> result) {
+                                            if (localResults == null) {
+                                                if (result != null && !result.isEmpty()) {
+                                                    callback.onResult(result);
+                                                }
+                                            } else if (result != null) {
+                                                for (Post r : result) {
+                                                    if (!localResults.contains(r)) {
+                                                        localResults.add(r);
+                                                    }
+                                                }
+                                                callback.onResult(localResults);
+                                            }
+                                        }
+                                    });
+                                }catch (JSONException e){
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        });
     }
 }

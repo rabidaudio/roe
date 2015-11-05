@@ -48,7 +48,7 @@ public class EditAuthorActivity extends AppCompatActivity {
         if (authorId == -1) {
             drawNewAuthor();
         } else {
-            Author.Source.getLocal(authorId, new Source.OperationCallback<Author>() {
+            Author.Source.find(authorId, new Source.OperationCallback<Author>() {
                 @Override
                 public void onResult(@Nullable Author result) {
                     if (result == null) {

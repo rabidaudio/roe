@@ -9,6 +9,7 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
+import audio.rabid.dev.roe.models.NetworkResource;
 import audio.rabid.dev.roe.models.Resource;
 import audio.rabid.dev.roe.models.Server;
 
@@ -99,7 +100,7 @@ public class RailsServer extends Server {
 
     private String getEndpoint(Class<?> clazz) {
         String endpoint = endpoints.get(clazz);
-        if (endpoint == null && clazz.isAssignableFrom(Resource.class)) {
+        if (endpoint == null) {
             try {
                 //try to get from annotation
                 RailsResource railsResource = clazz.getAnnotation(RailsResource.class);
@@ -120,8 +121,11 @@ public class RailsServer extends Server {
                 }
                 endpoints.put(clazz, endpoint);
             } catch (Exception e) {
-                throw new IllegalArgumentException("Endpoint was never sent to RailsServer and couldn't be inferred from Resource");
+                throw new NullPointerException("Endpoint was never sent to RailsServer and couldn't be inferred from Resource");
             }
+        }
+        if(endpoint==null){
+            throw new NullPointerException("Endpoint was never sent to RailsServer and couldn't be inferred from Resource");
         }
         return endpoint;
     }

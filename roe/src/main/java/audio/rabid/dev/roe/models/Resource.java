@@ -231,7 +231,11 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
                         } else {
                             if (f.get(this) == null || !f.get(this).equals(value)) {
                                 try {
-                                    f.set(this, value);
+                                    if(value.equals(JSONObject.NULL)){
+                                        f.set(this, null);
+                                    }else {
+                                        f.set(this, value);
+                                    }
                                     updated = true;
                                 } catch (Exception e) {
                                     throw new JSONException(String.format(

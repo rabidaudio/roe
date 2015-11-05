@@ -38,7 +38,7 @@ public class PostActivity extends AppCompatActivity {
 
         int postID = getIntent().getIntExtra(EXTRA_POST_ID, -1);
 
-        Post.Source.getLocal(postID, new Source.OperationCallback<Post>() {
+        Post.Source.find(postID, new Source.OperationCallback<Post>() {
             @Override
             public void onResult(@Nullable Post result) {
                 postViewHolder.setItem(result);

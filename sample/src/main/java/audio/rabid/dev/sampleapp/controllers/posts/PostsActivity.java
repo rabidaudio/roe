@@ -59,7 +59,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
             authorId = null;
             author.setVisibility(View.GONE);
         } else {
-            Author.Source.getLocal(authorId, new Source.OperationCallback<Author>() {
+            Author.Source.find(authorId, new Source.OperationCallback<Author>() {
                 @Override
                 public void onResult(@Nullable Author result) {
                     authorViewHolder.setItem(result);

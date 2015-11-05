@@ -308,7 +308,7 @@ public class Source<T extends Resource> {
         });
     }
 
-    interface LocalQuery<T> {
+    protected interface LocalQuery<T> {
         List<T> executeQuery(Dao<T, Integer> dao) throws SQLException;
     }
 

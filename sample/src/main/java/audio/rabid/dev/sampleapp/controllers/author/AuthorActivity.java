@@ -43,7 +43,7 @@ public class AuthorActivity extends AppCompatActivity {
         view = new AuthorViewHolder(this);
 
         final int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
-        Author.Source.getLocal(authorId, new Source.OperationCallback<Author>() {
+        Author.Source.find(authorId, new Source.OperationCallback<Author>() {
             @Override
             public void onResult(@Nullable Author result) {
                 view.setItem(result);

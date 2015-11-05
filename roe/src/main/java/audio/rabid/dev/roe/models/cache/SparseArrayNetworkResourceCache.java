@@ -45,12 +45,22 @@ public class SparseArrayNetworkResourceCache<T extends NetworkResource> extends 
     }
 
     @Override
+    public synchronized CacheResult<T> get(int id, CacheMissCallback<T> cacheMissCallback) {
+        CacheResult<T> result = super.get(id, cacheMissCallback);
+        if(result.getItem() != null && result.getItem().getServerId()!=null){
+            serverLocalIDMap.put(result.getItem().getServerId(), result.getItem().getId());
+        }
+        return result;
+    }
+
+    @Override
     public synchronized CacheResult<T> getByServerId(int id, CacheMissCallback<T> cacheMissCallback) {
         Integer localId = serverLocalIDMap.get(id);
         if (localId == null) {
-            return new CacheResult<>(null, false);
+            return new CacheResult<>(cacheMissCallback.onCacheMiss(id), false);
         } else {
-            return super.get(localId, cacheMissCallback);
+            //if we have a localId, we know the item must be in the cache
+            return new CacheResult<>(getInstanceCache().get(localId), true);
         }
     }
 }

@@ -43,7 +43,7 @@ public class EditPostActivity extends AppCompatActivity {
         final int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
         if (postId == -1) {
             post = new Post();
-            Author.Source.getLocal(authorId, new Source.OperationCallback<Author>() {
+            Author.Source.find(authorId, new Source.OperationCallback<Author>() {
                 @Override
                 public void onResult(Author result) {
                     post.setAuthor(result);
@@ -51,7 +51,7 @@ public class EditPostActivity extends AppCompatActivity {
                 }
             });
         } else {
-            Post.Source.getLocal(postId, new Source.OperationCallback<Post>() {
+            Post.Source.find(postId, new Source.OperationCallback<Post>() {
                 @Override
                 public void onResult(Post result) {
                     if (result == null) {

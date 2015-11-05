@@ -17,6 +17,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import audio.rabid.dev.roe.models.JSONField;
+import audio.rabid.dev.roe.models.NetworkResource;
 import audio.rabid.dev.roe.models.Resource;
 import audio.rabid.dev.roe.models.Source;
 import audio.rabid.dev.roe.models.rails.Op;
@@ -32,7 +33,7 @@ import audio.rabid.dev.utils.ImageCache;
  */
 @DatabaseTable(tableName = "authors")
 @RailsResource(endpoint = "authors", singularJSONKey = "author", pluralJSONKey = "authors")
-public class Author extends Resource<Author> {
+public class Author extends NetworkResource<Author> {
 
     public static final RailsSource<Author> Source = new RailsSource.Builder<>
             (SampleAppServer.getInstance(), Database.getInstance(), Author.class)

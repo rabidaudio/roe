@@ -231,15 +231,17 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
                                 }
                             });
                             T item = result.getItem();
-                            if (item != null && getPermissions().canUpdate(item)) {
-                                boolean changed;
-                                synchronized (item) {
-                                    changed = resourceFactory.updateItemDirect(item, data);
-                                    if (changed) {
-                                        item.synced = true;
-                                        item.updatedAt = new Date();
-                                        item.setChanged();
-                                        getDao().update(item);
+                            if (item != null) {
+                                if(getPermissions().canUpdate(item)) {
+                                    boolean changed;
+                                    synchronized (item) {
+                                        changed = resourceFactory.updateItemDirect(item, data);
+                                        if (changed) {
+                                            item.synced = true;
+                                            item.updatedAt = new Date();
+                                            item.setChanged();
+                                            getDao().update(item);
+                                        }
                                     }
                                 }
                                 returnResults.add(item);
@@ -352,41 +354,47 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
     protected void onAfterCacheAdd(final T resource) {
         super.onAfterCreated(resource);
         if (resource.getServerId() != null && getPermissions().canUpdate(resource)) {
-            //has a server id, so see if network has update
-            try {
-                Server.Response response = server.getItem(getDao().getDataClass(), resource.getServerId());
-                if (!server.isErrorResponse(response)) {
-                    try {
-                        boolean changed;
-                        synchronized (resource) {
-                            changed = resourceFactory.updateItem(resource, response.getResponseBody());
-                            if (changed) {
-                                resource.synced = true;
-                                resource.updatedAt = new Date();
-                                resource.setChanged();
-                            }
-                        }
-                        if (changed) {
-                            getDao().update(resource); //save changes to database
-                        }
-                    } catch (JSONException e) {
-                        onJSONException(e);
-                    } catch (SQLException e) {
-                        onSQLException(e);
-                    }
-                }
-            } catch (Server.NetworkException e) {
-                //just put in cache as it is
-                onNetworkException(e);
-            }
-        }
-        if(resource.hasChanged()) {
-            BackgroundThread.postMain(new Runnable() {
+            new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    resource.notifyObservers();
+                    //has a server id, so see if network has update
+                    try {
+                        Server.Response response = server.getItem(getDao().getDataClass(), resource.getServerId());
+                        if (!server.isErrorResponse(response)) {
+                            try {
+                                boolean changed;
+                                synchronized (resource) {
+                                    changed = resourceFactory.updateItem(resource, response.getResponseBody());
+                                    if (changed) {
+                                        resource.synced = true;
+                                        resource.updatedAt = new Date();
+                                        resource.setChanged();
+                                    }
+                                }
+                                if (changed) {
+                                    getDao().update(resource); //save changes to database
+                                }
+                            } catch (JSONException e) {
+                                onJSONException(e);
+                            } catch (SQLException e) {
+                                onSQLException(e);
+                            }
+                        }
+                    } catch (Server.NetworkException e) {
+                        //just put in cache as it is
+                        onNetworkException(e);
+                    }
+
+                    if(resource.hasChanged()) {
+                        BackgroundThread.postMain(new Runnable() {
+                            @Override
+                            public void run() {
+                                resource.notifyObservers();
+                            }
+                        });
+                    }
                 }
-            });
+            }, "NetworkRead:"+resource.getClass().getName()).start();
         }
     }
 
@@ -399,35 +407,40 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
     @Override
     protected void onAfterCreated(final T resource){
         super.onAfterCreated(resource);
-        try {
-            Server.Response response = server.createItem(getDataClass(), resourceFactory.turnItemIntoValidServerPayload(resource));
-            if (!server.isErrorResponse(response) && getPermissions().canUpdate(resource)) {
-                synchronized (resource) {
-                    boolean changed = resourceFactory.updateItem(resource, response.getResponseBody());
-                    if (changed) {
-                        resource.updatedAt = new Date();
-                        resource.synced = true;
-                        getDao().update(resource);
-                        resource.setChanged();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Server.Response response = server.createItem(getDataClass(), resourceFactory.turnItemIntoValidServerPayload(resource));
+                    if (!server.isErrorResponse(response) && getPermissions().canUpdate(resource)) {
+                        synchronized (resource) {
+                            boolean changed = resourceFactory.updateItem(resource, response.getResponseBody());
+                            if (changed) {
+                                resource.updatedAt = new Date();
+                                resource.synced = true;
+                                getDao().update(resource);
+                                resource.setChanged();
+                            }
+                        }
                     }
+                } catch (Server.NetworkException e) {
+                    //oh well, item stays unsynced
+                    onNetworkException(e);
+                } catch (JSONException e){
+                    onJSONException(e);
+                } catch (SQLException e){
+                    onSQLException(e);
+                }
+                if(resource.hasChanged()) {
+                    BackgroundThread.postMain(new Runnable() {
+                        @Override
+                        public void run() {
+                            resource.notifyObservers();
+                        }
+                    });
                 }
             }
-        } catch (Server.NetworkException e) {
-            //oh well, item stays unsynced
-            onNetworkException(e);
-        } catch (JSONException e){
-            onJSONException(e);
-        } catch (SQLException e){
-            onSQLException(e);
-        }
-        if(resource.hasChanged()) {
-            BackgroundThread.postMain(new Runnable() {
-                @Override
-                public void run() {
-                    resource.notifyObservers();
-                }
-            });
-        }
+        }, "NetworkCreate:"+resource.getClass().getName()).start();
     }
 
     @Override
@@ -439,64 +452,74 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
     @Override
     protected void onAfterUpdated(final T resource){
         super.onAfterUpdated(resource);
-        try {
-            Server.Response response = null;
-            try {
-                if (resource.getServerId() == null) {
-                    if (getPermissions().canCreate(resource)) {
-                        response = server.createItem(getDataClass(), resourceFactory.turnItemIntoValidServerPayload(resource));
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Server.Response response = null;
+                    try {
+                        if (resource.getServerId() == null) {
+                            if (getPermissions().canCreate(resource)) {
+                                response = server.createItem(getDataClass(), resourceFactory.turnItemIntoValidServerPayload(resource));
+                            }
+                        } else {
+                            if (getPermissions().canUpdate(resource)) {
+                                response = server.updateItem(getDataClass(), resource.getServerId(), resourceFactory.turnItemIntoValidServerPayload(resource));
+                            }
+                        }
+                    } catch (Server.NetworkException e) {
+                        //oh well, try sync again later
+                        onNetworkException(e);
+                        return;
                     }
-                } else {
-                    if (getPermissions().canUpdate(resource)) {
-                        response = server.updateItem(getDataClass(), resource.getServerId(), resourceFactory.turnItemIntoValidServerPayload(resource));
+                    synchronized (resource) {
+                        if (response != null && !server.isErrorResponse(response)) {
+                            resourceFactory.updateItem(resource, response.getResponseBody());
+                            resource.synced = true;
+                        }
+                        resource.updatedAt = new Date();
+                        getDao().update(resource);
+                        resource.setChanged();
                     }
+                }catch (JSONException e){
+                    onJSONException(e);
+                } catch (SQLException e){
+                    onSQLException(e);
                 }
-            } catch (Server.NetworkException e) {
-                //oh well, try sync again later
-                onNetworkException(e);
-                return;
+                if(resource.hasChanged()){
+                    BackgroundThread.postMain(new Runnable() {
+                        @Override
+                        public void run() {
+                            resource.notifyObservers();
+                        }
+                    });
+                }
             }
-            synchronized (resource) {
-                if (response != null && !server.isErrorResponse(response)) {
-                    resourceFactory.updateItem(resource, response.getResponseBody());
-                    resource.synced = true;
-                }
-                resource.updatedAt = new Date();
-                getDao().update(resource);
-                resource.setChanged();
-            }
-        }catch (JSONException e){
-            onJSONException(e);
-        } catch (SQLException e){
-            onSQLException(e);
-        }
-        if(resource.hasChanged()){
-            BackgroundThread.postMain(new Runnable() {
-                @Override
-                public void run() {
-                    resource.notifyObservers();
-                }
-            });
-        }
+        }, "NetworkUpdate:"+resource.getClass().getName()).start();
     }
 
     @Override
-    protected void onAfterDeleted(T resource){
+    protected void onAfterDeleted(final T resource){
         super.onAfterDeleted(resource);
         if (resource.getServerId() != null) {
-            try {
-                try {
-                    Server.Response response = server.deleteItem(getDataClass(), resource.getServerId());
-                    if (server.isErrorResponse(response)) {
-                        deletedResourceDao.create(new DeletedResource(resource));
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        try {
+                            Server.Response response = server.deleteItem(getDataClass(), resource.getServerId());
+                            if (server.isErrorResponse(response)) {
+                                deletedResourceDao.create(new DeletedResource(resource));
+                            }
+                        } catch (Server.NetworkException e) {
+                            deletedResourceDao.create(new DeletedResource(resource));
+                            onNetworkException(e);
+                        }
+                    } catch (SQLException e) {
+                        onSQLException(e);
                     }
-                } catch (Server.NetworkException e) {
-                    deletedResourceDao.create(new DeletedResource(resource));
-                    onNetworkException(e);
                 }
-            } catch (SQLException e) {
-                onSQLException(e);
-            }
+            }, "NetworkDelete:"+resource.getClass().getName());
         }
     }
 }
