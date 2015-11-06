@@ -7,24 +7,24 @@ import audio.rabid.dev.roe.models.Resource;
 /**
  * Created by charles on 11/4/15.
  */
-public class SparseArrayResourceCache<T extends Resource> implements ResourceCache<T> {
+public class IntegerKeyResourceCache<R extends Resource<R, Integer>> implements ResourceCache<R, Integer> {
 
-    private final SparseArray<T> instanceCache;
+    private final SparseArray<R> instanceCache;
 
-    public SparseArrayResourceCache(int size){
+    public IntegerKeyResourceCache(int size) {
         instanceCache = new SparseArray<>(size);
     }
 
-    public SparseArrayResourceCache(){
+    public IntegerKeyResourceCache() {
         this(50);
     }
 
-    protected SparseArray<T> getInstanceCache(){
+    protected SparseArray<R> getInstanceCache() {
         return instanceCache;
     }
 
     @Override
-    public synchronized T put(T object) {
+    public synchronized R put(R object) {
         if(object.getId() == null) return null;
         if(instanceCache.get(object.getId())!=null){
             throw new RuntimeException("Tried to double-cache "+object.toString());
@@ -34,13 +34,18 @@ public class SparseArrayResourceCache<T extends Resource> implements ResourceCac
     }
 
     @Override
-    public synchronized T putIfMissing(T object) {
+    public synchronized R putIfMissing(R object) {
         if(object.getId() == null) return null;
-        return instanceCache.get(object.getId(), object);
+        R cached = instanceCache.get(object.getId());
+        if(cached == null){
+            return put(object);
+        }else{
+            return cached;
+        }
     }
 
     @Override
-    public synchronized T delete(T object) {
+    public synchronized R delete(R object) {
         if(object.getId() != null) {
             instanceCache.delete(object.getId());
         }
@@ -48,8 +53,8 @@ public class SparseArrayResourceCache<T extends Resource> implements ResourceCac
     }
 
     @Override
-    public synchronized CacheResult<T> get(int id, CacheMissCallback<T> cacheMissCallback) {
-        T cached = instanceCache.get(id);
+    public synchronized CacheResult<R> get(Integer id, CacheMissCallback<R, Integer> cacheMissCallback) {
+        R cached = instanceCache.get(id);
         if(cached == null){
             cached = cacheMissCallback.onCacheMiss(id);
             if(cached!=null && cached.getId()!=null) {

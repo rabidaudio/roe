@@ -4,16 +4,18 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Constructor;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import audio.rabid.dev.roe.models.Resource;
+import audio.rabid.dev.roe.models.NetworkResource;
 import audio.rabid.dev.roe.models.ResourceFactory;
 
 /**
  * Created by charles on 11/3/15.
  */
-public class RailsResourceFactory<R extends Resource> implements ResourceFactory<R> {
+public class RailsResourceFactory<R extends NetworkResource> implements ResourceFactory<R, Integer> {
 
     private String jsonSingleObjectKey;
     private String jsonArrayObjectKey;
@@ -37,24 +39,25 @@ public class RailsResourceFactory<R extends Resource> implements ResourceFactory
         rClass = clazz;
     }
 
-    /**
-     * Create a new Resource from the raw server response. Do not save! Simply make a new instance
-     * and populate fields.
-     *
-     * @param json server response body
-     * @return a new instance with fields populated
-     * @throws JSONException
-     */
     @Override
-    public R createFromJSON(JSONObject json) throws JSONException {
-        R newInstance;
+    public R createObject() {
         try {
-            newInstance = rClass.getConstructor().newInstance();
+            return rClass.getConstructor().newInstance();
         } catch (Exception e) {
             throw new RuntimeException("Unable to create a new instance of " + rClass.getName() +
                     " - missing default constructor.", e);
         }
-        newInstance.updateFromJSON(json);
+    }
+
+    @Override
+    public R createObject(Constructor<R> construcor, Class<R> dataClass) throws SQLException {
+        return createObject();
+    }
+
+    @Override
+    public R createFromJSON(JSONObject json) throws JSONException {
+        R newInstance = createObject();
+        updateItem(newInstance, json);
         return newInstance;
     }
 
@@ -66,6 +69,11 @@ public class RailsResourceFactory<R extends Resource> implements ResourceFactory
     @Override
     public boolean updateItemDirect(R item, JSONObject data) throws JSONException {
         return item.updateFromJSON(data);
+    }
+
+    @Override
+    public Integer getServerKeyFromJSON(JSONObject data) throws JSONException {
+        return null;
     }
 
     @Override

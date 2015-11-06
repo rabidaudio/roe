@@ -3,26 +3,15 @@ package audio.rabid.dev.roe.testobjects;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.List;
-
+import audio.rabid.dev.roe.models.IntegerKeyedNetworkResource;
 import audio.rabid.dev.roe.models.JSONField;
-import audio.rabid.dev.roe.models.NetworkResource;
-import audio.rabid.dev.roe.models.NetworkSource;
-import audio.rabid.dev.roe.models.Resource;
-import audio.rabid.dev.roe.models.ResourceFactory;
-import audio.rabid.dev.roe.models.SimplePermissionsManager;
 import audio.rabid.dev.roe.models.Source;
 
 /**
  * Created by charles on 10/30/15.
  */
 @DatabaseTable(tableName = "dummies")
-public class DummyObject extends NetworkResource<DummyObject> {
+public class DummyObject extends IntegerKeyedNetworkResource<DummyObject> {
 
     public DummyObject() {
     }
@@ -62,7 +51,7 @@ public class DummyObject extends NetworkResource<DummyObject> {
     }
 
     @Override
-    public Source<DummyObject> getSource() {
+    public Source<DummyObject, Integer> getSource() {
         return DummyObjectSource.getInstance();
     }
 }

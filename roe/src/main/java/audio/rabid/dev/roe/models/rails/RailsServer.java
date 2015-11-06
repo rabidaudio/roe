@@ -9,8 +9,6 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
-import audio.rabid.dev.roe.models.NetworkResource;
-import audio.rabid.dev.roe.models.Resource;
 import audio.rabid.dev.roe.models.Server;
 
 /**
@@ -52,7 +50,7 @@ public class RailsServer extends Server {
         return request(endpoint, Method.GET, search);
     }
 
-    public Response show(String endpoint, int serverId) throws NetworkException {
+    public Response show(String endpoint, String serverId) throws NetworkException {
         return request(endpoint + "/" + serverId, Method.GET, null);
     }
 
@@ -60,11 +58,11 @@ public class RailsServer extends Server {
         return request(endpoint, Method.POST, data);
     }
 
-    public Response update(String endpoint, int serverId, JSONObject data) throws NetworkException {
+    public Response update(String endpoint, String serverId, JSONObject data) throws NetworkException {
         return request(endpoint + "/" + serverId, Method.PUT, data);
     }
 
-    public Response destroy(String endpoint, int serverId) throws NetworkException {
+    public Response destroy(String endpoint, String serverId) throws NetworkException {
         return request(endpoint + "/" + serverId, Method.DELETE, null);
     }
 
@@ -74,7 +72,7 @@ public class RailsServer extends Server {
     }
 
     @Override
-    public Response getItem(Class<?> clazz, int serverId) throws NetworkException {
+    public Response getItem(Class<?> clazz, String serverId) throws NetworkException {
         return show(getEndpoint(clazz), serverId);
     }
 
@@ -89,12 +87,12 @@ public class RailsServer extends Server {
     }
 
     @Override
-    public Response updateItem(Class<?> clazz, int serverId, JSONObject data) throws NetworkException {
+    public Response updateItem(Class<?> clazz, String serverId, JSONObject data) throws NetworkException {
         return update(getEndpoint(clazz), serverId, data);
     }
 
     @Override
-    public Response deleteItem(Class<?> clazz, int serverId) throws NetworkException {
+    public Response deleteItem(Class<?> clazz, String serverId) throws NetworkException {
         return destroy(getEndpoint(clazz), serverId);
     }
 

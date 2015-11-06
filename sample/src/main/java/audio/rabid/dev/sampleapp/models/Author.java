@@ -18,9 +18,8 @@ import java.net.URL;
 
 import audio.rabid.dev.roe.models.JSONField;
 import audio.rabid.dev.roe.models.NetworkResource;
-import audio.rabid.dev.roe.models.Resource;
 import audio.rabid.dev.roe.models.Source;
-import audio.rabid.dev.roe.models.rails.Op;
+import audio.rabid.dev.roe.models.Op;
 import audio.rabid.dev.roe.models.rails.RailsResource;
 import audio.rabid.dev.roe.models.rails.RailsSource;
 import audio.rabid.dev.sampleapp.Database;

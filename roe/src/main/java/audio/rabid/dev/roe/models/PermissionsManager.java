@@ -1,7 +1,5 @@
 package audio.rabid.dev.roe.models;
 
-import audio.rabid.dev.roe.models.rails.Op;
-
 /**
  * Created by charles on 10/25/15.
  * <p/>

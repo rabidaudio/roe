@@ -1,5 +1,7 @@
 package audio.rabid.dev.roe.models;
 
+import com.j256.ormlite.table.ObjectFactory;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -14,7 +16,9 @@ import java.util.List;
  * <p/>
  * TODO a lot of this can be done by reflection by default
  */
-public interface ResourceFactory<T extends Resource> {
+public interface ResourceFactory<R extends NetworkResource, SK> extends ObjectFactory<R> {
+
+    R createObject();
 
     /**
      * Create a new Resource from the raw server response. Do not save! Simply make a new instance
@@ -24,7 +28,7 @@ public interface ResourceFactory<T extends Resource> {
      * @return a new instance with fields populated
      * @throws JSONException
      */
-    T createFromJSON(JSONObject json) throws JSONException;
+    R createFromJSON(JSONObject json) throws JSONException;
 
     /**
      * @param item the item in question
@@ -32,9 +36,11 @@ public interface ResourceFactory<T extends Resource> {
      * @return true if any of the fields have changed
      * @throws JSONException
      */
-    boolean updateItem(T item, JSONObject data) throws JSONException;
+    boolean updateItem(R item, JSONObject data) throws JSONException;
 
-    boolean updateItemDirect(T item, JSONObject data) throws JSONException;
+    boolean updateItemDirect(R item, JSONObject data) throws JSONException;
+
+    SK getServerKeyFromJSON(JSONObject data) throws JSONException;
 
     /**
      * Take in a raw server response which should be of multiple Resources, and split it into
@@ -46,5 +52,5 @@ public interface ResourceFactory<T extends Resource> {
      */
     List<JSONObject> splitMultipleNetworkQuery(JSONObject data) throws JSONException;
 
-    JSONObject turnItemIntoValidServerPayload(T item) throws JSONException;
+    JSONObject turnItemIntoValidServerPayload(R item) throws JSONException;
 }

@@ -11,27 +11,26 @@ import java.sql.SQLException;
 
 import audio.rabid.dev.roe.models.NetworkResource;
 import audio.rabid.dev.roe.models.NetworkSource;
+import audio.rabid.dev.roe.models.Op;
 import audio.rabid.dev.roe.models.PermissionsManager;
-import audio.rabid.dev.roe.models.Resource;
 import audio.rabid.dev.roe.models.SimplePermissionsManager;
-import audio.rabid.dev.roe.models.Source;
-import audio.rabid.dev.roe.models.cache.SparseArrayNetworkResourceCache;
+import audio.rabid.dev.roe.models.cache.GenericKeyNetworkResourceCache;
 
 /**
  * Created by charles on 10/29/15.
  */
-public class RailsSource<T extends NetworkResource> extends NetworkSource<T> {
+public class RailsSource<T extends NetworkResource<T, LK, Integer>, LK> extends NetworkSource<T, LK, Integer> {
 
     protected RailsSource(@NonNull RailsServer server,
-                          @NonNull Dao<T, Integer> dao,
+                          @NonNull Dao<T, LK> dao,
                           @NonNull ConnectionSource connectionSource,
                           @Nullable String endpoint,
                           @Nullable RailsResourceFactory<T> resourceFactory,
                           @Nullable PermissionsManager<T> permissions) {
 
 
-        super(server, dao, connectionSource, resourceFactory == null ? new RailsResourceFactory<T>(dao.getDataClass()) : resourceFactory,
-                new SparseArrayNetworkResourceCache<T>(50),
+        super(server, dao, connectionSource, resourceFactory == null ? new RailsResourceFactory<>(dao.getDataClass()) : resourceFactory,
+                new GenericKeyNetworkResourceCache<T, LK, Integer>(50),
                 permissions == null ? new SimplePermissionsManager<T>().all() : permissions,
                 new NetworkDateFormat());
 
@@ -40,11 +39,11 @@ public class RailsSource<T extends NetworkResource> extends NetworkSource<T> {
         }
     }
 
-    public static class Builder<T extends NetworkResource> {
+    public static class Builder<T extends NetworkResource<T, LK, Integer>, LK> {
 
         RailsServer server;
         ConnectionSource connectionSource;
-        Dao<T, Integer> dao;
+        Dao<T, LK> dao;
 
         String endpoint;
         RailsResourceFactory<T> resourceFactory;
@@ -59,23 +58,23 @@ public class RailsSource<T extends NetworkResource> extends NetworkSource<T> {
             setDatabase(database, tClass);
         }
 
-        public Builder(RailsServer server, Dao<T, Integer> dao, ConnectionSource connectionSource) {
+        public Builder(RailsServer server, Dao<T, LK> dao, ConnectionSource connectionSource) {
             setServer(server);
             setDao(dao);
             setConnectionSource(connectionSource);
         }
 
-        public Builder<T> setServer(@NonNull RailsServer server) {
+        public Builder<T, LK> setServer(@NonNull RailsServer server) {
             this.server = server;
             return this;
         }
 
-        public Builder<T> setServerURL(String rootURL) {
+        public Builder<T, LK> setServerURL(String rootURL) {
             this.server = new RailsServer(rootURL);
             return this;
         }
 
-        public Builder<T> setDatabase(@NonNull OrmLiteSqliteOpenHelper database, Class<T> tClass) {
+        public Builder<T, LK> setDatabase(@NonNull OrmLiteSqliteOpenHelper database, Class<T> tClass) {
             this.connectionSource = database.getConnectionSource();
             try {
                 this.dao = database.getDao(tClass);
@@ -85,43 +84,43 @@ public class RailsSource<T extends NetworkResource> extends NetworkSource<T> {
             return this;
         }
 
-        public Builder<T> setDao(@NonNull Dao<T, Integer> dao) {
+        public Builder<T, LK> setDao(@NonNull Dao<T, LK> dao) {
             this.dao = dao;
             return this;
         }
 
-        public Builder<T> setConnectionSource(@NonNull ConnectionSource connectionSource) {
+        public Builder<T, LK> setConnectionSource(@NonNull ConnectionSource connectionSource) {
             this.connectionSource = connectionSource;
             return this;
         }
 
-        public Builder<T> setEndpoint(String endpoint) {
+        public Builder<T, LK> setEndpoint(String endpoint) {
             this.endpoint = endpoint;
             return this;
         }
 
-        public Builder<T> setPermissionsManager(PermissionsManager<T> permissionsManager) {
+        public Builder<T, LK> setPermissionsManager(PermissionsManager<T> permissionsManager) {
             this.permissionsManager = permissionsManager;
             return this;
         }
 
-        public Builder<T> setPermissions(Op... allowedOps) {
+        public Builder<T, LK> setPermissions(Op... allowedOps) {
             this.permissionsManager = new SimplePermissionsManager<>(allowedOps);
             return this;
         }
 
-        public Builder<T> setResourceFactory(RailsResourceFactory<T> resourceFactory) {
+        public Builder<T, LK> setResourceFactory(RailsResourceFactory<T> resourceFactory) {
             this.resourceFactory = resourceFactory;
             return this;
         }
 
-        public RailsSource<T> build() {
+        public RailsSource<T, LK> build() {
             if (server == null)
                 throw new IllegalArgumentException("Must supply a Server instance");
             if (connectionSource == null || dao == null)
                 throw new IllegalArgumentException("Must supply either a Dao and ConnectionSource or a Database instance");
 
-            return new RailsSource<T>(server, dao, connectionSource, endpoint, resourceFactory, permissionsManager);
+            return new RailsSource<>(server, dao, connectionSource, endpoint, resourceFactory, permissionsManager);
         }
     }
 }

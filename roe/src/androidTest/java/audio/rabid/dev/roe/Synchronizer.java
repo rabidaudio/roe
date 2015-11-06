@@ -17,7 +17,7 @@ public abstract class Synchronizer<T> implements Runnable{
 
     private T result = null;
 
-    private int timeout = 5*1000;
+    private int timeout = 0;// 5*1000;
 
     private boolean resultSet = false;
 

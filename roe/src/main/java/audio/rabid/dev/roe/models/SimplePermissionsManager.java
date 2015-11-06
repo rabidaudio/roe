@@ -2,8 +2,6 @@ package audio.rabid.dev.roe.models;
 
 import java.util.Arrays;
 
-import audio.rabid.dev.roe.models.rails.Op;
-
 /**
  * Created by charles on 11/2/15.
  */

@@ -19,21 +19,20 @@ import java.util.Date;
 import java.util.List;
 
 import audio.rabid.dev.roe.BackgroundThread;
+import audio.rabid.dev.roe.models.cache.GenericKeyNetworkResourceCache;
 import audio.rabid.dev.roe.models.cache.NetworkResourceCache;
 import audio.rabid.dev.roe.models.cache.ResourceCache;
-import audio.rabid.dev.roe.models.cache.SparseArrayNetworkResourceCache;
-import audio.rabid.dev.roe.models.rails.Op;
 
 /**
  * Created by charles on 11/4/15.
  */
-public class NetworkSource<T extends NetworkResource> extends Source<T> {
+public class NetworkSource<R extends NetworkResource<R, LK, SK>, LK, SK> extends Source<R, LK> {
 
     private Server server;
-    private ResourceFactory<T> resourceFactory;
+    private ResourceFactory<R, SK> resourceFactory;
     private Dao<DeletedResource, Integer> deletedResourceDao;
 
-    private NetworkResourceCache<T> networkResourceCache;
+    private NetworkResourceCache<R, LK, SK> networkResourceCache;
 
     /**
      * Create a new NetworkSource
@@ -45,14 +44,17 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
      * @param permissions     the operations allowed to be done on the resource
      * @param dateFormat      the formatter used to map dates to json (defaults to unix timestamp)
      */
-    public NetworkSource(Server server, Dao<T, Integer> dao, ConnectionSource connectionSource, ResourceFactory<T> resourceFactory,
-                         @NonNull NetworkResourceCache<T> resourceCache,
-                  @Nullable PermissionsManager<T> permissions, @Nullable DateFormat dateFormat) {
-        super(dao, connectionSource, resourceCache, permissions, dateFormat);
+    public NetworkSource(Server server, Dao<R, LK> dao, ConnectionSource connectionSource, @Nullable ResourceFactory<R, SK> resourceFactory,
+                         @Nullable NetworkResourceCache<R, LK, SK> resourceCache,
+                         @Nullable PermissionsManager<R> permissions, @Nullable DateFormat dateFormat) {
+        super(dao, resourceCache == null ? new GenericKeyNetworkResourceCache<R, LK, SK>(50) : resourceCache, permissions, dateFormat);
         this.server = server;
-        this.resourceFactory = resourceFactory;
-
-        this.networkResourceCache = resourceCache;
+        if (resourceFactory == null) {
+            this.resourceFactory = new GenericResourceFactory<>(getDataClass());
+        } else {
+            this.resourceFactory = resourceFactory;
+        }
+        this.networkResourceCache = (NetworkResourceCache<R, LK, SK>) getResourceCache();
 
         try {
             TableUtils.createTableIfNotExists(connectionSource, DeletedResource.class);
@@ -61,37 +63,43 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
             onSQLException(e);
         }
     }
-    public static class Builder<T extends NetworkResource> {
+
+    public static class Builder<T extends NetworkResource<T, LK, SK>, LK, SK> {
         ConnectionSource connectionSource;
-        Dao<T, Integer> dao;
-        NetworkResourceCache<T> resourceCache;
+        Dao<T, LK> dao;
+        NetworkResourceCache<T, LK, SK> resourceCache;
         PermissionsManager<T> permissionsManager = new SimplePermissionsManager<T>().all();
         DateFormat dateFormat;
         Server server;
-        ResourceFactory<T> resourceFactory;
+        ResourceFactory<T, SK> resourceFactory;
 
         public Builder() {
 
         }
 
-        public Builder(OrmLiteSqliteOpenHelper database, Class<T> tClass, Server server, ResourceFactory<T> resourceFactory) {
+        public Builder(OrmLiteSqliteOpenHelper database, Class<T> tClass, Server server) {
             setDatabase(database, tClass);
-            setServer(server, resourceFactory);
+            setServer(server);
         }
 
-        public Builder(Dao<T, Integer> dao, ConnectionSource connectionSource, Server server, ResourceFactory<T> resourceFactory) {
+        public Builder(Dao<T, LK> dao, ConnectionSource connectionSource, Server server) {
             setDao(dao);
             setConnectionSource(connectionSource);
-            setServer(server, resourceFactory);
+            setServer(server);
         }
 
-        public Builder<T> setServer(Server server, ResourceFactory<T> resourceFactory){
+        public Builder<T, LK, SK> setServer(Server server) {
             this.server = server;
+            return this;
+        }
+
+        public Builder<T, LK, SK> setResourceFactory(ResourceFactory<T, SK> resourceFactory) {
             this.resourceFactory = resourceFactory;
             return this;
         }
 
-        public Builder<T> setDatabase(@NonNull OrmLiteSqliteOpenHelper database, Class<T> tClass) {
+
+        public Builder<T, LK, SK> setDatabase(@NonNull OrmLiteSqliteOpenHelper database, Class<T> tClass) {
             this.connectionSource = database.getConnectionSource();
             try {
                 this.dao = database.getDao(tClass);
@@ -101,44 +109,42 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
             return this;
         }
 
-        public Builder<T> setDao(@NonNull Dao<T, Integer> dao) {
+        public Builder<T, LK, SK> setDao(@NonNull Dao<T, LK> dao) {
             this.dao = dao;
             return this;
         }
 
-        public Builder<T> setConnectionSource(@NonNull ConnectionSource connectionSource) {
+        public Builder<T, LK, SK> setConnectionSource(@NonNull ConnectionSource connectionSource) {
             this.connectionSource = connectionSource;
             return this;
         }
 
-        public Builder<T> setPermissionsManager(PermissionsManager<T> permissionsManager) {
+        public Builder<T, LK, SK> setPermissionsManager(PermissionsManager<T> permissionsManager) {
             this.permissionsManager = permissionsManager;
             return this;
         }
 
-        public Builder<T> setPermissions(Op... allowedOps) {
+        public Builder<T, LK, SK> setPermissions(Op... allowedOps) {
             this.permissionsManager = new SimplePermissionsManager<>(allowedOps);
             return this;
         }
 
-        public Builder<T> setResourceCache(NetworkResourceCache<T> resourceCache) {
+        public Builder<T, LK, SK> setResourceCache(NetworkResourceCache<T, LK, SK> resourceCache) {
             this.resourceCache = resourceCache;
             return this;
         }
 
-        public Builder<T> setDateFormat(DateFormat dateFormat){
+        public Builder<T, LK, SK> setDateFormat(DateFormat dateFormat) {
             this.dateFormat = dateFormat;
             return this;
         }
 
-        public NetworkSource<T> build() {
+        public NetworkSource<T, LK, SK> build() {
             if (connectionSource == null || dao == null)
                 throw new IllegalArgumentException("Must supply either a Dao and ConnectionSource or a Database instance");
             if(server == null || resourceFactory == null)
                 throw new IllegalArgumentException("Must supply a Server and ResourceFactory");
-            if(resourceCache==null){
-                resourceCache = new SparseArrayNetworkResourceCache<>(50);
-            }
+
             return new NetworkSource<>(server, dao, connectionSource, resourceFactory, resourceCache, permissionsManager, dateFormat);
         }
     }
@@ -148,16 +154,16 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
      * Get a resource by it's server id. Method will try the cache, otherwise resorting to the database
      * and checking for updates on the network if possible.
      */
-    public void findByServerId(final @NonNull Integer serverId, final @NonNull OperationCallback<T> callback) {
+    public void findByServerId(final @NonNull SK serverId, final @NonNull OperationCallback<R> callback) {
         BackgroundThread.postBackground(new Runnable() {
             @Override
             public void run() {
-                ResourceCache.CacheResult<T> result = networkResourceCache.getByServerId(serverId, new ResourceCache.CacheMissCallback<T>() {
+                ResourceCache.CacheResult<R> result = networkResourceCache.getByServerId(serverId, new ResourceCache.CacheMissCallback<R, SK>() {
                     @Nullable
                     @Override
-                    public T onCacheMiss(int id) {
+                    public R onCacheMiss(SK serverId) {
                         try {
-                            List<T> items = getDao().queryForEq("serverId", serverId);
+                            List<R> items = getDao().queryForEq("serverId", serverId);
                             if (!items.isEmpty()) {
                                 return items.get(0);
                             }
@@ -167,7 +173,7 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
                         return null;
                     }
                 });
-                final T item = getPermissions().can(Op.READ, result.getItem()) ? result.getItem() : null;
+                final R item = getPermissions().can(Op.READ, result.getItem()) ? result.getItem() : null;
                 BackgroundThread.postMain(new Runnable() {
                     @Override
                     public void run() {
@@ -190,25 +196,25 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
      * @param search the query parameters to send to the network
      * @param callback where to send the results when complete
      */
-    public void getManyFromNetwork(@Nullable final JSONObject search, @Nullable final OperationCallback<List<T>> callback) {
+    public void getManyFromNetwork(@Nullable final JSONObject search, @Nullable final OperationCallback<List<R>> callback) {
         BackgroundThread.postBackground(new Runnable() {
             @Override
             public void run() {
-                final List<T> returnResults = new ArrayList<>();
+                final List<R> returnResults = new ArrayList<>();
                 try {
                     Server.Response response = server.getItems(getDataClass(), search);
                     if (!server.isErrorResponse(response)) {
                         //got valid network response
                         List<JSONObject> newInstances = resourceFactory.splitMultipleNetworkQuery(response.getResponseBody());
                         for (final JSONObject data : newInstances) {
-                            int serverId = data.getInt("id");
-                            ResourceCache.CacheResult<T> result = networkResourceCache.getByServerId(serverId, new ResourceCache.CacheMissCallback<T>() {
+                            SK serverId = resourceFactory.getServerKeyFromJSON(data);
+                            ResourceCache.CacheResult<R> result = networkResourceCache.getByServerId(serverId, new ResourceCache.CacheMissCallback<R, SK>() {
                                 @Nullable
                                 @Override
-                                public T onCacheMiss(int id) {
-                                    T newInstance = null;
+                                public R onCacheMiss(SK serverId) {
+                                    R newInstance = null;
                                     try {
-                                        List<T> results = getDao().queryForEq("serverId", id);
+                                        List<R> results = getDao().queryForEq("serverId", serverId);
                                         if (results.isEmpty()) {
                                             //new item was also not in the database
                                             newInstance = resourceFactory.createFromJSON(data);
@@ -230,7 +236,7 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
                                     return newInstance;
                                 }
                             });
-                            T item = result.getItem();
+                            R item = result.getItem();
                             if (item != null) {
                                 if(getPermissions().canUpdate(item)) {
                                     boolean changed;
@@ -261,7 +267,7 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
                         if(callback != null) {
                             callback.onResult(returnResults);
                         }
-                        for(T r : returnResults){
+                        for (R r : returnResults) {
                             r.notifyObservers();
                         }
                     }
@@ -272,20 +278,20 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
 
 
     public void sync(@Nullable final OperationCallback<Void> callback) {
-        BackgroundThread.postBackground(new Runnable() {
+        new Thread(new Runnable() {
             @Override
             public void run() {
-                final List<T> changed = new ArrayList<T>();
+                final List<R> changed = new ArrayList<R>();
                 try {
-                    List<T> unsynced = getDao().queryForEq("synced", false);
-                    for (T item : unsynced) {
-                        item = networkResourceCache.putIfMissing(item);
+                    List<R> unsynced = getDao().queryForEq("synced", false);
+                    for (R u : unsynced) {
+                        R item = networkResourceCache.putIfMissing(u);
                         try {
                             Server.Response response;
                             if (item.getServerId() == null && getPermissions().canCreate(item)) {
                                 response = server.createItem(getDataClass(), resourceFactory.turnItemIntoValidServerPayload(item));
                             } else if(getPermissions().canUpdate(item)) {
-                                response = server.updateItem(getDataClass(), item.getServerId(), resourceFactory.turnItemIntoValidServerPayload(item));
+                                response = server.updateItem(getDataClass(), String.valueOf(item.getServerId()), resourceFactory.turnItemIntoValidServerPayload(item));
                             } else {
                                 continue;
                             }
@@ -296,8 +302,8 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
                                     item.updatedAt = new Date();
                                     item.setChanged();
                                     changed.add(item);
+                                    getDao().update(item);
                                 }
-                                getDao().update(item);
                             }
                         } catch (Server.NetworkException e) {
                             //oh well, still no network
@@ -325,13 +331,13 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
                         if (callback != null) {
                             callback.onResult(null);
                         }
-                        for (T c : changed) {
+                        for (R c : changed) {
                             c.notifyObservers();
                         }
                     }
                 });
             }
-        });
+        }, "NetworkSync:"+getClass().getName()).start();
     }
 
     /**
@@ -351,7 +357,7 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
     }
 
     @Override
-    protected void onAfterCacheAdd(final T resource) {
+    protected void onAfterCacheAdd(final R resource) {
         super.onAfterCreated(resource);
         if (resource.getServerId() != null && getPermissions().canUpdate(resource)) {
             new Thread(new Runnable() {
@@ -359,7 +365,7 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
                 public void run() {
                     //has a server id, so see if network has update
                     try {
-                        Server.Response response = server.getItem(getDao().getDataClass(), resource.getServerId());
+                        Server.Response response = server.getItem(getDao().getDataClass(), String.valueOf(resource.getServerId()));
                         if (!server.isErrorResponse(response)) {
                             try {
                                 boolean changed;
@@ -394,18 +400,18 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
                         });
                     }
                 }
-            }, "NetworkRead:"+resource.getClass().getName()).start();
+            }, "NetworkRead:" + resource.getClass().getName() + ":" + resource.hashCode()).start();
         }
     }
 
     @Override
-    protected void onBeforeCreated(T created){
+    protected void onBeforeCreated(R created) {
         super.onBeforeCreated(created);
         created.synced = false;
     }
 
     @Override
-    protected void onAfterCreated(final T resource){
+    protected void onAfterCreated(final R resource) {
         super.onAfterCreated(resource);
         new Thread(new Runnable() {
             @Override
@@ -440,17 +446,17 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
                     });
                 }
             }
-        }, "NetworkCreate:"+resource.getClass().getName()).start();
+        }, "NetworkCreate:" + resource.getClass().getName() + ":" + resource.hashCode()).start();
     }
 
     @Override
-    protected void onBeforeUpdated(T updated){
+    protected void onBeforeUpdated(R updated) {
         super.onBeforeDeleted(updated);
         updated.synced = false;
     }
 
     @Override
-    protected void onAfterUpdated(final T resource){
+    protected void onAfterUpdated(final R resource) {
         super.onAfterUpdated(resource);
         new Thread(new Runnable() {
             @Override
@@ -464,7 +470,7 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
                             }
                         } else {
                             if (getPermissions().canUpdate(resource)) {
-                                response = server.updateItem(getDataClass(), resource.getServerId(), resourceFactory.turnItemIntoValidServerPayload(resource));
+                                response = server.updateItem(getDataClass(), String.valueOf(resource.getServerId()), resourceFactory.turnItemIntoValidServerPayload(resource));
                             }
                         }
                     } catch (Server.NetworkException e) {
@@ -495,11 +501,11 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
                     });
                 }
             }
-        }, "NetworkUpdate:"+resource.getClass().getName()).start();
+        }, "NetworkUpdate:" + resource.getClass().getName() + ":" + resource.hashCode()).start();
     }
 
     @Override
-    protected void onAfterDeleted(final T resource){
+    protected void onAfterDeleted(final R resource) {
         super.onAfterDeleted(resource);
         if (resource.getServerId() != null) {
             new Thread(new Runnable() {
@@ -507,19 +513,19 @@ public class NetworkSource<T extends NetworkResource> extends Source<T> {
                 public void run() {
                     try {
                         try {
-                            Server.Response response = server.deleteItem(getDataClass(), resource.getServerId());
-                            if (server.isErrorResponse(response)) {
-                                deletedResourceDao.create(new DeletedResource(resource));
+                            Server.Response response = server.deleteItem(getDataClass(), String.valueOf(resource.getServerId()));
+                            if (!server.isErrorResponse(response)) {
+                                return; //all good
                             }
                         } catch (Server.NetworkException e) {
-                            deletedResourceDao.create(new DeletedResource(resource));
                             onNetworkException(e);
                         }
+                        deletedResourceDao.create(new DeletedResource(resource));
                     } catch (SQLException e) {
                         onSQLException(e);
                     }
                 }
-            }, "NetworkDelete:"+resource.getClass().getName());
+            }, "NetworkDelete:" + resource.getClass().getName() + ":" + resource.hashCode()).start();
         }
     }
 }

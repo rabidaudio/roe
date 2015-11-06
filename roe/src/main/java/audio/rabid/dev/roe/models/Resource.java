@@ -19,7 +19,7 @@ import java.util.Map;
  * Created by charles on 10/23/15.
  *
  * The {@link Resource} is your base class that all of your models should subclass (passing their class
- * in for the generic <code>T</code>). It gives you a couple of default fields, including local and
+ * in for the generic <code>R</code>). It gives you a couple of default fields, including local and
  * remote public keys. It also gives you built-in ways to convert your models to and from {@link JSONObject}s.
  *
  * For each of your custom fields, use the {@link DatabaseField} annotation so ORMLite knows which to
@@ -30,13 +30,9 @@ import java.util.Map;
  * Because a single record is shared as a single instance (possibly to multiple threads), be sure to
  * synchronize where necessary.
  */
-public abstract class Resource<T extends Resource> extends TypedObservable<T> {
+public abstract class Resource<R extends Resource<R, LK>, LK> extends TypedObservable<R> {
 
     private Map<String, Field> jsonFields = null;
-
-    @DatabaseField(generatedId = true)
-    @JSONField(export = false, accept = false)
-    protected Integer id;
 
     @DatabaseField
     @JSONField(key = "created_at", accept = false)
@@ -48,13 +44,7 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
 
     protected boolean deleted = false;
 
-    /**
-     * An auto-generated public key for the item in the local database. Can be null if the item has
-     * not yet been saved locally.
-     */
-    public Integer getId() {
-        return id;
-    }
+    public abstract LK getId();
 
     /**
      * This will return true after the item has been deleted. {@link TypedObserver}s should check this
@@ -84,9 +74,7 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
     /**
      * Returns true if the item has not yet been saved locally.
      */
-    public boolean isNew() {
-        return id == null;
-    }
+    public abstract boolean isNew();
 
     /**
      * The {@link Source} is the way you manipulate {@link Resource}s. Use the source to query for
@@ -97,7 +85,7 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
      *
      * @see Source
      */
-    public abstract Source<T> getSource();
+    public abstract Source<R, LK> getSource();
 
     /**
      * Save the current item. Shorthand for {@link Source#createOrUpdate(Resource, Source.OperationCallback)}
@@ -105,8 +93,8 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
      * @param callback (optional) callback to run when save is complete
      */
     @SuppressWarnings("unchecked")
-    public synchronized void save(@Nullable Source.OperationCallback<T> callback) {
-        getSource().createOrUpdate((T) this, callback);
+    public synchronized void save(@Nullable Source.OperationCallback<R> callback) {
+        getSource().createOrUpdate((R) this, callback);
     }
 
     /**
@@ -115,8 +103,8 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
      * @param callback (optional) callback to run when delete is complete
      */
     @SuppressWarnings("unchecked")
-    public synchronized void delete(@Nullable Source.OperationCallback<T> callback) {
-        getSource().delete((T) this, callback);
+    public synchronized void delete(@Nullable Source.OperationCallback<R> callback) {
+        getSource().delete((R) this, callback);
     }
 
     @Override
@@ -179,7 +167,7 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
             for (Class<?> classWalk = getClass(); classWalk != null; classWalk = classWalk.getSuperclass()) {
                 for (Field field : classWalk.getDeclaredFields()) {
                     JSONField jsonField = field.getAnnotation(JSONField.class);
-                    if (jsonField != null) {
+                    if (jsonField != null && (jsonField.accept() || jsonField.export())) {
                         String key = jsonField.key();
                         if(key == null || key.isEmpty()){
                             key = field.getName();
@@ -213,7 +201,7 @@ public abstract class Resource<T extends Resource> extends TypedObservable<T> {
                 try {
                     if (value != null && jsonField.accept()) {
                         DatabaseField dbf = f.getAnnotation(DatabaseField.class);
-                    f.setAccessible(true);
+                        f.setAccessible(true);
                         if (f.getType().isAssignableFrom(Date.class)) {
                             try {
                                 Date newDate = getSource().getDateFormat().parse((String) value);

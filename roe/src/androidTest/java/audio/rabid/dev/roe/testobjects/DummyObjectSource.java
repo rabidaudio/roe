@@ -6,6 +6,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Constructor;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,12 +14,11 @@ import java.util.List;
 import audio.rabid.dev.roe.models.NetworkSource;
 import audio.rabid.dev.roe.models.ResourceFactory;
 import audio.rabid.dev.roe.models.SimplePermissionsManager;
-import audio.rabid.dev.roe.models.cache.SparseArrayNetworkResourceCache;
 
 /**
  * Created by charles on 11/5/15.
  */
-public class DummyObjectSource extends NetworkSource<DummyObject> {
+public class DummyObjectSource extends NetworkSource<DummyObject, Integer, Integer> {
 
     private static DummyObjectSource instance;
     public static DummyObjectSource getInstance(){
@@ -35,7 +35,7 @@ public class DummyObjectSource extends NetworkSource<DummyObject> {
     private DummyObjectSource() throws SQLException {
         super(DummyObjectMockServer.getInstance(), (Dao<DummyObject, Integer>) GenericDatabase.getInstance().getDao(DummyObject.class), //TODO
                 GenericDatabase.getInstance().getConnectionSource(), new DummyObjectResourceFactory(),
-                new SparseArrayNetworkResourceCache<DummyObject>(50), new SimplePermissionsManager<DummyObject>().all(), null);
+                null, new SimplePermissionsManager<DummyObject>().all(), null);
     }
 
     private boolean updateCompleted = false;
@@ -43,6 +43,28 @@ public class DummyObjectSource extends NetworkSource<DummyObject> {
     @Override
     protected void onAfterUpdated(DummyObject updated){
         super.onAfterUpdated(updated);
+
+        //dirty hack to detect when background thread completes
+        Thread[] allthreads = new Thread[15];
+        int threadCount = Thread.enumerate(allthreads);
+        for (int i = 0; i < threadCount; i++) {
+            final Thread t = allthreads[i];
+            if (t.getName().equals("NetworkUpdate:" + updated.getClass().getName() + ":" + updated.hashCode())) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            t.join(0);
+                            updateCompleted = true;
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }).start();
+                return;
+            }
+        }
+        //if we get here, thread must have already finished
         updateCompleted = true;
     }
 
@@ -59,6 +81,28 @@ public class DummyObjectSource extends NetworkSource<DummyObject> {
     @Override
     protected void onAfterCreated(DummyObject created){
         super.onAfterCreated(created);
+
+        //dirty hack to detect when background thread completes
+        Thread[] allthreads = new Thread[15];
+        int threadCount = Thread.enumerate(allthreads);
+        for (int i = 0; i < threadCount; i++) {
+            final Thread t = allthreads[i];
+            if (t.getName().equals("NetworkCreate:" + created.getClass().getName() + ":" + created.hashCode())) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            t.join();
+                            createCompleted = true;
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }).start();
+                return;
+            }
+        }
+        //if we get here, thread must have already finished
         createCompleted = true;
     }
 
@@ -75,6 +119,28 @@ public class DummyObjectSource extends NetworkSource<DummyObject> {
     @Override
     protected void onAfterDeleted(DummyObject deleted){
         super.onAfterDeleted(deleted);
+
+        //dirty hack to detect when background thread completes
+        Thread[] allthreads = new Thread[15];
+        int threadCount = Thread.enumerate(allthreads);
+        for (int i = 0; i < threadCount; i++) {
+            final Thread t = allthreads[i];
+            if (t.getName().equals("NetworkDelete:" + deleted.getClass().getName() + ":" + deleted.hashCode())) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            t.join(0);
+                            deleteCompleted = true;
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }).start();
+                return;
+            }
+        }
+        //if we get here, thread must have already finished
         deleteCompleted = true;
     }
 
@@ -86,7 +152,17 @@ public class DummyObjectSource extends NetworkSource<DummyObject> {
         deleteCompleted = false;
     }
 
-    private static class DummyObjectResourceFactory implements ResourceFactory<DummyObject> {
+    private static class DummyObjectResourceFactory implements ResourceFactory<DummyObject, Integer> {
+
+        @Override
+        public DummyObject createObject() {
+            return new DummyObject();
+        }
+
+        @Override
+        public DummyObject createObject(Constructor<DummyObject> construcor, Class<DummyObject> dataClass) throws SQLException {
+            return new DummyObject();
+        }
 
         @Override
         public DummyObject createFromJSON(JSONObject json) throws JSONException {
@@ -103,6 +179,11 @@ public class DummyObjectSource extends NetworkSource<DummyObject> {
         @Override
         public boolean updateItemDirect(DummyObject item, JSONObject data) throws JSONException {
             return item.updateFromJSON(data);
+        }
+
+        @Override
+        public Integer getServerKeyFromJSON(JSONObject data) throws JSONException {
+            return data.getInt("id");
         }
 
         @Override

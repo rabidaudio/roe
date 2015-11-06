@@ -9,11 +9,7 @@ import com.j256.ormlite.field.DatabaseField;
  *
  * A {@link Resource} which has an HTTP API backing it
  */
-public abstract class NetworkResource<T extends NetworkResource> extends Resource<T> {
-
-    @JSONField(key = "id")
-    @DatabaseField(index = true)
-    protected Integer serverId = null;
+public abstract class NetworkResource<T extends NetworkResource<T, LK, SK>, LK, SK> extends Resource<T, LK> {
 
     @DatabaseField
     protected boolean synced = false;
@@ -24,9 +20,7 @@ public abstract class NetworkResource<T extends NetworkResource> extends Resourc
      * id, but it doesn't yet have a server id.
      */
     @Nullable
-    public Integer getServerId() {
-        return serverId;
-    }
+    public abstract SK getServerId();
 
     /**
      * If the item has pending changes that have not been saved to the network, then this will return

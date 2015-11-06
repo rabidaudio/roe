@@ -1,29 +1,27 @@
 package audio.rabid.dev.roe.models.cache;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.util.SparseArray;
 
+import java.util.HashMap;
+
 import audio.rabid.dev.roe.models.NetworkResource;
-import audio.rabid.dev.roe.models.NetworkSource;
-import audio.rabid.dev.roe.models.Resource;
 
 /**
  * Created by charles on 10/29/15.
  * <p/>
  * A simple implementation of a {@link ResourceCache} which just uses a {@link SparseArray}.
  */
-public class SparseArrayNetworkResourceCache<T extends NetworkResource> extends SparseArrayResourceCache<T> implements NetworkResourceCache<T> {
+public class GenericKeyNetworkResourceCache<R extends NetworkResource<R, LK, SK>, LK, SK> extends GenericKeyResourceCache<R, LK> implements NetworkResourceCache<R, LK, SK> {
 
-    private final SparseArray<Integer> serverLocalIDMap;
+    private final HashMap<SK, LK> serverLocalIDMap;
 
-    public SparseArrayNetworkResourceCache(int initialSize) {
+    public GenericKeyNetworkResourceCache(int initialSize) {
         super(initialSize);
-        serverLocalIDMap = new SparseArray<>(initialSize);
+        serverLocalIDMap = new HashMap<>(initialSize);
     }
 
     @Override
-    public synchronized T put(T object) {
+    public synchronized R put(R object) {
         if (object.getServerId() != null) {
             serverLocalIDMap.put(object.getServerId(), object.getId());
         }
@@ -31,7 +29,7 @@ public class SparseArrayNetworkResourceCache<T extends NetworkResource> extends 
     }
 
     @Override
-    public synchronized T putIfMissing(T object) {
+    public synchronized R putIfMissing(R object) {
         if(object.getServerId() != null && serverLocalIDMap.get(object.getServerId())==null){
             serverLocalIDMap.put(object.getServerId(), object.getId());
         }
@@ -39,14 +37,14 @@ public class SparseArrayNetworkResourceCache<T extends NetworkResource> extends 
     }
 
     @Override
-    public synchronized T delete(T object) {
-        if(object.getServerId()!=null) serverLocalIDMap.delete(object.getServerId());
+    public synchronized R delete(R object) {
+        if (object.getServerId() != null) serverLocalIDMap.remove(object.getServerId());
         return super.delete(object);
     }
 
     @Override
-    public synchronized CacheResult<T> get(int id, CacheMissCallback<T> cacheMissCallback) {
-        CacheResult<T> result = super.get(id, cacheMissCallback);
+    public synchronized CacheResult<R> get(LK localId, CacheMissCallback<R, LK> cacheMissCallback) {
+        CacheResult<R> result = super.get(localId, cacheMissCallback);
         if(result.getItem() != null && result.getItem().getServerId()!=null){
             serverLocalIDMap.put(result.getItem().getServerId(), result.getItem().getId());
         }
@@ -54,13 +52,17 @@ public class SparseArrayNetworkResourceCache<T extends NetworkResource> extends 
     }
 
     @Override
-    public synchronized CacheResult<T> getByServerId(int id, CacheMissCallback<T> cacheMissCallback) {
-        Integer localId = serverLocalIDMap.get(id);
+    public synchronized CacheResult<R> getByServerId(SK serverId, CacheMissCallback<R, SK> cacheMissCallback) {
+        LK localId = serverLocalIDMap.get(serverId);
         if (localId == null) {
-            return new CacheResult<>(cacheMissCallback.onCacheMiss(id), false);
+            return new CacheResult<>(cacheMissCallback.onCacheMiss(serverId), false);
         } else {
             //if we have a localId, we know the item must be in the cache
             return new CacheResult<>(getInstanceCache().get(localId), true);
         }
+    }
+
+    public synchronized int size(){
+        return getInstanceCache().size();
     }
 }

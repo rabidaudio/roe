@@ -13,6 +13,8 @@ import java.util.List;
 import audio.rabid.dev.roe.BackgroundThread;
 import audio.rabid.dev.roe.ChangeDetectorObserver;
 import audio.rabid.dev.roe.Synchronizer;
+import audio.rabid.dev.roe.models.cache.GenericKeyNetworkResourceCache;
+import audio.rabid.dev.roe.models.cache.GenericKeyResourceCache;
 import audio.rabid.dev.roe.testobjects.DummyObject;
 import audio.rabid.dev.roe.testobjects.DummyObjectMockServer;
 import audio.rabid.dev.roe.testobjects.DummyObjectSource;
@@ -27,6 +29,9 @@ public class GenericSourceTest extends AndroidTestCase {
     public void setUp(){
         GenericDatabase.getInstance(getContext()).clearDatabase(); //initialize database
         DummyObjectMockServer.getInstance().setNetworkAvailable(true);
+        DummyObjectSource.getInstance().clearCreateCompleted();
+        DummyObjectSource.getInstance().clearUpdateCompleted();
+        DummyObjectSource.getInstance().clearDeleteCompleted();
     }
 
     /**
@@ -176,6 +181,10 @@ public class GenericSourceTest extends AndroidTestCase {
         assertFalse("new object should not be synced", d.isSynced());
         assertTrue("new object should be new", d.isNew());
 
+        GenericKeyNetworkResourceCache cache = (GenericKeyNetworkResourceCache)DummyObjectSource.getInstance().getResourceCache();
+
+        assertEquals("object cache should be empty", 0, cache.size());
+
         //CREATE
         DummyObject result = (new Synchronizer<DummyObject>(){
             public void run(){
@@ -187,6 +196,8 @@ public class GenericSourceTest extends AndroidTestCase {
                 });
             }
         }).blockUntilFinished();
+
+        assertEquals("object cache should be 1", 1, cache.size());
 
         assertNotNull("saved object should be returned in callback", result);
         assertNotNull("saved object should have a local id", result.getId());
@@ -209,6 +220,7 @@ public class GenericSourceTest extends AndroidTestCase {
         }.blockUntilFinished();
 
         assertEquals("object by id should be the same instance", d, result);
+        assertEquals("object cache should be 1", 1, cache.size());
 
         //UPDATE
         d.setAge(10);
@@ -231,6 +243,7 @@ public class GenericSourceTest extends AndroidTestCase {
         assertEquals("updated object should have the same local id", d.getId(), result.getId());
         assertEquals("updated object should have the new values", 10, result.getAge());
         assertEquals("updated object should be the same instance", d, result);
+        assertEquals("object cache should be 1", 1, cache.size());
 
         //SYNC NO NET
         long prevUpdateTime = d.getUpdatedAt().getTime();
@@ -248,6 +261,7 @@ public class GenericSourceTest extends AndroidTestCase {
 
         assertFalse("the item should not be marked as synced", d.isSynced());
         assertEquals("the new update time should be the same as the old one", prevUpdateTime, d.getUpdatedAt().getTime());
+        assertEquals("object cache should be 1", 1, cache.size());
 
         //SYNC NET
         DummyObjectMockServer.getInstance().setNetworkAvailable(true); //enable network
@@ -265,6 +279,7 @@ public class GenericSourceTest extends AndroidTestCase {
             }
         }.blockUntilFinished();
 
+        assertEquals("object cache should be 1", 1, cache.size());
         assertTrue("the item should be marked as synced", d.isSynced());
         assertTrue("the new update time should be larger than the old one", d.getUpdatedAt().getTime() > prevUpdateTime);
     }
@@ -297,8 +312,9 @@ public class GenericSourceTest extends AndroidTestCase {
         }).blockUntilFinished();
 
         assertNotNull(result);
-        assertFalse("observer should not see a create", catcher1.sawChange());
-        assertFalse("observer should not see a create", catcher2.sawChange());
+        assertTrue("observer should see a create", catcher1.sawChange());
+        assertTrue("observer should see a create", catcher2.sawChange());
+        assertEquals("observers should be called on main thread", Looper.getMainLooper().getThread(), catcher1.getCallingThread());
 
         //UPDATE
         d.setAge(10);
@@ -369,7 +385,7 @@ public class GenericSourceTest extends AndroidTestCase {
                 });
             }
         }.blockUntilFinished();
-        assertNotNull(object.serverId);
+        assertNotNull(object.getServerId());
 
         //turn off network
         DummyObjectMockServer.getInstance().setNetworkAvailable(false);

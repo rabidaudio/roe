@@ -40,10 +40,10 @@ public class DummyObjectMockServer extends Server {
     }
 
     @Override
-    public synchronized Response getItem(Class<?> clazz, int serverId) throws NetworkException {
+    public synchronized Response getItem(Class<?> clazz, String serverId) throws NetworkException {
         checkConnection();
         try {
-            JSONObject data = new DummyObject("dummy" + (currentPK++), 0, null).toJSON().put("id", currentPK);
+            JSONObject data = new DummyObject("dummy" + serverId, 0, null).toJSON().put("id", Integer.parseInt(serverId));
             return new Response(200, data, null);
         } catch (JSONException e) {
             throw new RuntimeException(e);
@@ -81,14 +81,14 @@ public class DummyObjectMockServer extends Server {
     }
 
     @Override
-    public synchronized Response updateItem(Class<?> clazz, int serverId, JSONObject data) throws NetworkException {
+    public synchronized Response updateItem(Class<?> clazz, String serverId, JSONObject data) throws NetworkException {
         checkConnection();
         updatedCount++;
         return new Response(200, data, null);
     }
 
     @Override
-    public synchronized Response deleteItem(Class<?> clazz, int serverId) throws NetworkException {
+    public synchronized Response deleteItem(Class<?> clazz, String serverId) throws NetworkException {
         checkConnection();
         deletedCount++;
         return new Response(200, new JSONObject(), null);

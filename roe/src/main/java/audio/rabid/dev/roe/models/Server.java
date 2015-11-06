@@ -92,15 +92,15 @@ public abstract class Server {
         //default: no-op
     }
 
-    public abstract Response getItem(Class<?> clazz, int serverId) throws NetworkException;
+    public abstract Response getItem(Class<?> clazz, String serverId) throws NetworkException;
 
     public abstract Response createItem(Class<?> clazz, JSONObject item) throws NetworkException;
 
     public abstract Response getItems(Class<?> clazz, JSONObject search) throws NetworkException;
 
-    public abstract Response updateItem(Class<?> clazz, int serverId, JSONObject data) throws NetworkException;
+    public abstract Response updateItem(Class<?> clazz, String serverId, JSONObject data) throws NetworkException;
 
-    public abstract Response deleteItem(Class<?> clazz, int serverId) throws NetworkException;
+    public abstract Response deleteItem(Class<?> clazz, String serverId) throws NetworkException;
 
     public abstract boolean isErrorResponse(Response response);
 

@@ -5,8 +5,8 @@ import audio.rabid.dev.roe.models.NetworkResource;
 /**
  * Created by charles on 11/4/15.
  */
-public interface NetworkResourceCache<T extends NetworkResource> extends ResourceCache<T> {
+public interface NetworkResourceCache<R extends NetworkResource<R, LK, SK>, LK, SK> extends ResourceCache<R, LK> {
 
-    CacheResult<T> getByServerId(int id, CacheMissCallback<T> cacheMissCallback);
+    CacheResult<R> getByServerId(SK serverId, CacheMissCallback<R, SK> cacheMissCallback);
 
 }

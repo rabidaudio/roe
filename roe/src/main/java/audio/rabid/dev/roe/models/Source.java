@@ -16,9 +16,8 @@ import java.util.Date;
 import java.util.List;
 
 import audio.rabid.dev.roe.BackgroundThread;
+import audio.rabid.dev.roe.models.cache.GenericKeyResourceCache;
 import audio.rabid.dev.roe.models.cache.ResourceCache;
-import audio.rabid.dev.roe.models.cache.SparseArrayResourceCache;
-import audio.rabid.dev.roe.models.rails.Op;
 
 /**
  * Created by charles on 10/28/15.
@@ -32,35 +31,33 @@ import audio.rabid.dev.roe.models.rails.Op;
  * This will handle running operations in the background and returning on main.
  * </p>
  */
-public class Source<T extends Resource> {
+public class Source<R extends Resource<R, LK>, LK> {
 
-    private Dao<T, Integer> dao;
-    private ResourceCache<T> resourceCache;
-    private PermissionsManager<T> permissions;
+    private Dao<R, LK> dao;
+    private ResourceCache<R, LK> resourceCache;
+    private PermissionsManager<R> permissions;
     private DateFormat dateFormat;
 
     /**
      * Create a new Source
      *
      * @param dao             the dao instance to use for database operations
-     * @param connectionSource the ConnectionSource for the database
      * @param resourceCache   the cache to use for keeping instances consistent
      * @param permissions     the operations allowed to be done on the resource
      * @param dateFormat      the formatter used to map dates to json (defaults to unix timestamp)
      */
-    public Source(@NonNull Dao<T, Integer> dao,
-                  @NonNull ConnectionSource connectionSource,
-                  @Nullable ResourceCache<T> resourceCache,
-                  @Nullable PermissionsManager<T> permissions,
+    public Source(@NonNull Dao<R, LK> dao,
+                  @Nullable ResourceCache<R, LK> resourceCache,
+                  @Nullable PermissionsManager<R> permissions,
                   @Nullable DateFormat dateFormat) {
         this.dao = dao;
         if (resourceCache == null) {
-            this.resourceCache = new SparseArrayResourceCache<>(50);
+            this.resourceCache = new GenericKeyResourceCache<>(50);
         } else {
             this.resourceCache = resourceCache;
         }
         if(permissions == null){
-            this.permissions = new SimplePermissionsManager<T>().all();
+            this.permissions = new SimplePermissionsManager<R>().all();
         }else {
             this.permissions = permissions;
         }
@@ -88,10 +85,9 @@ public class Source<T extends Resource> {
         }
     }
 
-    public static class Builder<T extends Resource> {
-        ConnectionSource connectionSource;
-        Dao<T, Integer> dao;
-        ResourceCache<T> resourceCache;
+    public static class Builder<T extends Resource<T, K>, K> {
+        Dao<T, K> dao;
+        ResourceCache<T, K> resourceCache;
         PermissionsManager<T> permissionsManager = new SimplePermissionsManager<T>().all();
         DateFormat dateFormat;
 
@@ -103,13 +99,11 @@ public class Source<T extends Resource> {
             setDatabase(database, tClass);
         }
 
-        public Builder(Dao<T, Integer> dao, ConnectionSource connectionSource) {
+        public Builder(Dao<T, K> dao) {
             setDao(dao);
-            setConnectionSource(connectionSource);
         }
 
-        public Builder<T> setDatabase(@NonNull OrmLiteSqliteOpenHelper database, Class<T> tClass) {
-            this.connectionSource = database.getConnectionSource();
+        public Builder<T, K> setDatabase(@NonNull OrmLiteSqliteOpenHelper database, Class<T> tClass) {
             try {
                 this.dao = database.getDao(tClass);
             } catch (SQLException e) {
@@ -118,40 +112,35 @@ public class Source<T extends Resource> {
             return this;
         }
 
-        public Builder<T> setDao(@NonNull Dao<T, Integer> dao) {
+        public Builder<T, K> setDao(@NonNull Dao<T, K> dao) {
             this.dao = dao;
             return this;
         }
 
-        public Builder<T> setConnectionSource(@NonNull ConnectionSource connectionSource) {
-            this.connectionSource = connectionSource;
-            return this;
-        }
-
-        public Builder<T> setPermissionsManager(PermissionsManager<T> permissionsManager) {
+        public Builder<T, K> setPermissionsManager(PermissionsManager<T> permissionsManager) {
             this.permissionsManager = permissionsManager;
             return this;
         }
 
-        public Builder<T> setPermissions(Op... allowedOps) {
+        public Builder<T, K> setPermissions(Op... allowedOps) {
             this.permissionsManager = new SimplePermissionsManager<>(allowedOps);
             return this;
         }
 
-        public Builder<T> setResourceCache(ResourceCache<T> resourceCache) {
+        public Builder<T, K> setResourceCache(ResourceCache<T, K> resourceCache) {
             this.resourceCache = resourceCache;
             return this;
         }
 
-        public Builder<T> setDateFormat(DateFormat dateFormat){
+        public Builder<T, K> setDateFormat(DateFormat dateFormat) {
             this.dateFormat = dateFormat;
             return this;
         }
 
-        public Source<T> build() {
-            if (connectionSource == null || dao == null)
-                throw new IllegalArgumentException("Must supply either a Dao and ConnectionSource or a Database instance");
-            return new Source<>(dao, connectionSource, resourceCache, permissionsManager, dateFormat);
+        public Source<T, K> build() {
+            if (dao == null)
+                throw new IllegalArgumentException("Must supply either a Dao or a Database instance");
+            return new Source<>(dao, resourceCache, permissionsManager, dateFormat);
         }
     }
 
@@ -160,11 +149,11 @@ public class Source<T extends Resource> {
      * Return the {@link Dao} used for database operations. You shouldn't need to access this, as
      * using the <code>doOperation</code> methods should give you the instance to use.
      */
-    protected Dao<T, Integer> getDao() {
+    protected Dao<R, LK> getDao() {
         return dao;
     }
 
-    protected ResourceCache<T> getResourceCache(){
+    protected ResourceCache<R, LK> getResourceCache() {
         return resourceCache;
     }
 
@@ -172,7 +161,7 @@ public class Source<T extends Resource> {
      * Get the {@link PermissionsManager} for determining which CRUD operations are allowed on a
      * {@link Resource}.
      */
-    public PermissionsManager<T> getPermissions() {
+    public PermissionsManager<R> getPermissions() {
         return permissions;
     }
 
@@ -192,36 +181,36 @@ public class Source<T extends Resource> {
         return dateFormat;
     }
 
-    public Class<T> getDataClass(){
+    public Class<R> getDataClass() {
         return dao.getDataClass();
     }
 
 
-    protected void onAfterCacheAdd(T added){
+    protected void onAfterCacheAdd(R added) {
 
     }
 
-    protected void onBeforeCreated(T created){
+    protected void onBeforeCreated(R created) {
 
     }
 
-    protected void onAfterCreated(T created){
+    protected void onAfterCreated(R created) {
 
     }
 
-    protected void onBeforeUpdated(T updated){
+    protected void onBeforeUpdated(R updated) {
 
     }
 
-    protected void onAfterUpdated(T updated){
+    protected void onAfterUpdated(R updated) {
 
     }
 
-    protected void onBeforeDeleted(T deleted){
+    protected void onBeforeDeleted(R deleted) {
 
     }
 
-    protected void onAfterDeleted(T deleted){
+    protected void onAfterDeleted(R deleted) {
 
     }
 
@@ -229,14 +218,14 @@ public class Source<T extends Resource> {
      * Get a resource by it's local id. Method will try the cache, otherwise resorting to the database
      * and checking for updates on the network if possible.
      */
-    public void find(final @NonNull Integer localId, @NonNull final OperationCallback<T> callback) {
+    public void find(final @NonNull LK localId, @NonNull final OperationCallback<R> callback) {
         BackgroundThread.postBackground(new Runnable() {
             @Override
             public void run() {
-                ResourceCache.CacheResult<T> result = resourceCache.get(localId, new ResourceCache.CacheMissCallback<T>() {
+                ResourceCache.CacheResult<R> result = resourceCache.get(localId, new ResourceCache.CacheMissCallback<R, LK>() {
                     @Nullable
                     @Override
-                    public T onCacheMiss(int id) {
+                    public R onCacheMiss(LK id) {
                         try {
                             return dao.queryForId(localId);
                         } catch (SQLException e) {
@@ -245,7 +234,7 @@ public class Source<T extends Resource> {
                         }
                     }
                 });
-                final T item = permissions.can(Op.READ, result.getItem()) ? result.getItem() : null;
+                final R item = permissions.can(Op.READ, result.getItem()) ? result.getItem() : null;
                 BackgroundThread.postMain(new Runnable() {
                     @Override
                     public void run() {
@@ -263,29 +252,29 @@ public class Source<T extends Resource> {
      * Get all the instances stored locally. Will default to the cached versions, and update from the
      * network if necessary.
      */
-    public void getAllLocal(@NonNull final OperationCallback<List<T>> callback) {
-        executeLocalQuery(new LocalQuery<T>() {
+    public void getAllLocal(@NonNull final OperationCallback<List<R>> callback) {
+        executeLocalQuery(new LocalQuery<R, LK>() {
             @Override
-            public List<T> executeQuery(Dao<T, Integer> dao) throws SQLException {
+            public List<R> executeQuery(Dao<R, LK> dao) throws SQLException {
                 return dao.queryForAll();
             }
         }, callback);
     }
 
-    public void executeLocalQuery(final LocalQuery<T> localQuery, final  @NonNull OperationCallback<List<T>> callback){
+    public void executeLocalQuery(final LocalQuery<R, LK> localQuery, final @NonNull OperationCallback<List<R>> callback) {
         BackgroundThread.postBackground(new Runnable() {
             @Override
             public void run() {
-                final List<T> returnResults = new ArrayList<>();
-                final List<T> unCached = new ArrayList<>();
+                final List<R> returnResults = new ArrayList<>();
+                final List<R> unCached = new ArrayList<>();
                 try {
-                    List<T> results = localQuery.executeQuery(dao);
-                    for (final T result : results) {
+                    List<R> results = localQuery.executeQuery(dao);
+                    for (final R result : results) {
                         if (permissions.can(Op.READ, result)) {
-                            returnResults.add(resourceCache.get(result.getId(), new ResourceCache.CacheMissCallback<T>() {
+                            returnResults.add(resourceCache.get(result.getId(), new ResourceCache.CacheMissCallback<R, LK>() {
                                 @Nullable
                                 @Override
-                                public T onCacheMiss(int id) {
+                                public R onCacheMiss(LK id) {
                                     unCached.add(result);
                                     return result;
                                 }
@@ -301,18 +290,18 @@ public class Source<T extends Resource> {
                         callback.onResult(returnResults);
                     }
                 });
-                for (T u : unCached) {
+                for (R u : unCached) {
                     onAfterCacheAdd(u);
                 }
             }
         });
     }
 
-    protected interface LocalQuery<T> {
-        List<T> executeQuery(Dao<T, Integer> dao) throws SQLException;
+    protected interface LocalQuery<T, K> {
+        List<T> executeQuery(Dao<T, K> dao) throws SQLException;
     }
 
-    public void create(final T resource, @Nullable final OperationCallback<T> callback) {
+    public void create(final R resource, @Nullable final OperationCallback<R> callback) {
         if (!resource.isNew()) {
             throw new RuntimeException("Can't create a resource that has already been saved. Use update instead");
         }
@@ -336,21 +325,16 @@ public class Source<T extends Resource> {
                         @Override
                         public void run() {
                             callback.onResult(resource);
+                            resource.notifyObservers();
                         }
                     });
                 }
                 onAfterCreated(resource);
-                BackgroundThread.postMain(new Runnable() {
-                    @Override
-                    public void run() {
-                        resource.notifyObservers();
-                    }
-                });
             }
         });
     }
 
-    public void update(final T resource, final @Nullable OperationCallback<T> callback) {
+    public void update(final R resource, final @Nullable OperationCallback<R> callback) {
         if (resource.isNew()) {
             throw new RuntimeException("Can't update a resource that hasn't been created yet. Use create instead");
         }
@@ -358,10 +342,10 @@ public class Source<T extends Resource> {
         BackgroundThread.postBackground(new Runnable() {
             @Override
             public void run() {
-                resourceCache.get(resource.getId(), new ResourceCache.CacheMissCallback<T>() {
+                resourceCache.get(resource.getId(), new ResourceCache.CacheMissCallback<R, LK>() {
                     @Nullable
                     @Override
-                    public T onCacheMiss(int id) {
+                    public R onCacheMiss(LK id) {
                         throw new RuntimeException("Tried to update a resource missing from the cache");
                     }
                 });
@@ -380,21 +364,16 @@ public class Source<T extends Resource> {
                         @Override
                         public void run() {
                             callback.onResult(resource);
+                            resource.notifyObservers();
                         }
                     });
                 }
                 onAfterUpdated(resource);
-                BackgroundThread.postMain(new Runnable() {
-                    @Override
-                    public void run() {
-                        resource.notifyObservers();
-                    }
-                });
             }
         });
     }
 
-    public void createOrUpdate(T resource, @Nullable OperationCallback<T> callback) {
+    public void createOrUpdate(R resource, @Nullable OperationCallback<R> callback) {
         if (resource.isNew()) {
             create(resource, callback);
         } else {
@@ -402,7 +381,7 @@ public class Source<T extends Resource> {
         }
     }
 
-    public void delete(final T resource, @Nullable final OperationCallback<T> callback) {
+    public void delete(final R resource, @Nullable final OperationCallback<R> callback) {
         getPermissions().checkPermission(Op.DELETE, resource);
         BackgroundThread.postBackground(new Runnable() {
             @Override
@@ -423,16 +402,11 @@ public class Source<T extends Resource> {
                         @Override
                         public void run() {
                             callback.onResult(resource);
+                            resource.notifyObservers();
                         }
                     });
                 }
                 onAfterDeleted(resource);
-                BackgroundThread.postMain(new Runnable() {
-                    @Override
-                    public void run() {
-                        resource.notifyObservers();
-                    }
-                });
             }
         });
     }

@@ -11,15 +11,15 @@ import audio.rabid.dev.roe.models.Resource;
  * An object cache for keeping track of Resources (either by localId or serverId). You should make
  * your cache thread-safe by making all your methods synchronized for atomicity.
  */
-public interface ResourceCache<T extends Resource> {
+public interface ResourceCache<R extends Resource<R, LK>, LK> {
 
-    T put(T object);
+    R put(R object);
 
-    T putIfMissing(T object);
+    R putIfMissing(R object);
 
-    T delete(T object);
+    R delete(R object);
 
-     CacheResult<T> get(int id, CacheMissCallback<T> cacheMissCallback);
+    CacheResult<R> get(LK id, CacheMissCallback<R, LK> cacheMissCallback);
 
     /**
      * This block is called if the item wasn't in the cache. Return an item to be put in the cache
@@ -27,9 +27,9 @@ public interface ResourceCache<T extends Resource> {
      *
      * @param <T>
      */
-    interface CacheMissCallback<T> {
+    interface CacheMissCallback<T, K> {
         @Nullable
-        T onCacheMiss(int id);
+        T onCacheMiss(K id);
     }
 
     class CacheResult<T> extends Pair<T, Boolean> {
