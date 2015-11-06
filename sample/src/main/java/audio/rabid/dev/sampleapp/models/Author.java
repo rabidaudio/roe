@@ -8,6 +8,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.annotation.Nullable;
 
+import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
@@ -15,7 +16,10 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.concurrent.Callable;
 
+import audio.rabid.dev.roe.models.IntegerKeyedNetworkResource;
+import audio.rabid.dev.roe.models.IntegerKeyedResource;
 import audio.rabid.dev.roe.models.JSONField;
 import audio.rabid.dev.roe.models.NetworkResource;
 import audio.rabid.dev.roe.models.Source;
@@ -32,11 +36,31 @@ import audio.rabid.dev.utils.ImageCache;
  */
 @DatabaseTable(tableName = "authors")
 @RailsResource(endpoint = "authors", singularJSONKey = "author", pluralJSONKey = "authors")
-public class Author extends NetworkResource<Author> {
+public class Author extends IntegerKeyedNetworkResource<Author> {
 
-    public static final RailsSource<Author> Source = new RailsSource.Builder<>
+    public static final RailsSource<Author, Integer> Source = new RailsSource.Builder<>
             (SampleAppServer.getInstance(), Database.getInstance(), Author.class)
             .setPermissions(Op.CREATE, Op.READ, Op.UPDATE).build();
+
+    //TODO
+//    static {
+//        try {
+//            final Dao<Author, ?> adao = Database.getInstance().getDao(Author.class);
+//            adao.callBatchTasks(new Callable<Author>() {
+//                @Override
+//                public Author call() throws Exception {
+//                    for (Author a : adao.queryForAll()) {
+//                        a.synced = false;
+//                        a.serverId = null;
+//                        adao.update(a);
+//                    }
+//                    return null;
+//                }
+//            });
+//        }catch (Exception e){
+//            throw new RuntimeException(e);
+//        }
+//    }
 
     @JSONField
     @DatabaseField
@@ -147,7 +171,7 @@ public class Author extends NetworkResource<Author> {
     }
 
     @Override
-    public Source<Author> getSource() {
+    public Source<Author, Integer> getSource() {
         return Source;
     }
 }

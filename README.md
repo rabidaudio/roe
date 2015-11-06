@@ -113,3 +113,25 @@ public class MyModel extends Resource<MyModel> {
     }
 }
 ```
+
+
+```
+    static {
+        try {
+            final Dao<Post, ?> adao = Database.getInstance().getDao(Post.class);
+            adao.callBatchTasks(new Callable<Post>() {
+                @Override
+                public Post call() throws Exception {
+                    for (Post a : adao.queryForAll()) {
+                        a.synced = false;
+                        a.serverId = null;
+                        adao.update(a);
+                    }
+                    return null;
+                }
+            });
+        }catch (Exception e){
+            throw new RuntimeException(e);
+        }
+    }
+```

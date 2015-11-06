@@ -73,7 +73,7 @@ public class RailsResourceFactory<R extends NetworkResource> implements Resource
 
     @Override
     public Integer getServerKeyFromJSON(JSONObject data) throws JSONException {
-        return null;
+        return data.getInt("id");
     }
 
     @Override

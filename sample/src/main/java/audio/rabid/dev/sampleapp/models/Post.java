@@ -1,24 +1,29 @@
 package audio.rabid.dev.sampleapp.models;
 
+import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
+import java.util.concurrent.Callable;
+
+import audio.rabid.dev.roe.models.IntegerKeyedNetworkResource;
 import audio.rabid.dev.roe.models.JSONField;
 import audio.rabid.dev.roe.models.NetworkResource;
 import audio.rabid.dev.roe.models.Resource;
 import audio.rabid.dev.roe.models.Source;
+import audio.rabid.dev.sampleapp.Database;
 
 /**
  * Created by charles on 10/25/15.
  */
 @DatabaseTable(tableName = "posts")
-public class Post extends NetworkResource<Post> {
+public class Post extends IntegerKeyedNetworkResource<Post> {
 
     @SuppressWarnings("unchecked")
     public static final PostSource Source = new PostSource();
 
     @Override
-    public Source<Post> getSource() {
+    public Source<Post, Integer> getSource() {
         return Source;
     }
 

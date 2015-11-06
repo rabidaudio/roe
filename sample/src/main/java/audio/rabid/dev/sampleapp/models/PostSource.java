@@ -22,7 +22,7 @@ import audio.rabid.dev.sampleapp.SampleAppServer;
 /**
  * Created by charles on 10/29/15.
  */
-public class PostSource extends RailsSource<Post> {
+public class PostSource extends RailsSource<Post, Integer> {
 
     @SuppressWarnings("unchecked")
     public PostSource() {
@@ -42,7 +42,7 @@ public class PostSource extends RailsSource<Post> {
     }
 
     public void getRecentByAuthor(final @NonNull Integer authorId, final long limit, OperationCallback<List<Post>> callback) {
-        executeLocalQuery(new LocalQuery<Post>() {
+        executeLocalQuery(new LocalQuery<Post, Integer>() {
             @Override
             public List<Post> executeQuery(Dao<Post, Integer> dao) throws SQLException {
                 return dao.queryBuilder().orderBy("createdAt", false).limit(limit).where().eq("author_id", authorId).query();
@@ -58,7 +58,7 @@ public class PostSource extends RailsSource<Post> {
      */
     public void allByAuthorOrAll(final @Nullable Integer authorId, final OperationCallback<List<Post>> callback) {
         //first return any local items
-        executeLocalQuery(new LocalQuery<Post>() {
+        executeLocalQuery(new LocalQuery<Post, Integer>() {
             @Override
             public List<Post> executeQuery(Dao<Post, Integer> dao) throws SQLException {
                 if (authorId == null) {
@@ -95,7 +95,7 @@ public class PostSource extends RailsSource<Post> {
                     Author.Source.find(authorId, new OperationCallback<Author>() {
                         @Override
                         public void onResult(@Nullable Author result) {
-                            if(result!=null) {
+                            if(result!=null && result.getServerId()!=null) {
                                 try{
                                     getManyFromNetwork(new JSONObject().put("author_id", result.getServerId()), new OperationCallback<List<Post>>() {
                                         @Override
