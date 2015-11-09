@@ -4,6 +4,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import audio.rabid.dev.roe.models.Server;
 
 /**
@@ -36,65 +39,65 @@ public class DummyObjectMockServer extends Server {
     }
 
     private void checkConnection() throws NetworkException {
-        if (!networkAvailable) throw new NetworkException(new NoSuchMethodException());
-    }
-
-    @Override
-    public synchronized Response getItem(Class<?> clazz, String serverId) throws NetworkException {
-        checkConnection();
-        try {
-            JSONObject data = new DummyObject("dummy" + serverId, 0, null).toJSON().put("id", Integer.parseInt(serverId));
-            return new Response(200, data, null);
+        if (!networkAvailable) try {
+            throw new NetworkException(new Response(404, new JSONObject().put("error", "Network Disabled"), null));
         } catch (JSONException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
     }
 
     @Override
-    public synchronized Response createItem(Class<?> clazz, JSONObject item) throws NetworkException {
+    public synchronized JSONObject getItem(Class<?> clazz, String serverId) throws NetworkException {
         checkConnection();
         try {
-            createCount++;
-            return new Response(200, item.put("id", currentPK++), null);
-        }catch (JSONException e){
-            throw new RuntimeException(e);
+            return DummyObjectSource.getInstance().toJSON(new DummyObject("dummy" + serverId, 0, null)).put("id", Integer.parseInt(serverId));
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
     @Override
-    public synchronized Response getItems(Class<?> clazz, JSONObject search) throws NetworkException {
+    public synchronized JSONObject createItem(Class<?> clazz, JSONObject item) throws NetworkException {
         checkConnection();
-        JSONArray results = new JSONArray();
+        createCount++;
+        try {
+            return item.put("id", currentPK++);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    @Override
+    public synchronized List<JSONObject> getItems(Class<?> clazz, JSONObject search) throws NetworkException {
+        checkConnection();
+        List<JSONObject> items = new ArrayList<>();
         try {
             for (int i = 0; i < Math.round(Math.random() * 10); i++) {
-                JSONObject data = new DummyObject("dummy" + (currentPK++), 0, null).toJSON().put("id", currentPK);
-                results.put(data);
+                JSONObject data = DummyObjectSource.getInstance().toJSON(new DummyObject("dummy" + (currentPK++), 0, null)).put("id", currentPK);
+                items.add(data);
             }
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
-        try {
-            return new Response(200, new JSONObject().put("dummies", results), null);
-        } catch (JSONException e) {
-            throw new RuntimeException(e);
-        }
+        return items;
     }
 
     @Override
-    public synchronized Response updateItem(Class<?> clazz, String serverId, JSONObject data) throws NetworkException {
+    public synchronized JSONObject updateItem(Class<?> clazz, String serverId, JSONObject data) throws NetworkException {
         checkConnection();
         updatedCount++;
-        return new Response(200, data, null);
+        return data;
     }
 
     @Override
-    public synchronized Response deleteItem(Class<?> clazz, String serverId) throws NetworkException {
+    public synchronized JSONObject deleteItem(Class<?> clazz, String serverId) throws NetworkException {
         checkConnection();
         deletedCount++;
-        return new Response(200, new JSONObject(), null);
+        return new JSONObject();
     }
 
-    @Override
     public boolean isErrorResponse(Response response) {
         return !networkAvailable;
     }

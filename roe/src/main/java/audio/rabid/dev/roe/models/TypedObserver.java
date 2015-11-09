@@ -26,15 +26,7 @@ import java.util.Observable;
  *
  * @see Observable
  */
-public interface TypedObserver<T extends TypedObservable> {
+public interface TypedObserver<T> {
 
-    /**
-     * This method is called if the specified {@code Observable} object's
-     * {@code notifyObservers} method is called (because the {@code Observable}
-     * object has been updated.
-     *
-     * @param observable the {@link Observable} object.
-     * @param data       the data passed to {@link Observable#notifyObservers(Object)}.
-     */
-    void update(T observable, Object data);
+    void update(T observable, boolean deleted);
 }

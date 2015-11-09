@@ -39,9 +39,13 @@ public abstract class ViewHolder<T extends TypedObservable> implements TypedObse
     }
 
     @Override
-    public void update(T observable, Object data) {
-        item = observable;
-        draw(item, container);
+    public void update(T observable, boolean deleted) {
+        if (deleted) {
+            onNoItem(container);
+        } else {
+            item = observable;
+            draw(item, container);
+        }
     }
 
     /**

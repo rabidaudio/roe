@@ -1,9 +1,6 @@
 package audio.rabid.dev.roe.models.cache;
 
 import android.support.annotation.Nullable;
-import android.util.Pair;
-
-import audio.rabid.dev.roe.models.Resource;
 
 /**
  * Created by charles on 10/29/15.
@@ -11,7 +8,7 @@ import audio.rabid.dev.roe.models.Resource;
  * An object cache for keeping track of Resources (either by localId or serverId). You should make
  * your cache thread-safe by making all your methods synchronized for atomicity.
  */
-public interface ResourceCache<R extends Resource<R, LK>, LK> {
+public interface ResourceCache<R, LK> {
 
     R put(R object);
 
@@ -27,23 +24,27 @@ public interface ResourceCache<R extends Resource<R, LK>, LK> {
      *
      * @param <T>
      */
-    interface CacheMissCallback<T, K> {
+    interface CacheMissCallback<T, ID> {
         @Nullable
-        T onCacheMiss(K id);
+        T onCacheMiss(ID id);
     }
 
-    class CacheResult<T> extends Pair<T, Boolean> {
+    class CacheResult<T> {
+
+        private T item;
+        private boolean wasInCache;
 
         public CacheResult(T item, boolean wasInCache) {
-            super(item, wasInCache);
+            this.item = item;
+            this.wasInCache = wasInCache;
         }
 
         public T getItem(){
-            return first;
+            return item;
         }
 
         public boolean wasInCache(){
-            return second;
+            return wasInCache;
         }
     }
 }

@@ -14,23 +14,21 @@ import audio.rabid.dev.roe.models.NetworkSource;
 import audio.rabid.dev.roe.models.Op;
 import audio.rabid.dev.roe.models.PermissionsManager;
 import audio.rabid.dev.roe.models.SimplePermissionsManager;
-import audio.rabid.dev.roe.models.cache.GenericKeyNetworkResourceCache;
+import audio.rabid.dev.roe.models.cache.MapNetworkResourceCache;
 
 /**
  * Created by charles on 10/29/15.
  */
-public class RailsSource<T extends NetworkResource<T, LK, Integer>, LK> extends NetworkSource<T, LK, Integer> {
+public class RailsSource<T extends NetworkResource<LK, Integer>, LK> extends NetworkSource<T, LK, Integer> {
 
     protected RailsSource(@NonNull RailsServer server,
                           @NonNull Dao<T, LK> dao,
-                          @NonNull ConnectionSource connectionSource,
                           @Nullable String endpoint,
-                          @Nullable RailsResourceFactory<T> resourceFactory,
                           @Nullable PermissionsManager<T> permissions) {
 
 
-        super(server, dao, connectionSource, resourceFactory == null ? new RailsResourceFactory<>(dao.getDataClass()) : resourceFactory,
-                new GenericKeyNetworkResourceCache<T, LK, Integer>(50),
+        super(server, dao,
+                new MapNetworkResourceCache<T, LK, Integer>(50),
                 permissions == null ? new SimplePermissionsManager<T>().all() : permissions,
                 new NetworkDateFormat());
 
@@ -39,14 +37,12 @@ public class RailsSource<T extends NetworkResource<T, LK, Integer>, LK> extends 
         }
     }
 
-    public static class Builder<T extends NetworkResource<T, LK, Integer>, LK> {
+    public static class Builder<T extends NetworkResource<LK, Integer>, LK> {
 
         RailsServer server;
-        ConnectionSource connectionSource;
         Dao<T, LK> dao;
 
         String endpoint;
-        RailsResourceFactory<T> resourceFactory;
         PermissionsManager<T> permissionsManager = new SimplePermissionsManager<T>().all();
 
         public Builder() {
@@ -58,10 +54,9 @@ public class RailsSource<T extends NetworkResource<T, LK, Integer>, LK> extends 
             setDatabase(database, tClass);
         }
 
-        public Builder(RailsServer server, Dao<T, LK> dao, ConnectionSource connectionSource) {
+        public Builder(RailsServer server, Dao<T, LK> dao) {
             setServer(server);
             setDao(dao);
-            setConnectionSource(connectionSource);
         }
 
         public Builder<T, LK> setServer(@NonNull RailsServer server) {
@@ -75,7 +70,6 @@ public class RailsSource<T extends NetworkResource<T, LK, Integer>, LK> extends 
         }
 
         public Builder<T, LK> setDatabase(@NonNull OrmLiteSqliteOpenHelper database, Class<T> tClass) {
-            this.connectionSource = database.getConnectionSource();
             try {
                 this.dao = database.getDao(tClass);
             } catch (SQLException e) {
@@ -86,11 +80,6 @@ public class RailsSource<T extends NetworkResource<T, LK, Integer>, LK> extends 
 
         public Builder<T, LK> setDao(@NonNull Dao<T, LK> dao) {
             this.dao = dao;
-            return this;
-        }
-
-        public Builder<T, LK> setConnectionSource(@NonNull ConnectionSource connectionSource) {
-            this.connectionSource = connectionSource;
             return this;
         }
 
@@ -109,18 +98,13 @@ public class RailsSource<T extends NetworkResource<T, LK, Integer>, LK> extends 
             return this;
         }
 
-        public Builder<T, LK> setResourceFactory(RailsResourceFactory<T> resourceFactory) {
-            this.resourceFactory = resourceFactory;
-            return this;
-        }
-
         public RailsSource<T, LK> build() {
             if (server == null)
                 throw new IllegalArgumentException("Must supply a Server instance");
-            if (connectionSource == null || dao == null)
-                throw new IllegalArgumentException("Must supply either a Dao and ConnectionSource or a Database instance");
+            if (dao == null)
+                throw new IllegalArgumentException("Must supply either a Dao or a Database instance");
 
-            return new RailsSource<>(server, dao, connectionSource, endpoint, resourceFactory, permissionsManager);
+            return new RailsSource<>(server, dao, endpoint, permissionsManager);
         }
     }
 }

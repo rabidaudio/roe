@@ -1,7 +1,11 @@
 package audio.rabid.dev.roe.models;
 
+import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
+
+import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Created by charles on 11/2/15.
@@ -31,16 +35,23 @@ public class DeletedResource {
             throw new IllegalArgumentException("Can't network delete a resource without a server id");
         }
         className = deletedResource.getClass().getCanonicalName();
-        serverId = deletedResource.getServerId().toString();
+        serverId = String.valueOf(deletedResource.getServerId());
     }
 
-    protected Server.Response attemptDelete(Server server) throws Server.NetworkException{
+    protected static List<DeletedResource> getDeletedResources(Dao<DeletedResource, Integer> dao, Class clazz) throws SQLException {
+        return dao.queryForEq("className", clazz.getCanonicalName());
+    }
+
+    protected boolean attemptDelete(Server server) {
         try {
             Class clazz = Class.forName(className);
-            return server.deleteItem(clazz, serverId); //TODO this is a little scary, storing keys as strings....
-        }catch (ClassNotFoundException e){
+            server.deleteItem(clazz, serverId);
+            return true;
+        } catch (ClassNotFoundException e) {
             //shouldn't happen since we converted it on create
-            return null;
+            throw new RuntimeException(e);
+        } catch (Server.NetworkException e) {
+            return false;
         }
     }
 }

@@ -11,7 +11,7 @@ import audio.rabid.dev.roe.models.TypedObservable;
 /**
  * Created by charles on 10/25/15.
  */
-public abstract class ViewHolderArrayAdapter<T extends TypedObservable<T>, H extends ViewHolder<T>> extends EasyArrayAdapter<T, H> {
+public abstract class ViewHolderArrayAdapter<T extends TypedObservable, H extends ViewHolder<T>> extends EasyArrayAdapter<T, H> {
 
     public ViewHolderArrayAdapter(Context context, int layoutId, @Nullable List<T> list) {
         super(context, layoutId, list);

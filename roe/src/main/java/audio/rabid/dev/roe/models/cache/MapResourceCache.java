@@ -7,15 +7,15 @@ import audio.rabid.dev.roe.models.Resource;
 /**
  * Created by charles on 11/5/15.
  */
-public class GenericKeyResourceCache<R extends Resource<R, LK>, LK> implements ResourceCache<R, LK> {
+public class MapResourceCache<R extends Resource<LK>, LK> implements ResourceCache<R, LK> {
 
     private HashMap<LK, R> instanceCache;
 
-    public GenericKeyResourceCache(int initialSize) {
+    public MapResourceCache(int initialSize) {
         instanceCache = new HashMap<>(initialSize);
     }
 
-    public GenericKeyResourceCache() {
+    public MapResourceCache() {
         this(50);
     }
 

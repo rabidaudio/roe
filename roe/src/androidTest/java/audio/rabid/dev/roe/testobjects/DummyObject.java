@@ -1,5 +1,7 @@
 package audio.rabid.dev.roe.testobjects;
 
+import android.support.annotation.Nullable;
+
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
@@ -11,7 +13,7 @@ import audio.rabid.dev.roe.models.Source;
  * Created by charles on 10/30/15.
  */
 @DatabaseTable(tableName = "dummies")
-public class DummyObject extends IntegerKeyedNetworkResource<DummyObject> {
+public class DummyObject extends IntegerKeyedNetworkResource {
 
     public DummyObject() {
     }
@@ -48,6 +50,14 @@ public class DummyObject extends IntegerKeyedNetworkResource<DummyObject> {
 
     public DummyChild getChild() {
         return child;
+    }
+
+    public void save(@Nullable Source.OperationCallback<DummyObject> callback) {
+        getSource().createOrUpdate(this, callback);
+    }
+
+    public void delete(@Nullable Source.OperationCallback<DummyObject> callback) {
+        getSource().delete(this, callback);
     }
 
     @Override

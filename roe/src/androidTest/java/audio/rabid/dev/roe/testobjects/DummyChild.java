@@ -11,7 +11,7 @@ import audio.rabid.dev.roe.models.Source;
  * Created by charles on 10/30/15.
  */
 @DatabaseTable(tableName = "children")
-public class DummyChild extends IntegerKeyedNetworkResource<DummyChild> {
+public class DummyChild extends IntegerKeyedNetworkResource {
 
     @JSONField
     @DatabaseField

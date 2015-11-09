@@ -12,11 +12,16 @@ import audio.rabid.dev.roe.BackgroundThread;
 import audio.rabid.dev.roe.Synchronizer;
 import audio.rabid.dev.roe.testobjects.DummyObject;
 import audio.rabid.dev.roe.testobjects.DummyObjectSource;
+import audio.rabid.dev.roe.testobjects.GenericDatabase;
 
 /**
  * Created by charles on 11/2/15.
  */
 public class JSONTest extends AndroidTestCase {
+
+    public void setUp(){
+        GenericDatabase.getInstance(getContext()).clearDatabase();
+    }
 
     public void testJSONToQueryString() throws Exception {
 
@@ -56,11 +61,12 @@ public class JSONTest extends AndroidTestCase {
 
         final DummyObject o = new DummyObject("meow", 15, null);
 
-        JSONObject json = o.toJSON();
+        JSONObject json = DummyObjectSource.getInstance().toJSON(o);
 
         assertEquals("meow", json.getString("name"));
         assertEquals(15, json.getInt("age"));
-        assertFalse(json.has("createdAt"));
+        assertTrue(json.isNull("created_at"));
+        assertTrue(json.isNull("updated_at"));
         assertFalse(json.has("id"));
 
         new Synchronizer<DummyObject>() {
@@ -88,7 +94,7 @@ public class JSONTest extends AndroidTestCase {
             }
         }.blockUntilFinished();
 
-        json = o.toJSON();
+        json = DummyObjectSource.getInstance().toJSON(o);
 
         assertEquals("meow", json.getString("name"));
         assertEquals(15, json.getInt("age"));
@@ -107,7 +113,7 @@ public class JSONTest extends AndroidTestCase {
                 .put("created_at", DummyObjectSource.getInstance().getDateFormat().format(new Date()))
                 .put("updated_at", DummyObjectSource.getInstance().getDateFormat().format(new Date()));
 
-        boolean changed = o.updateFromJSON(data);
+        boolean changed = DummyObjectSource.getInstance().updateFromJSON(o, data);
 
         assertTrue(changed);
         assertEquals("meow", o.getName());
@@ -116,7 +122,7 @@ public class JSONTest extends AndroidTestCase {
         assertNull(o.createdAt);
         assertNull(o.updatedAt);
 
-        changed = o.updateFromJSON(data);
+        changed = DummyObjectSource.getInstance().updateFromJSON(o, data);
         assertFalse(changed);
     }
 }

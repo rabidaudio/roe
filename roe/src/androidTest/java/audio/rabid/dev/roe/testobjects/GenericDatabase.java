@@ -10,6 +10,9 @@ import com.j256.ormlite.table.TableUtils;
 
 import java.sql.SQLException;
 
+import audio.rabid.dev.roe.models.DeletedResource;
+import audio.rabid.dev.roe.models.UnsyncedResource;
+
 /**
  * Created by charles on 10/30/15.
  */
@@ -35,6 +38,9 @@ public class GenericDatabase extends OrmLiteSqliteOpenHelper {
             TableUtils.clearTable(getConnectionSource(), DummyObject.class);
             TableUtils.clearTable(getConnectionSource(), DummyChild.class);
             TableUtils.clearTable(getConnectionSource(), NoNetworkResource.class);
+
+            TableUtils.clearTable(getConnectionSource(), DeletedResource.class);
+            TableUtils.clearTable(getConnectionSource(), UnsyncedResource.class);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -42,14 +48,6 @@ public class GenericDatabase extends OrmLiteSqliteOpenHelper {
 
     private GenericDatabase(Context context) {
         super(context, "simple.db", null, VERSION);
-    }
-
-    public static Dao getDaoOrThrow(Class clazz) {
-        try {
-            return getInstance().getDao(clazz);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @Override

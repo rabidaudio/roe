@@ -32,7 +32,7 @@ import java.util.Observer;
  *
  * @see Observer
  */
-public class TypedObservable<T extends TypedObservable> {
+public class TypedObservable<T extends Resource> {
 
     List<TypedObserver<T>> observers = new ArrayList<>();
 
@@ -106,24 +106,11 @@ public class TypedObservable<T extends TypedObservable> {
 
     /**
      * If {@code hasChanged()} returns {@code true}, calls the {@code update()}
-     * method for every observer in the list of observers using null as the
-     * argument. Afterwards, calls {@code clearChanged()}.
-     *
-     * Equivalent to calling {@code notifyObservers(null)}.
-     */
-    public void notifyObservers() {
-        notifyObservers(null);
-    }
-
-    /**
-     * If {@code hasChanged()} returns {@code true}, calls the {@code update()}
      * method for every Observer in the list of observers using the specified
-     * argument. Afterwards calls {@code clearChanged()}.
-     *
-     * @param data the argument passed to {@code update()}.
+     * argument. Afterwards calls {@code clearChanged()}..
      */
     @SuppressWarnings("unchecked")
-    public void notifyObservers(Object data) {
+    public void notifyObservers(T item, boolean deleted) {
         int size = 0;
         TypedObserver<T>[] arrays = null;
         synchronized (this) {
@@ -136,7 +123,7 @@ public class TypedObservable<T extends TypedObservable> {
         }
         if (arrays != null) {
             for (TypedObserver<T> observer : arrays) {
-                observer.update((T) this, data);
+                observer.update(item, deleted);
             }
         }
     }

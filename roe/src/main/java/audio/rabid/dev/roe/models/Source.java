@@ -2,21 +2,31 @@ package audio.rabid.dev.roe.models;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.dao.Dao;
-import com.j256.ormlite.support.ConnectionSource;
+import com.j256.ormlite.field.DatabaseField;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.FieldPosition;
+import java.text.ParseException;
 import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import audio.rabid.dev.roe.BackgroundThread;
-import audio.rabid.dev.roe.models.cache.GenericKeyResourceCache;
+import audio.rabid.dev.roe.models.cache.MapResourceCache;
 import audio.rabid.dev.roe.models.cache.ResourceCache;
 
 /**
@@ -31,12 +41,34 @@ import audio.rabid.dev.roe.models.cache.ResourceCache;
  * This will handle running operations in the background and returning on main.
  * </p>
  */
-public class Source<R extends Resource<R, LK>, LK> {
+public class Source<R extends Resource<LK>, LK> {
 
     private Dao<R, LK> dao;
     private ResourceCache<R, LK> resourceCache;
     private PermissionsManager<R> permissions;
     private DateFormat dateFormat;
+
+    private Map<String, Field> jsonFields;
+
+    private Map<R, TypedObservable<R>> observers = new HashMap<>();
+
+    protected TypedObservable<R> getObservable(R item) {
+        TypedObservable<R> o = observers.get(item);
+        if (o == null) {
+            o = new TypedObservable<>();
+            observers.put(item, o);
+        }
+        return o;
+    }
+
+    public void addObserver(R item, TypedObserver<R> observer) {
+        getObservable(item).addObserver(observer);
+    }
+
+    protected void notifyObservers(R item, boolean delted) {
+        getObservable(item).notifyObservers(item, delted);
+    }
+
 
     /**
      * Create a new Source
@@ -52,7 +84,7 @@ public class Source<R extends Resource<R, LK>, LK> {
                   @Nullable DateFormat dateFormat) {
         this.dao = dao;
         if (resourceCache == null) {
-            this.resourceCache = new GenericKeyResourceCache<>(50);
+            this.resourceCache = new MapResourceCache<>(50);
         } else {
             this.resourceCache = resourceCache;
         }
@@ -85,7 +117,7 @@ public class Source<R extends Resource<R, LK>, LK> {
         }
     }
 
-    public static class Builder<T extends Resource<T, K>, K> {
+    public static class Builder<T extends Resource<K>, K> {
         Dao<T, K> dao;
         ResourceCache<T, K> resourceCache;
         PermissionsManager<T> permissionsManager = new SimplePermissionsManager<T>().all();
@@ -311,24 +343,23 @@ public class Source<R extends Resource<R, LK>, LK> {
             public void run() {
                 try {
                     synchronized (resource) {
-                        resource.createdAt = resource.updatedAt = new Date();
                         onBeforeCreated(resource);
                         dao.create(resource);
-                        resource.setChanged();
+                        getObservable(resource).setChanged();
                     }
                     resourceCache.put(resource);
                 } catch (SQLException e) {
                     onSQLException(e);
                 }
-                if(callback!=null) {
-                    BackgroundThread.postMain(new Runnable() {
-                        @Override
-                        public void run() {
+                BackgroundThread.postMain(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (callback != null) {
                             callback.onResult(resource);
-                            resource.notifyObservers();
                         }
-                    });
-                }
+                        notifyObservers(resource, false);
+                    }
+                });
                 onAfterCreated(resource);
             }
         });
@@ -351,23 +382,22 @@ public class Source<R extends Resource<R, LK>, LK> {
                 });
                 try {
                     synchronized (resource) {
-                        resource.updatedAt = new Date();
                         onBeforeUpdated(resource);
                         dao.update(resource);
-                        resource.setChanged();
+                        getObservable(resource).setChanged();
                     }
                 } catch (SQLException e) {
                     onSQLException(e);
                 }
-                if (callback != null) {
-                    BackgroundThread.postMain(new Runnable() {
-                        @Override
-                        public void run() {
+                BackgroundThread.postMain(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (callback != null) {
                             callback.onResult(resource);
-                            resource.notifyObservers();
                         }
-                    });
-                }
+                        notifyObservers(resource, false);
+                    }
+                });
                 onAfterUpdated(resource);
             }
         });
@@ -391,25 +421,175 @@ public class Source<R extends Resource<R, LK>, LK> {
                     dao.delete(resource);
                     resourceCache.delete(resource);
                     synchronized (resource) {
-                        resource.deleted = true;
-                        resource.setChanged();
+//                        resource.deleted = true;
+                        getObservable(resource).setChanged();
                     }
                 } catch (SQLException e) {
                     onSQLException(e);
                 }
-                if (callback != null) {
-                    BackgroundThread.postMain(new Runnable() {
-                        @Override
-                        public void run() {
+                BackgroundThread.postMain(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (callback != null) {
                             callback.onResult(resource);
-                            resource.notifyObservers();
                         }
-                    });
-                }
+                        notifyObservers(resource, true);
+                    }
+                });
                 onAfterDeleted(resource);
             }
         });
     }
+
+
+    /**
+     * This method uses reflection by default, using the {@link JSONField} annotation. Override to
+     * customize the json output of your Resource.
+     */
+    public JSONObject toJSON(R item) throws JSONException {
+        JSONObject object = new JSONObject();
+
+        for (Map.Entry<String, Field> f : getJSONFields().entrySet()) {
+            Field field = f.getValue();
+            JSONField jsonField = field.getAnnotation(JSONField.class);
+            DatabaseField dbf = f.getValue().getAnnotation(DatabaseField.class);
+            try {
+                field.setAccessible(true);
+                if (jsonField.export()) {
+                    Object value;
+                    if (field.getType().isAssignableFrom(Date.class)) {
+                        //dates
+                        if (field.get(item) == null) {
+                            value = JSONObject.NULL; //explicit null value
+                        } else {
+                            value = getDateFormat().format((Date) field.get(item));
+                        }
+                    } else if (dbf != null && dbf.foreign()) {
+                        //foreign fields
+                        Resource r = (Resource) field.get(item);
+                        if (r != null && r.getId() != null) {
+                            value = r.getId();
+                        } else {
+                            value = JSONObject.NULL; //explicit null value
+                        }
+                    } else {
+                        value = field.get(item);
+                    }
+                    object.put(f.getKey(), value);
+                }
+            } catch (Exception e) {
+                throw new JSONException(e.getMessage());
+            } finally {
+                field.setAccessible(false);
+            }
+        }
+        return object;
+    }
+
+    protected Map<String, Field> getJSONFields() {
+        if (jsonFields == null) {
+            jsonFields = new HashMap<>();
+            for (Class<?> classWalk = getDataClass(); classWalk != null; classWalk = classWalk.getSuperclass()) {
+                for (Field field : classWalk.getDeclaredFields()) {
+                    JSONField jsonField = field.getAnnotation(JSONField.class);
+                    if (jsonField != null && (jsonField.accept() || jsonField.export())) {
+                        String key = jsonField.key();
+                        if (key == null || key.isEmpty()) {
+                            key = field.getName();
+                        }
+                        if (jsonFields.get(key) == null) { //subclassed keys override superclass keys
+                            jsonFields.put(key, field);
+                        }
+                    }
+                }
+            }
+        }
+        return jsonFields;
+    }
+
+    protected Field getIdField(){
+        for (Class<?> classWalk = getDataClass(); classWalk != null; classWalk = classWalk.getSuperclass()) {
+            for (Field field : classWalk.getDeclaredFields()) {
+                DatabaseField databaseField = field.getAnnotation(DatabaseField.class);
+                if (databaseField != null && (databaseField.generatedId()||databaseField.id()|| !databaseField.generatedIdSequence().equals(""))) {
+                    return field;
+                }
+            }
+        }
+        return null;
+    }
+
+    protected String getIdFieldKey(){
+        Field f = getIdField();
+        DatabaseField d = f.getAnnotation(DatabaseField.class);
+        if(d != null && !d.columnName().isEmpty()){
+            return d.columnName();
+        }else{
+            return f.getName();
+        }
+    }
+
+    /**
+     * Set values from a JSON object. If you override this method, be sure to mark it as synchronized
+     * to make its changes thread-safe. Also DO NOT save the object after populating values, as that
+     * is handled by the {@link Source}. Don't set createdAt or updatedAt either.
+     *
+     * @return true if any of the fields changed, or false if the object is exactly the same as before
+     */
+    public synchronized boolean updateFromJSON(R item, JSONObject data) throws JSONException {
+        boolean updated = false;
+        Iterator<String> keys = data.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            Object value = data.get(key);
+            Field f = getJSONFields().get(key);
+            if (f != null) {
+                JSONField jsonField = f.getAnnotation(JSONField.class);
+                try {
+                    if (value != null && jsonField.accept()) {
+                        DatabaseField dbf = f.getAnnotation(DatabaseField.class);
+                        f.setAccessible(true);
+                        if (f.getType().isAssignableFrom(Date.class)) {
+                            try {
+                                Date newDate = getDateFormat().parse((String) value);
+                                if (newDate != null &&
+                                        (f.get(item) == null || ((Date) f.get(item)).getTime() != newDate.getTime())) {
+                                    f.set(item, newDate);
+                                    updated = true;
+                                }
+                            } catch (ParseException e) {
+                                throw new JSONException(e.getMessage());
+                            }
+                        } else if (dbf != null && dbf.foreign()) {
+                            //TODO how to populate children?
+                            Log.w("JSON", "Didn't populate relation " + f.getName());
+                        } else {
+                            if (f.get(item) == null || !f.get(item).equals(value)) {
+                                try {
+                                    if (value.equals(JSONObject.NULL)) {
+                                        f.set(item, null);
+                                    } else {
+                                        f.set(item, value);
+                                    }
+                                    updated = true;
+                                } catch (Exception e) {
+                                    throw new JSONException(String.format(
+                                            "Couldn't figure out how to map '%s' to field '%s' on %s",
+                                            String.valueOf(value), key, getClass().toString()));
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    throw new JSONException(e.getMessage());
+                } finally {
+                    f.setAccessible(false);
+                }
+            }
+        }
+        return updated;
+    }
+
 
     /**
      * The general callback for operations done by {@link Source} in the background. Result could be

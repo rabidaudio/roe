@@ -1,6 +1,5 @@
 package audio.rabid.dev.roe;
 
-import audio.rabid.dev.roe.models.TypedObservable;
 import audio.rabid.dev.roe.models.TypedObserver;
 
 /**
@@ -8,15 +7,18 @@ import audio.rabid.dev.roe.models.TypedObserver;
  *
  * A simple observable which detects changes in an object.
  */
-public class ChangeDetectorObserver<T extends TypedObservable> implements TypedObserver<T> {
+public class ChangeDetectorObserver<T> implements TypedObserver<T> {
 
     private int seenChanges = 0;
 
     private Thread callingThread;
 
+    private boolean deleted;
+
     @Override
-    public synchronized void update(T observable, Object data) {
+    public synchronized void update(T observable, boolean deleted) {
         seenChanges++;
+        this.deleted = deleted;
         callingThread = Thread.currentThread();
     }
 
@@ -35,6 +37,10 @@ public class ChangeDetectorObserver<T extends TypedObservable> implements TypedO
 
     public synchronized int seenChanges(){
         return seenChanges;
+    }
+
+    public synchronized boolean wasDeleted() {
+        return deleted;
     }
 
     public synchronized Thread getCallingThread(){

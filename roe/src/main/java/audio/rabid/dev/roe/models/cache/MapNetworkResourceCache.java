@@ -11,11 +11,11 @@ import audio.rabid.dev.roe.models.NetworkResource;
  * <p/>
  * A simple implementation of a {@link ResourceCache} which just uses a {@link SparseArray}.
  */
-public class GenericKeyNetworkResourceCache<R extends NetworkResource<R, LK, SK>, LK, SK> extends GenericKeyResourceCache<R, LK> implements NetworkResourceCache<R, LK, SK> {
+public class MapNetworkResourceCache<R extends NetworkResource<LK,SK>, LK, SK> extends MapResourceCache<R, LK> implements NetworkResourceCache<R, LK, SK> {
 
     private final HashMap<SK, LK> serverLocalIDMap;
 
-    public GenericKeyNetworkResourceCache(int initialSize) {
+    public MapNetworkResourceCache(int initialSize) {
         super(initialSize);
         serverLocalIDMap = new HashMap<>(initialSize);
     }

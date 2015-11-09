@@ -10,7 +10,7 @@ package audio.rabid.dev.roe.models;
  * @see SimplePermissionsManager
  * @see Source#getPermissions()
  */
-public abstract class PermissionsManager<T extends Resource> {
+public abstract class PermissionsManager<T> {
 
     public boolean canRead(T object) {
         return can(Op.READ, object);
@@ -41,7 +41,7 @@ public abstract class PermissionsManager<T extends Resource> {
     public abstract boolean can(Op permission, T object);
 
     public static class PermissionDeniedException extends IllegalStateException {
-        private PermissionDeniedException(Op op, Resource resource){
+        private PermissionDeniedException(Op op, Object resource) {
             super("Permission "+op.name()+" denied to "+resource.toString());
         }
     }

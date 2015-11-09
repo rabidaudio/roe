@@ -5,7 +5,7 @@ import com.j256.ormlite.field.DatabaseField;
 /**
  * Created by charles on 11/5/15.
  */
-public abstract class IntegerKeyedResource<R extends IntegerKeyedResource<R>> extends Resource<R, Integer> {
+public abstract class IntegerKeyedResource<R extends IntegerKeyedResource<R>> implements Resource<Integer> {
 
     @DatabaseField(generatedId = true)
     @JSONField(export = false, accept = false)

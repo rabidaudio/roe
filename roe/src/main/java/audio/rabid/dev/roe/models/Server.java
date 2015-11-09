@@ -33,7 +33,7 @@ public abstract class Server {
 
     private String rootURL;
 
-    private int timeout = 10 * 1000;
+    private int timeout = 1000;
 
     /**
      * Available HTTP verbs
@@ -92,27 +92,16 @@ public abstract class Server {
         //default: no-op
     }
 
-    public abstract Response getItem(Class<?> clazz, String serverId) throws NetworkException;
+    public abstract JSONObject getItem(Class<?> clazz, String serverId) throws NetworkException;
 
-    public abstract Response createItem(Class<?> clazz, JSONObject item) throws NetworkException;
+    public abstract JSONObject createItem(Class<?> clazz, JSONObject item) throws NetworkException;
 
-    public abstract Response getItems(Class<?> clazz, JSONObject search) throws NetworkException;
+    public abstract List<JSONObject> getItems(Class<?> clazz, JSONObject search) throws NetworkException;
 
-    public abstract Response updateItem(Class<?> clazz, String serverId, JSONObject data) throws NetworkException;
+    public abstract JSONObject updateItem(Class<?> clazz, String serverId, JSONObject data) throws NetworkException;
 
-    public abstract Response deleteItem(Class<?> clazz, String serverId) throws NetworkException;
+    public abstract JSONObject deleteItem(Class<?> clazz, String serverId) throws NetworkException;
 
-    public abstract boolean isErrorResponse(Response response);
-
-//    public abstract Response getItems(JSONObject searchQ)
-
-    /**
-     * @param endpoint
-     * @param method
-     * @param payload
-     * @return
-     * @throws NetworkException
-     */
     public final Response request(String endpoint, Method method, @Nullable JSONObject payload) throws NetworkException {
         URL url = null;
         try {
@@ -141,7 +130,7 @@ public abstract class Server {
                 }
             }
 
-//            connection.setReadTimeout(timeout);
+            connection.setReadTimeout(timeout);
             int responseCode = connection.getResponseCode();
 
 
@@ -236,11 +225,19 @@ public abstract class Server {
         public Map<String, List<String>> getHeaders() {
             return headers;
         }
+
+        public String toString() {
+            return String.format("[%d]: %s", responseCode, responseBody == null ? "null" : responseBody.toString());
+        }
     }
 
     public static class NetworkException extends Exception {
         public NetworkException(Throwable e) {
             super(e);
+        }
+
+        public NetworkException(Response failedResponse) {
+            super("Error response received: " + failedResponse.toString());
         }
     }
 }
