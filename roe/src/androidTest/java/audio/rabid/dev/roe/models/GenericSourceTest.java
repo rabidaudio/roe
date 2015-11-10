@@ -543,7 +543,7 @@ public class GenericSourceTest extends AndroidTestCase {
         NoNetworkResource r = new Synchronizer<NoNetworkResource>() {
             @Override
             public void run() {
-                NoNetworkResource.SOURCE.find(resource.getId(), new Source.OperationCallback<NoNetworkResource>() {
+                NoNetworkResource.MySource.find(resource.getId(), new Source.OperationCallback<NoNetworkResource>() {
                     @Override
                     public void onResult(@Nullable NoNetworkResource result) {
                         setResult(result);

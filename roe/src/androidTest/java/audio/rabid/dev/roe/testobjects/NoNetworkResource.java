@@ -35,11 +35,9 @@ public class NoNetworkResource implements Resource<Integer> {
         return id == null;
     }
 
-    public static final Source<NoNetworkResource, Integer> SOURCE = new Source.Builder<>(GenericDatabase.getInstance(), NoNetworkResource.class).build();
-
     @Override
     public Source<NoNetworkResource, Integer> getSource() {
-        return SOURCE;
+        return MySource;
     }
 
     public void save(@Nullable Source.OperationCallback<NoNetworkResource> callback) {
@@ -49,5 +47,7 @@ public class NoNetworkResource implements Resource<Integer> {
     public void delete(@Nullable Source.OperationCallback<NoNetworkResource> callback) {
         getSource().delete(this, callback);
     }
+
+    public static Source<NoNetworkResource, Integer> MySource = new Source<>(GenericDatabase.getInstance(), NoNetworkResource.class);
 }
 

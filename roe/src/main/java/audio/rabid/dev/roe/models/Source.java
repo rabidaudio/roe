@@ -4,14 +4,12 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DatabaseField;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.text.DateFormat;
@@ -27,8 +25,8 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 import audio.rabid.dev.roe.BackgroundThread;
-import audio.rabid.dev.roe.models.cache.WeakMapResourceCache;
 import audio.rabid.dev.roe.models.cache.ResourceCache;
+import audio.rabid.dev.roe.models.cache.WeakMapResourceCache;
 
 /**
  * Created by charles on 10/28/15.
@@ -45,6 +43,7 @@ import audio.rabid.dev.roe.models.cache.ResourceCache;
 public class Source<R extends Resource<LK>, LK> {
 
     private Dao<R, LK> dao;
+    private Class<R> rClass;
     private ResourceCache<R, LK> resourceCache;
     private PermissionsManager<R> permissions;
     private DateFormat dateFormat;
@@ -66,24 +65,29 @@ public class Source<R extends Resource<LK>, LK> {
         getObservable(item).addObserver(observer);
     }
 
-    protected void notifyObservers(R item, boolean delted) {
-        getObservable(item).notifyObservers(item, delted);
+    protected void notifyObservers(R item, boolean deleted) {
+        getObservable(item).notifyObservers(item, deleted);
     }
 
 
     /**
      * Create a new Source
      *
-     * @param dao             the dao instance to use for database operations
+     * @param roeDatabase        the databas instance to use for database operations
      * @param resourceCache   the cache to use for keeping instances consistent
      * @param permissions     the operations allowed to be done on the resource
      * @param dateFormat      the formatter used to map dates to json (defaults to unix timestamp)
      */
-    public Source(@NonNull Dao<R, LK> dao,
+    public Source(@NonNull RoeDatabase roeDatabase, @NonNull Class<R> rClass,
                   @Nullable ResourceCache<R, LK> resourceCache,
                   @Nullable PermissionsManager<R> permissions,
                   @Nullable DateFormat dateFormat) {
-        this.dao = dao;
+        try {
+            this.dao = roeDatabase.getDao(rClass);
+        } catch (SQLException e) {
+            onSQLException(e);
+        }
+        this.rClass = rClass;
         if (resourceCache == null) {
             this.resourceCache = new WeakMapResourceCache<>(50);
         } else {
@@ -118,65 +122,9 @@ public class Source<R extends Resource<LK>, LK> {
         }
     }
 
-    public static class Builder<T extends Resource<K>, K> {
-        Dao<T, K> dao;
-        ResourceCache<T, K> resourceCache;
-        PermissionsManager<T> permissionsManager = new SimplePermissionsManager<T>().all();
-        DateFormat dateFormat;
-
-        public Builder() {
-
-        }
-
-        public Builder(OrmLiteSqliteOpenHelper database, Class<T> tClass) {
-            setDatabase(database, tClass);
-        }
-
-        public Builder(Dao<T, K> dao) {
-            setDao(dao);
-        }
-
-        public Builder<T, K> setDatabase(@NonNull OrmLiteSqliteOpenHelper database, Class<T> tClass) {
-            try {
-                this.dao = database.getDao(tClass);
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-            return this;
-        }
-
-        public Builder<T, K> setDao(@NonNull Dao<T, K> dao) {
-            this.dao = dao;
-            return this;
-        }
-
-        public Builder<T, K> setPermissionsManager(PermissionsManager<T> permissionsManager) {
-            this.permissionsManager = permissionsManager;
-            return this;
-        }
-
-        public Builder<T, K> setPermissions(Op... allowedOps) {
-            this.permissionsManager = new SimplePermissionsManager<>(allowedOps);
-            return this;
-        }
-
-        public Builder<T, K> setResourceCache(ResourceCache<T, K> resourceCache) {
-            this.resourceCache = resourceCache;
-            return this;
-        }
-
-        public Builder<T, K> setDateFormat(DateFormat dateFormat) {
-            this.dateFormat = dateFormat;
-            return this;
-        }
-
-        public Source<T, K> build() {
-            if (dao == null)
-                throw new IllegalArgumentException("Must supply either a Dao or a Database instance");
-            return new Source<>(dao, resourceCache, permissionsManager, dateFormat);
-        }
+    public Source(@NonNull RoeDatabase roeDatabase, @NonNull Class<R> rClass) {
+        this(roeDatabase, rClass, null, null, null);
     }
-
 
     /**
      * Return the {@link Dao} used for database operations. You shouldn't need to access this, as
@@ -215,7 +163,7 @@ public class Source<R extends Resource<LK>, LK> {
     }
 
     public Class<R> getDataClass() {
-        return dao.getDataClass();
+        return rClass;
     }
 
 
@@ -562,6 +510,7 @@ public class Source<R extends Resource<LK>, LK> {
                                 throw new JSONException(e.getMessage());
                             }
                         } else if (dbf != null && dbf.foreign()) {
+
                             //TODO how to populate children?
                             Log.w("JSON", "Didn't populate relation " + f.getName());
                         } else {

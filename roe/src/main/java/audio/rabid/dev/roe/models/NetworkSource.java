@@ -3,11 +3,8 @@ package audio.rabid.dev.roe.models;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.dao.Dao;
-import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.field.DatabaseField;
-import com.j256.ormlite.table.TableUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -20,9 +17,9 @@ import java.util.Date;
 import java.util.List;
 
 import audio.rabid.dev.roe.BackgroundThread;
-import audio.rabid.dev.roe.models.cache.WeakMapNetworkResourceCache;
 import audio.rabid.dev.roe.models.cache.NetworkResourceCache;
 import audio.rabid.dev.roe.models.cache.ResourceCache;
+import audio.rabid.dev.roe.models.cache.WeakMapNetworkResourceCache;
 
 /**
  * Created by charles on 11/4/15.
@@ -39,97 +36,78 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
      * Create a new NetworkSource
      *
      * @param server          the server instance to use for network operations
-     * @param dao             the dao instance to use for database operations
+     * @param roeDatabase        the dao instance to use for database operations
      * @param permissions     the operations allowed to be done on the resource
      * @param dateFormat      the formatter used to map dates to json (defaults to unix timestamp)
      */
-    public NetworkSource(Server server, Dao<R, LK> dao,
+    public NetworkSource(Server server, @NonNull RoeDatabase roeDatabase, @NonNull Class<R> rClass,
                          @Nullable NetworkResourceCache<R, LK, SK> resourceCache,
                          @Nullable PermissionsManager<R> permissions, @Nullable DateFormat dateFormat) {
-        super(dao, resourceCache == null ? new WeakMapNetworkResourceCache<R, LK, SK>(50) : resourceCache, permissions, dateFormat);
+        super(roeDatabase, rClass, resourceCache == null ? new WeakMapNetworkResourceCache<R, LK, SK>(50) : resourceCache, permissions, dateFormat);
         this.server = server;
         this.networkResourceCache = (NetworkResourceCache<R, LK, SK>) getResourceCache();
 
         try {
-            TableUtils.createTableIfNotExists(dao.getConnectionSource(), DeletedResource.class);
-            deletedResourceDao = DaoManager.createDao(dao.getConnectionSource(), DeletedResource.class);
-
-            TableUtils.createTableIfNotExists(dao.getConnectionSource(), UnsyncedResource.class);
-            unsyncedResourceDao = DaoManager.createDao(dao.getConnectionSource(), UnsyncedResource.class);
+            deletedResourceDao = roeDatabase.getDao(DeletedResource.class);
+            unsyncedResourceDao = roeDatabase.getDao(UnsyncedResource.class);
         }catch (SQLException e){
             onSQLException(e);
         }
     }
 
-    public static class Builder<T extends NetworkResource<LK, SK>, LK, SK> {
-        Dao<T, LK> dao;
-        NetworkResourceCache<T, LK, SK> resourceCache;
-        PermissionsManager<T> permissionsManager = new SimplePermissionsManager<T>().all();
-        DateFormat dateFormat;
-        Server server;
-
-        public Builder() {
-
-        }
-
-        public Builder(OrmLiteSqliteOpenHelper database, Class<T> tClass, Server server) {
-            setDatabase(database, tClass);
-            setServer(server);
-        }
-
-        public Builder(Dao<T, LK> dao, Server server) {
-            setDao(dao);
-            setServer(server);
-        }
-
-        public Builder<T, LK, SK> setServer(Server server) {
-            this.server = server;
-            return this;
-        }
-
-        public Builder<T, LK, SK> setDatabase(@NonNull OrmLiteSqliteOpenHelper database, Class<T> tClass) {
-            try {
-                this.dao = database.getDao(tClass);
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-            return this;
-        }
-
-        public Builder<T, LK, SK> setDao(@NonNull Dao<T, LK> dao) {
-            this.dao = dao;
-            return this;
-        }
-
-        public Builder<T, LK, SK> setPermissionsManager(PermissionsManager<T> permissionsManager) {
-            this.permissionsManager = permissionsManager;
-            return this;
-        }
-
-        public Builder<T, LK, SK> setPermissions(Op... allowedOps) {
-            this.permissionsManager = new SimplePermissionsManager<>(allowedOps);
-            return this;
-        }
-
-        public Builder<T, LK, SK> setResourceCache(NetworkResourceCache<T, LK, SK> resourceCache) {
-            this.resourceCache = resourceCache;
-            return this;
-        }
-
-        public Builder<T, LK, SK> setDateFormat(DateFormat dateFormat) {
-            this.dateFormat = dateFormat;
-            return this;
-        }
-
-        public NetworkSource<T, LK, SK> build() {
-            if (dao == null)
-                throw new IllegalArgumentException("Must supply either a Dao or a Database instance");
-            if (server == null)
-                throw new IllegalArgumentException("Must supply a Server");
-
-            return new NetworkSource<>(server, dao, resourceCache, permissionsManager, dateFormat);
-        }
-    }
+//    public static class Builder<T extends NetworkResource<LK, SK>, LK, SK> {
+//        RoeDatabase roeDatabase;
+//        Class<T> tClass;
+//        NetworkResourceCache<T, LK, SK> resourceCache;
+//        PermissionsManager<T> permissionsManager = new SimplePermissionsManager<T>().all();
+//        DateFormat dateFormat;
+//        Server server;
+//
+//        public Builder(RoeDatabase roeDatabase, Class<T> tClass, Server server) {
+//            setDatabase(roeDatabase, tClass);
+//            setServer(server);
+//        }
+//
+//        public Builder<T, LK, SK> setServer(Server server) {
+//            this.server = server;
+//            return this;
+//        }
+//
+//        public Builder<T, LK, SK> setDatabase(@NonNull RoeDatabase roeDatabase, Class<T> tClass) {
+//            this.roeDatabase = roeDatabase;
+//            this.tClass = tClass;
+//            return this;
+//        }
+//
+//        public Builder<T, LK, SK> setPermissionsManager(PermissionsManager<T> permissionsManager) {
+//            this.permissionsManager = permissionsManager;
+//            return this;
+//        }
+//
+//        public Builder<T, LK, SK> setPermissions(Op... allowedOps) {
+//            this.permissionsManager = new SimplePermissionsManager<>(allowedOps);
+//            return this;
+//        }
+//
+//        public Builder<T, LK, SK> setResourceCache(NetworkResourceCache<T, LK, SK> resourceCache) {
+//            this.resourceCache = resourceCache;
+//            return this;
+//        }
+//
+//        public Builder<T, LK, SK> setDateFormat(DateFormat dateFormat) {
+//            this.dateFormat = dateFormat;
+//            return this;
+//        }
+//
+//        public NetworkSource<T, LK, SK> build() {
+//            if (roeDatabase == null)
+//                throw new IllegalArgumentException("Must supply a Database instance");
+//            if (server == null)
+//                throw new IllegalArgumentException("Must supply a Server");
+//
+//            return new NetworkSource<>(server, roeDatabase, tClass, resourceCache, permissionsManager, dateFormat);
+//        }
+//    }
 
     @Override
     protected void onBeforeCreated(R created) {

@@ -22,9 +22,8 @@ import audio.rabid.dev.sampleapp.SampleAppServer;
  */
 public class PostSource extends RailsSource<Post, Integer> {
 
-    @SuppressWarnings("unchecked")
     public PostSource() {
-        super(SampleAppServer.getInstance(), Database.getDaoOrThrow(Post.class), "posts", null);
+        super(SampleAppServer.getInstance(), Database.getInstance(), Post.class, "posts", null);
 
         //should be faster than reflection at creating new instances
         getDao().setObjectFactory(new ObjectFactory<Post>() {

@@ -3,20 +3,19 @@ package audio.rabid.dev.roe.testobjects;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 
-import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
-import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 
 import java.sql.SQLException;
 
 import audio.rabid.dev.roe.models.DeletedResource;
+import audio.rabid.dev.roe.models.RoeDatabase;
 import audio.rabid.dev.roe.models.UnsyncedResource;
 
 /**
  * Created by charles on 10/30/15.
  */
-public class GenericDatabase extends OrmLiteSqliteOpenHelper {
+public class GenericDatabase extends RoeDatabase {
 
     private static GenericDatabase instance;
 
@@ -52,6 +51,7 @@ public class GenericDatabase extends OrmLiteSqliteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase database, ConnectionSource connectionSource) {
+        super.onCreate(database, connectionSource);
         try {
             TableUtils.createTable(connectionSource, DummyObject.class);
             TableUtils.createTable(connectionSource, DummyChild.class);

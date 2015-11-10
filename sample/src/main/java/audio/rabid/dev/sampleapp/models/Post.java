@@ -2,32 +2,18 @@ package audio.rabid.dev.sampleapp.models;
 
 import android.support.annotation.Nullable;
 
-import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import java.util.concurrent.Callable;
-
 import audio.rabid.dev.roe.models.IntegerKeyedNetworkResource;
 import audio.rabid.dev.roe.models.JSONField;
-import audio.rabid.dev.roe.models.NetworkResource;
-import audio.rabid.dev.roe.models.Resource;
 import audio.rabid.dev.roe.models.Source;
-import audio.rabid.dev.sampleapp.Database;
 
 /**
  * Created by charles on 10/25/15.
  */
 @DatabaseTable(tableName = "posts")
 public class Post extends IntegerKeyedNetworkResource {
-
-    @SuppressWarnings("unchecked")
-    public static final PostSource Source = new PostSource();
-
-    @Override
-    public Source<Post, Integer> getSource() {
-        return Source;
-    }
 
     @JSONField
     @DatabaseField
@@ -47,6 +33,13 @@ public class Post extends IntegerKeyedNetworkResource {
 
     @DatabaseField(foreign = true, foreignAutoRefresh = true)
     private Author author;
+
+    public static PostSource Source = new PostSource();
+
+    @Override
+    public Source<Post, Integer> getSource() {
+        return Source;
+    }
 
     public String getTitle() {
         return title;
