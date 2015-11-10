@@ -16,7 +16,5 @@ public interface NetworkResource<LK, SK> extends Resource<LK> {
      */
     SK getServerId();
 
-    boolean isOnServer();
-
-    LK localIdFromString(String localIdString);
+    boolean hasServerId();
 }

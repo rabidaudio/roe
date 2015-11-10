@@ -12,9 +12,13 @@ public interface ResourceCache<R, LK> {
 
     R put(R object);
 
-    R putIfMissing(R object);
+//    R putIfMissing(R object);
 
     R delete(R object);
+
+    void clear();
+
+    int size();
 
     CacheResult<R> get(LK id, CacheMissCallback<R, LK> cacheMissCallback);
 

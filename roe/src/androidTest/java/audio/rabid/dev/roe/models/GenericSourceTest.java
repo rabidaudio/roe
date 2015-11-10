@@ -13,7 +13,7 @@ import java.util.List;
 import audio.rabid.dev.roe.BackgroundThread;
 import audio.rabid.dev.roe.ChangeDetectorObserver;
 import audio.rabid.dev.roe.Synchronizer;
-import audio.rabid.dev.roe.models.cache.MapNetworkResourceCache;
+import audio.rabid.dev.roe.models.cache.WeakMapNetworkResourceCache;
 import audio.rabid.dev.roe.testobjects.DummyObject;
 import audio.rabid.dev.roe.testobjects.DummyObjectMockServer;
 import audio.rabid.dev.roe.testobjects.DummyObjectSource;
@@ -33,6 +33,7 @@ public class GenericSourceTest extends AndroidTestCase {
         DummyObjectSource.getInstance().clearCreateCompleted();
         DummyObjectSource.getInstance().clearUpdateCompleted();
         DummyObjectSource.getInstance().clearDeleteCompleted();
+        DummyObjectSource.getInstance().clearCache();
     }
 
     /**
@@ -45,7 +46,7 @@ public class GenericSourceTest extends AndroidTestCase {
 
         assertNull("new object should not have a local id", d.getId());
         assertNull("new object should not have a server id", d.getServerId());
-        assertFalse("new object should not be synced", d.isOnServer());
+        assertFalse("new object should not be synced", d.hasServerId());
         assertTrue("new object should be new", d.isNew());
 
         //CREATE
@@ -80,7 +81,7 @@ public class GenericSourceTest extends AndroidTestCase {
             }
         }.blockUntilFinished();
         assertEquals("server should have seen create", serverCreateCount + 1, DummyObjectMockServer.getInstance().createCount);
-        assertTrue("saved object should be synced", saveResult.isOnServer());
+        assertTrue("saved object should be synced", saveResult.hasServerId());
         assertNotNull("saved object should have a server id", saveResult.getServerId());
 
         //READ
@@ -178,10 +179,10 @@ public class GenericSourceTest extends AndroidTestCase {
 
         assertNull("new object should not have a local id", d.getId());
         assertNull("new object should not have a server id", d.getServerId());
-        assertFalse("new object should not be synced", d.isOnServer());
+        assertFalse("new object should not be synced", d.hasServerId());
         assertTrue("new object should be new", d.isNew());
 
-        MapNetworkResourceCache cache = (MapNetworkResourceCache)DummyObjectSource.getInstance().getResourceCache();
+        WeakMapNetworkResourceCache cache = (WeakMapNetworkResourceCache)DummyObjectSource.getInstance().getResourceCache();
 
         Dao<UnsyncedResource, Integer> unsyncedResourceDao = GenericDatabase.getInstance().getDao(UnsyncedResource.class);
         Dao<DeletedResource, Integer> deletedResourceDao = GenericDatabase.getInstance().getDao(DeletedResource.class);
@@ -221,7 +222,7 @@ public class GenericSourceTest extends AndroidTestCase {
         assertNotNull("saved object should be returned in callback", result);
         assertNotNull("saved object should have a local id", result.getId());
         assertNull("saved object should NOT have a server id", result.getServerId());
-        assertFalse("saved object should NOT be synced", result.isOnServer());
+        assertFalse("saved object should NOT be synced", result.hasServerId());
         assertEquals("saved object should be the same instance", d, result);
         assertNotNull("item should be in database", DummyObjectSource.getInstance().getDao().queryForId(d.getId()));
         assertEquals("item should be in unsynced table", 1, unsyncedResourceDao.countOf());
@@ -277,7 +278,7 @@ public class GenericSourceTest extends AndroidTestCase {
 
         assertNotNull("updated object should be returned in callback", result);
         assertNull("saved object should NOT have a server id", result.getServerId());
-        assertFalse("saved object should NOT be synced", result.isOnServer());
+        assertFalse("saved object should NOT be synced", result.hasServerId());
         assertEquals("updated object should have the same local id", d.getId(), result.getId());
         assertEquals("updated object should have the new values", 10, result.getAge());
         assertEquals("updated object should be the same instance", d, result);
@@ -303,7 +304,7 @@ public class GenericSourceTest extends AndroidTestCase {
         }.blockUntilFinished();
 
         assertEquals("synced list should be empty", 0, synced.size());
-        assertFalse("the item should not be marked as synced", d.isOnServer());
+        assertFalse("the item should not be marked as synced", d.hasServerId());
         assertEquals("the new update time should be the same as the old one", prevUpdateTime, d.getUpdatedAt().getTime());
         assertEquals("object cache should be 1", 1, cache.size());
         assertEquals("item should still be in unsynced table", 1, unsyncedResourceDao.countOf());
@@ -324,7 +325,7 @@ public class GenericSourceTest extends AndroidTestCase {
             }
         }.blockUntilFinished();
 
-        assertTrue("the item should be marked as synced", d.isOnServer());
+        assertTrue("the item should be marked as synced", d.hasServerId());
         assertNotNull("the item should have a server id", d.getServerId());
         assertEquals("synced list should have one item", 1, synced.size());
         assertEquals("synced list object should be the same", d, synced.get(0));
@@ -440,7 +441,7 @@ public class GenericSourceTest extends AndroidTestCase {
                 });
             }
         }.blockUntilFinished();
-        assertTrue(object.isOnServer());
+        assertTrue(object.hasServerId());
 
         //turn off network
         DummyObjectMockServer.getInstance().setNetworkAvailable(false);
@@ -584,6 +585,73 @@ public class GenericSourceTest extends AndroidTestCase {
         }.blockUntilFinished();
 
         assertEquals("deleting locally should not have created a deleted resoure row", 0, GenericDatabase.getInstance().getDao(DeletedResource.class).countOf());
+    }
+
+    public void testFetchingSingleFromNetwork() throws Exception {
+        assertEquals("There should be no items at start", 0, GenericDatabase.getInstance().getDao(DummyObject.class).countOf());
+
+        int readCount = DummyObjectMockServer.getInstance().readCount;
+        DummyObject o = new Synchronizer<DummyObject>() {
+            /**
+             * Starts executing the active part of the class' code. This method is
+             * called when a thread is started that has been created with a class which
+             * implements {@code Runnable}.
+             */
+            @Override
+            public void run() {
+                DummyObjectSource.getInstance().findByServerId(5, new Source.OperationCallback<DummyObject>() {
+                    @Override
+                    public void onResult(@Nullable DummyObject result) {
+                        setResult(result);
+                    }
+                });
+            }
+        }.blockUntilFinished();
+
+        assertEquals("server should be hit", readCount+1, DummyObjectMockServer.getInstance().readCount);
+        assertNotNull("an object should be returned", o);
+        assertTrue("object should have server presence", o.hasServerId());
+        assertEquals("object should have the right server id", Integer.valueOf(5), o.getServerId());
+        assertNotNull("object should have local id", o.getId());
+        assertFalse("object should not be new", o.isNew());
+        assertEquals("object should have proper values", "dummy5", o.getName());
+        assertEquals("database object should exist", 1, GenericDatabase.getInstance().getDao(DummyObject.class).countOf());
+        assertEquals("object should be cached", 1, ((WeakMapNetworkResourceCache)DummyObjectSource.getInstance().getResourceCache()).size());
+    }
+
+    public void testFetchingManyFromNetwork() throws Exception {
+        assertEquals("There should be no items at start", 0, GenericDatabase.getInstance().getDao(DummyObject.class).countOf());
+
+        int readCount = DummyObjectMockServer.getInstance().readCount;
+        List<DummyObject> objects = new Synchronizer<List<DummyObject>>() {
+            /**
+             * Starts executing the active part of the class' code. This method is
+             * called when a thread is started that has been created with a class which
+             * implements {@code Runnable}.
+             */
+            @Override
+            public void run() {
+                DummyObjectSource.getInstance().getManyFromNetwork(null, new Source.OperationCallback<List<DummyObject>>() {
+                    @Override
+                    public void onResult(@Nullable List<DummyObject> result) {
+                        setResult(result);
+                    }
+                });
+            }
+        }.blockUntilFinished();
+
+        assertFalse("some items should be returned", objects.isEmpty());
+        int count = objects.size();
+        assertEquals("server should be hit", readCount + count, DummyObjectMockServer.getInstance().readCount);
+        for(DummyObject o : objects) {
+            assertTrue("object should have server presence", o.hasServerId());
+            assertNotNull("object should have a server id", o.getServerId());
+            assertNotNull("object should have local id", o.getId());
+            assertFalse("object should not be new", o.isNew());
+            assertTrue("object should have proper values", o.getName().matches("dummy[0-9]+"));
+        }
+        assertEquals("database objects should exist", count, GenericDatabase.getInstance().getDao(DummyObject.class).countOf());
+        assertEquals("objects should be cached", count, ((WeakMapNetworkResourceCache)DummyObjectSource.getInstance().getResourceCache()).size());
     }
 
 

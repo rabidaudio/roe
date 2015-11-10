@@ -26,6 +26,8 @@ public class DummyObjectMockServer extends Server {
 
     private int currentPK = 10;
 
+    public int readCount = 0;
+
     public int deletedCount = 0;
 
     public int createCount = 0;
@@ -49,6 +51,7 @@ public class DummyObjectMockServer extends Server {
     @Override
     public synchronized JSONObject getItem(Class<?> clazz, String serverId) throws NetworkException {
         checkConnection();
+        readCount++;
         try {
             return DummyObjectSource.getInstance().toJSON(new DummyObject("dummy" + serverId, 0, null)).put("id", Integer.parseInt(serverId));
         } catch (JSONException e) {
@@ -74,7 +77,8 @@ public class DummyObjectMockServer extends Server {
         checkConnection();
         List<JSONObject> items = new ArrayList<>();
         try {
-            for (int i = 0; i < Math.round(Math.random() * 10); i++) {
+            for (int i = 0; i < 10; i++) {
+                readCount++;
                 JSONObject data = DummyObjectSource.getInstance().toJSON(new DummyObject("dummy" + (currentPK++), 0, null)).put("id", currentPK);
                 items.add(data);
             }

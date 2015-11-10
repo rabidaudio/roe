@@ -30,12 +30,12 @@ public class DeletedResource {
 
     }
 
-    protected DeletedResource(NetworkResource deletedResource) {
-        if(deletedResource.getServerId()==null){
-            throw new IllegalArgumentException("Can't network delete a resource without a server id");
+    protected DeletedResource(NetworkResource deletedResource, String serverIdString) {
+        if(!deletedResource.hasServerId()){
+            throw new IllegalArgumentException("Can't network delete a resource that's local only");
         }
         className = deletedResource.getClass().getCanonicalName();
-        serverId = String.valueOf(deletedResource.getServerId());
+        serverId = serverIdString;
     }
 
     protected static List<DeletedResource> getDeletedResources(Dao<DeletedResource, Integer> dao, Class clazz) throws SQLException {

@@ -11,6 +11,7 @@ import com.j256.ormlite.field.DatabaseField;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.text.DateFormat;
@@ -23,10 +24,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.WeakHashMap;
 
 import audio.rabid.dev.roe.BackgroundThread;
-import audio.rabid.dev.roe.models.cache.MapResourceCache;
+import audio.rabid.dev.roe.models.cache.WeakMapResourceCache;
 import audio.rabid.dev.roe.models.cache.ResourceCache;
 
 /**
@@ -50,7 +51,7 @@ public class Source<R extends Resource<LK>, LK> {
 
     private Map<String, Field> jsonFields;
 
-    private Map<R, TypedObservable<R>> observers = new HashMap<>();
+    private Map<R, TypedObservable<R>> observers = new WeakHashMap<>();
 
     protected TypedObservable<R> getObservable(R item) {
         TypedObservable<R> o = observers.get(item);
@@ -84,7 +85,7 @@ public class Source<R extends Resource<LK>, LK> {
                   @Nullable DateFormat dateFormat) {
         this.dao = dao;
         if (resourceCache == null) {
-            this.resourceCache = new MapResourceCache<>(50);
+            this.resourceCache = new WeakMapResourceCache<>(50);
         } else {
             this.resourceCache = resourceCache;
         }

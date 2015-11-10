@@ -1,5 +1,7 @@
 package audio.rabid.dev.sampleapp.models;
 
+import android.support.annotation.Nullable;
+
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -17,7 +19,7 @@ import audio.rabid.dev.sampleapp.Database;
  * Created by charles on 10/25/15.
  */
 @DatabaseTable(tableName = "posts")
-public class Post extends IntegerKeyedNetworkResource<Post> {
+public class Post extends IntegerKeyedNetworkResource {
 
     @SuppressWarnings("unchecked")
     public static final PostSource Source = new PostSource();
@@ -80,5 +82,13 @@ public class Post extends IntegerKeyedNetworkResource<Post> {
 
     public void setAuthor(Author author) {
         this.author = author;
+    }
+
+    public void save(@Nullable Source.OperationCallback<Post> callback){
+        getSource().createOrUpdate(this, callback);
+    }
+
+    public void delete(@Nullable Source.OperationCallback<Post> callback){
+        getSource().delete(this, callback);
     }
 }

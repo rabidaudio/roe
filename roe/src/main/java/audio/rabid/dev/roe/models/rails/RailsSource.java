@@ -5,7 +5,6 @@ import android.support.annotation.Nullable;
 
 import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.dao.Dao;
-import com.j256.ormlite.support.ConnectionSource;
 
 import java.sql.SQLException;
 
@@ -14,7 +13,7 @@ import audio.rabid.dev.roe.models.NetworkSource;
 import audio.rabid.dev.roe.models.Op;
 import audio.rabid.dev.roe.models.PermissionsManager;
 import audio.rabid.dev.roe.models.SimplePermissionsManager;
-import audio.rabid.dev.roe.models.cache.MapNetworkResourceCache;
+import audio.rabid.dev.roe.models.cache.WeakMapNetworkResourceCache;
 
 /**
  * Created by charles on 10/29/15.
@@ -28,7 +27,7 @@ public class RailsSource<T extends NetworkResource<LK, Integer>, LK> extends Net
 
 
         super(server, dao,
-                new MapNetworkResourceCache<T, LK, Integer>(50),
+                new WeakMapNetworkResourceCache<T, LK, Integer>(50),
                 permissions == null ? new SimplePermissionsManager<T>().all() : permissions,
                 new NetworkDateFormat());
 

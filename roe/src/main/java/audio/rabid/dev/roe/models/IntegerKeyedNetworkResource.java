@@ -47,13 +47,8 @@ public abstract class IntegerKeyedNetworkResource implements NetworkResource<Int
     }
 
     @Override
-    public boolean isOnServer() {
+    public boolean hasServerId() {
         return serverId != null;
-    }
-
-    @Override
-    public Integer localIdFromString(String localIdString) {
-        return Integer.parseInt(localIdString);
     }
 
     public Date getCreatedAt() {

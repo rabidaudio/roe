@@ -29,6 +29,10 @@ public class DummyObjectSource extends NetworkSource<DummyObject, Integer, Integ
                 null, new SimplePermissionsManager<DummyObject>().all(), null);
     }
 
+    public void clearCache(){
+        getResourceCache().clear();
+    }
+
     private boolean updateCompleted = false;
 
     @Override

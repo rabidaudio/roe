@@ -20,7 +20,7 @@ import java.util.Date;
 import java.util.List;
 
 import audio.rabid.dev.roe.BackgroundThread;
-import audio.rabid.dev.roe.models.cache.MapNetworkResourceCache;
+import audio.rabid.dev.roe.models.cache.WeakMapNetworkResourceCache;
 import audio.rabid.dev.roe.models.cache.NetworkResourceCache;
 import audio.rabid.dev.roe.models.cache.ResourceCache;
 
@@ -46,7 +46,7 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
     public NetworkSource(Server server, Dao<R, LK> dao,
                          @Nullable NetworkResourceCache<R, LK, SK> resourceCache,
                          @Nullable PermissionsManager<R> permissions, @Nullable DateFormat dateFormat) {
-        super(dao, resourceCache == null ? new MapNetworkResourceCache<R, LK, SK>(50) : resourceCache, permissions, dateFormat);
+        super(dao, resourceCache == null ? new WeakMapNetworkResourceCache<R, LK, SK>(50) : resourceCache, permissions, dateFormat);
         this.server = server;
         this.networkResourceCache = (NetworkResourceCache<R, LK, SK>) getResourceCache();
 
@@ -155,6 +155,7 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
         BackgroundThread.postBackground(new Runnable() {
             @Override
             public void run() {
+                final boolean[] created = {false};
                 ResourceCache.CacheResult<R> result = networkResourceCache.getByServerId(serverId, new ResourceCache.CacheMissCallback<R, SK>() {
                     @Nullable
                     @Override
@@ -162,24 +163,44 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
                         try {
                             List<R> items = getDao().queryForEq(getServerIdFieldKey(), serverId);
 
-                            if (!items.isEmpty()) {
+                            if (items.isEmpty()) {
+                                //try from network
+                                JSONObject data = server.getItem(getDataClass(), convertServerIdToString(serverId));
+                                R newInstance = getDataClass().newInstance();
+                                updateFromJSON(newInstance, data);
+                                if (getPermissions().canRead(newInstance) && getPermissions().canCreate(newInstance)) {
+                                    //create it from data
+                                    onBeforeCreated(newInstance);
+                                    getDao().create(newInstance);
+                                    created[0] = true; //TODO one-element arrays are HACKY
+                                    return newInstance;
+                                }
+                            } else if (getPermissions().canRead(items.get(0))) {
                                 return items.get(0);
                             }
                         } catch (SQLException e) {
                             onSQLException(e);
+                        } catch (Server.NetworkException e) {
+                            onNetworkException(e);
+                        } catch (JSONException e) {
+                            onJSONException(e);
+                        } catch (IllegalAccessException e) {
+                            throw new RuntimeException("Couldn't make new Resource " + getDataClass().getName(), e);
+                        } catch (InstantiationException e) {
+                            throw new RuntimeException("Couldn't make new Resource " + getDataClass().getName(), e);
                         }
                         return null;
                     }
                 });
-                final R item = getPermissions().can(Op.READ, result.getItem()) ? result.getItem() : null;
+                final R resource = result.getItem();
                 BackgroundThread.postMain(new Runnable() {
                     @Override
                     public void run() {
-                        callback.onResult(item);
+                        callback.onResult(resource);
                     }
                 });
-                if (!result.wasInCache()) {
-                    onAfterCacheAdd(item);
+                if (!result.wasInCache() && !created[0]) {
+                    onAfterCacheAdd(resource);
                 }
             }
         });
@@ -200,7 +221,6 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
             public void run() {
                 final List<R> returnResults = new ArrayList<>();
                 try {
-
                     List<JSONObject> newInstances = server.getItems(getDataClass(), search);
                     for(JSONObject data : newInstances){
                         final R tempInstance = getDao().getDataClass().newInstance();
@@ -280,8 +300,9 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
                     //updates
                     List<UnsyncedResource> unsyncedResources = UnsyncedResource.getUnsynced(getDataClass(), unsyncedResourceDao);
                     for (UnsyncedResource unsyncedResource : unsyncedResources) {
-                        LK localId = getDataClass().newInstance().localIdFromString(unsyncedResource.getLocalId()); //TODO haxxxxxx
-                        ResourceCache.CacheResult<R> result = networkResourceCache.get(localId, new ResourceCache.CacheMissCallback<R, LK>() {
+                        R tempObject = getDataClass().newInstance();
+                        setLocalIdFromString(tempObject, unsyncedResource.getLocalId());
+                        ResourceCache.CacheResult<R> result = networkResourceCache.get(tempObject.getId(), new ResourceCache.CacheMissCallback<R, LK>() {
                             @Nullable
                             @Override
                             public R onCacheMiss(LK localId) {
@@ -303,7 +324,7 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
                             if (unsyncedResource.needsCreate() && getPermissions().canCreate(resource)) {
                                 data = server.createItem(getDataClass(), toJSON(resource));
                             } else if (!unsyncedResource.needsCreate() && getPermissions().canUpdate(resource)) {
-                                data = server.updateItem(getDataClass(), String.valueOf(resource.getServerId()), toJSON(resource));
+                                data = server.updateItem(getDataClass(), convertServerIdToString(resource.getServerId()), toJSON(resource));
                             } else {
                                 //no permissions, so don't bother
                                 unsyncedResourceDao.delete(unsyncedResource);
@@ -372,13 +393,13 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
     @Override
     protected void onAfterCacheAdd(final R resource) {
         super.onAfterCreated(resource);
-        if (resource.getServerId() != null && getPermissions().canUpdate(resource)) {
+        if (resource.hasServerId() && getPermissions().canUpdate(resource)) {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
                     //has a server id, so see if network has update
                     try {
-                        JSONObject data = server.getItem(getDataClass(), String.valueOf(resource.getServerId()));
+                        JSONObject data = server.getItem(getDataClass(), convertServerIdToString(resource.getServerId()));
                         synchronized (resource) {
                             boolean changed = updateFromJSON(resource, data);
                             onBeforeUpdated(resource);
@@ -451,10 +472,10 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
             public void run() {
                 try {
                     JSONObject data;
-                    if (resource.getServerId() == null && getPermissions().canCreate(resource)) {
+                    if (!resource.hasServerId() && getPermissions().canCreate(resource)) {
                         data = server.createItem(getDataClass(), toJSON(resource));
-                    } else if (resource.getServerId() != null && getPermissions().canUpdate(resource)) {
-                        data = server.updateItem(getDataClass(), String.valueOf(resource.getServerId()), toJSON(resource));
+                    } else if (resource.hasServerId() && getPermissions().canUpdate(resource)) {
+                        data = server.updateItem(getDataClass(), convertServerIdToString(resource.getServerId()), toJSON(resource));
                     } else {
                         //NO permissions!
                         return;
@@ -492,12 +513,12 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
     @Override
     protected void onAfterDeleted(final R resource) {
         super.onAfterDeleted(resource);
-        if (resource.getServerId() != null) {
+        if (resource.hasServerId()) {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        JSONObject data = server.deleteItem(getDataClass(), String.valueOf(resource.getServerId()));
+                        JSONObject data = server.deleteItem(getDataClass(), convertServerIdToString(resource.getServerId()));
                         synchronized (resource) {
                             boolean changed = updateFromJSON(resource, data);
                             if (changed) {
@@ -513,7 +534,7 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
                         }
                     } catch (Server.NetworkException e) {
                         try {
-                            deletedResourceDao.create(new DeletedResource(resource));
+                            deletedResourceDao.create(new DeletedResource(resource, convertServerIdToString(resource.getServerId())));
                             onNetworkException(e);
                         } catch (SQLException ex) {
                             onSQLException(ex);
@@ -523,6 +544,34 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
                     }
                 }
             }, "NetworkDelete:" + resource.getClass().getName() + ":" + resource.hashCode()).start();
+        }
+    }
+
+    public String convertLocalIdToString(LK localId){
+        try {
+            return String.valueOf(localId);
+        }catch (Exception e){
+            throw new RuntimeException("Problem converting local id of "+getDataClass().getName()+" to string. Please override convertLocalIdToString() on your Source");
+        }
+    }
+
+    public String convertServerIdToString(SK serverId){
+        try {
+            return String.valueOf(serverId);
+        }catch (Exception e){
+            throw new RuntimeException("Problem converting server id of "+getDataClass().getName()+" to string. Please override convertServerIdToString() on your Source");
+        }
+    }
+
+    public void setLocalIdFromString(R object, String localIdString){
+        try {
+            getIdField().set(object, Integer.valueOf(localIdString)); //try as integer?
+        }catch (Exception e1){
+            try{
+                getIdField().set(object, localIdString); //try as string?
+            }catch (Exception e2) {
+                throw new RuntimeException("Problem converting string of " + getDataClass().getName() + " to localId. Please override setLocalIdFromString(R,String) on your Source");
+            }
         }
     }
 

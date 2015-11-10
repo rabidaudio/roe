@@ -36,7 +36,7 @@ import audio.rabid.dev.utils.ImageCache;
  */
 @DatabaseTable(tableName = "authors")
 @RailsResource(endpoint = "authors", singularJSONKey = "author", pluralJSONKey = "authors")
-public class Author extends IntegerKeyedNetworkResource<Author> {
+public class Author extends IntegerKeyedNetworkResource {
 
     public static final RailsSource<Author, Integer> Source = new RailsSource.Builder<>
             (SampleAppServer.getInstance(), Database.getInstance(), Author.class)
@@ -173,5 +173,13 @@ public class Author extends IntegerKeyedNetworkResource<Author> {
     @Override
     public Source<Author, Integer> getSource() {
         return Source;
+    }
+
+    public void save(@Nullable Source.OperationCallback<Author> callback){
+        getSource().createOrUpdate(this, callback);
+    }
+
+    public void delete(@Nullable Source.OperationCallback<Author> callback){
+        getSource().delete(this, callback);
     }
 }

@@ -13,8 +13,6 @@ import java.lang.reflect.Constructor;
 import java.sql.SQLException;
 import java.util.List;
 
-import audio.rabid.dev.roe.models.SimplePermissionsManager;
-import audio.rabid.dev.roe.models.rails.RailsResourceFactory;
 import audio.rabid.dev.roe.models.rails.RailsSource;
 import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.SampleAppServer;
@@ -26,11 +24,7 @@ public class PostSource extends RailsSource<Post, Integer> {
 
     @SuppressWarnings("unchecked")
     public PostSource() {
-        super(SampleAppServer.getInstance(),
-                Database.getDaoOrThrow(Post.class),
-                Database.getInstance().getConnectionSource(), "posts",
-                new RailsResourceFactory<>(Post.class, "post", "posts"),
-                new SimplePermissionsManager<Post>().all());
+        super(SampleAppServer.getInstance(), Database.getDaoOrThrow(Post.class), "posts", null);
 
         //should be faster than reflection at creating new instances
         getDao().setObjectFactory(new ObjectFactory<Post>() {
@@ -95,7 +89,7 @@ public class PostSource extends RailsSource<Post, Integer> {
                     Author.Source.find(authorId, new OperationCallback<Author>() {
                         @Override
                         public void onResult(@Nullable Author result) {
-                            if(result!=null && result.getServerId()!=null) {
+                            if(result!=null && result.hasServerId()) {
                                 try{
                                     getManyFromNetwork(new JSONObject().put("author_id", result.getServerId()), new OperationCallback<List<Post>>() {
                                         @Override

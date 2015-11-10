@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.support.annotation.NonNull;
 import android.view.View;
 
+import audio.rabid.dev.roe.models.Resource;
 import audio.rabid.dev.roe.models.TypedObservable;
 import audio.rabid.dev.roe.models.TypedObserver;
 
@@ -11,10 +12,10 @@ import audio.rabid.dev.roe.models.TypedObserver;
  * Created by charles on 10/25/15.
  *
  * A cleaner way to manage views by mapping data to {@link View}s. Create a ViewHolder, passing in the
- * parent {@link View}. Then call {@link #setItem(TypedObservable)} when your data becomes available.
+ * parent {@link View}. Then call {@link #setItem(T)} when your data becomes available.
  * This will set itself as an observable, so when your model changes, your draw method will be called.
  */
-public abstract class ViewHolder<T extends TypedObservable> implements TypedObserver<T> {
+public abstract class ViewHolder<T extends Resource> implements TypedObserver<T> {
 
     private T item;
     private View container;
@@ -31,7 +32,7 @@ public abstract class ViewHolder<T extends TypedObservable> implements TypedObse
     public void setItem(T item) {
         this.item = item;
         if (item != null) {
-            item.addObserver(this);
+            item.getSource().addObserver(item, this);
             draw(item, container);
         } else {
             onNoItem(container);
@@ -57,7 +58,7 @@ public abstract class ViewHolder<T extends TypedObservable> implements TypedObse
     protected abstract void draw(@NonNull T item, View parent);
 
     /**
-     * Called when data is not available ({@link #setItem(TypedObservable)} was called with null).
+     * Called when data is not available ({@link #setItem(T)} was called with null).
      *
      * @param parent the view
      */
