@@ -23,7 +23,7 @@ public interface Resource<LK> {
 
     LK getId();
 
-    String localIdToString();
+//    String localIdToString();
 
     /**
      * Returns true if the item has not yet been saved locally.

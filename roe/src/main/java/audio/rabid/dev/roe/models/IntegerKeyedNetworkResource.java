@@ -32,11 +32,6 @@ public abstract class IntegerKeyedNetworkResource implements NetworkResource<Int
     }
 
     @Override
-    public String localIdToString(){
-        return String.valueOf(id);
-    }
-
-    @Override
     public boolean isNew() {
         return id == null;
     }

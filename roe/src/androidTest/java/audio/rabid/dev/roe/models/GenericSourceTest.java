@@ -285,7 +285,7 @@ public class GenericSourceTest extends AndroidTestCase {
         assertEquals("object cache should be 1", 1, cache.size());
         assertEquals("item should be in unsynced table", 1, unsyncedResourceDao.countOf());
         unsyncedResource = unsyncedResourceDao.queryForAll().get(0);
-        assertEquals("the unsynced resource should have the same id", d.localIdToString(), unsyncedResource.getLocalId());
+        assertEquals("the unsynced resource should have the same id", DummyObjectSource.getInstance().convertLocalIdToString(d.getId()), unsyncedResource.getLocalId());
         assertEquals("the usynced class name should be correct", "audio.rabid.dev.roe.testobjects.DummyObject", unsyncedResource.getClassName());
         assertTrue("the unsynced resource should STILL be marked that a create is required", unsyncedResource.needsCreate());
 

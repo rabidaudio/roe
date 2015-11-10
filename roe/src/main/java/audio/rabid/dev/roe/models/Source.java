@@ -6,11 +6,13 @@ import android.util.Log;
 
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.field.FieldType;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.FieldPosition;
@@ -415,6 +417,8 @@ public class Source<R extends Resource<LK>, LK> {
                         }
                     } else if (dbf != null && dbf.foreign()) {
                         //foreign fields
+                        FieldType fieldType = dao.findForeignFieldType(field.getClass());
+
                         Resource r = (Resource) field.get(item);
                         if (r != null && r.getId() != null) {
                             value = r.getId();
@@ -510,9 +514,16 @@ public class Source<R extends Resource<LK>, LK> {
                                 throw new JSONException(e.getMessage());
                             }
                         } else if (dbf != null && dbf.foreign()) {
-
-                            //TODO how to populate children?
-                            Log.w("JSON", "Didn't populate relation " + f.getName());
+                            if (value.equals(JSONObject.NULL)) {
+                                f.set(item, null);
+                            } else {
+                                try {
+                                    handleForeignField(item, f, key, value);
+                                }catch (Exception e){
+                                    throw new RuntimeException("No way to map child resource "+f.getName() + " of "+
+                                            item.getClass().getName()+" to "+value.toString()+". Override handleForForeignField() on your Source");
+                                }
+                            }
                         } else {
                             if (f.get(item) == null || !f.get(item).equals(value)) {
                                 try {
@@ -540,6 +551,9 @@ public class Source<R extends Resource<LK>, LK> {
         return updated;
     }
 
+    protected void handleForeignField(R instance, Field field, String key, Object value) throws Exception {
+        throw new RuntimeException("Stub!");
+    }
 
     /**
      * The general callback for operations done by {@link Source} in the background. Result could be

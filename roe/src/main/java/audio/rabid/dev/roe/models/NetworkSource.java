@@ -10,11 +10,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import audio.rabid.dev.roe.BackgroundThread;
 import audio.rabid.dev.roe.models.cache.NetworkResourceCache;
@@ -55,59 +58,9 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
         }
     }
 
-//    public static class Builder<T extends NetworkResource<LK, SK>, LK, SK> {
-//        RoeDatabase roeDatabase;
-//        Class<T> tClass;
-//        NetworkResourceCache<T, LK, SK> resourceCache;
-//        PermissionsManager<T> permissionsManager = new SimplePermissionsManager<T>().all();
-//        DateFormat dateFormat;
-//        Server server;
-//
-//        public Builder(RoeDatabase roeDatabase, Class<T> tClass, Server server) {
-//            setDatabase(roeDatabase, tClass);
-//            setServer(server);
-//        }
-//
-//        public Builder<T, LK, SK> setServer(Server server) {
-//            this.server = server;
-//            return this;
-//        }
-//
-//        public Builder<T, LK, SK> setDatabase(@NonNull RoeDatabase roeDatabase, Class<T> tClass) {
-//            this.roeDatabase = roeDatabase;
-//            this.tClass = tClass;
-//            return this;
-//        }
-//
-//        public Builder<T, LK, SK> setPermissionsManager(PermissionsManager<T> permissionsManager) {
-//            this.permissionsManager = permissionsManager;
-//            return this;
-//        }
-//
-//        public Builder<T, LK, SK> setPermissions(Op... allowedOps) {
-//            this.permissionsManager = new SimplePermissionsManager<>(allowedOps);
-//            return this;
-//        }
-//
-//        public Builder<T, LK, SK> setResourceCache(NetworkResourceCache<T, LK, SK> resourceCache) {
-//            this.resourceCache = resourceCache;
-//            return this;
-//        }
-//
-//        public Builder<T, LK, SK> setDateFormat(DateFormat dateFormat) {
-//            this.dateFormat = dateFormat;
-//            return this;
-//        }
-//
-//        public NetworkSource<T, LK, SK> build() {
-//            if (roeDatabase == null)
-//                throw new IllegalArgumentException("Must supply a Database instance");
-//            if (server == null)
-//                throw new IllegalArgumentException("Must supply a Server");
-//
-//            return new NetworkSource<>(server, roeDatabase, tClass, resourceCache, permissionsManager, dateFormat);
-//        }
-//    }
+    public NetworkSource(Server server, @NonNull RoeDatabase roeDatabase, @NonNull Class<R> rClass){
+        this(server, roeDatabase, rClass, null, null, null);
+    }
 
     @Override
     protected void onBeforeCreated(R created) {
@@ -133,55 +86,60 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
         BackgroundThread.postBackground(new Runnable() {
             @Override
             public void run() {
-                final boolean[] created = {false};
-                ResourceCache.CacheResult<R> result = networkResourceCache.getByServerId(serverId, new ResourceCache.CacheMissCallback<R, SK>() {
-                    @Nullable
-                    @Override
-                    public R onCacheMiss(SK id) {
-                        try {
-                            List<R> items = getDao().queryForEq(getServerIdFieldKey(), serverId);
-
-                            if (items.isEmpty()) {
-                                //try from network
-                                JSONObject data = server.getItem(getDataClass(), convertServerIdToString(serverId));
-                                R newInstance = getDataClass().newInstance();
-                                updateFromJSON(newInstance, data);
-                                if (getPermissions().canRead(newInstance) && getPermissions().canCreate(newInstance)) {
-                                    //create it from data
-                                    onBeforeCreated(newInstance);
-                                    getDao().create(newInstance);
-                                    created[0] = true; //TODO one-element arrays are HACKY
-                                    return newInstance;
-                                }
-                            } else if (getPermissions().canRead(items.get(0))) {
-                                return items.get(0);
-                            }
-                        } catch (SQLException e) {
-                            onSQLException(e);
-                        } catch (Server.NetworkException e) {
-                            onNetworkException(e);
-                        } catch (JSONException e) {
-                            onJSONException(e);
-                        } catch (IllegalAccessException e) {
-                            throw new RuntimeException("Couldn't make new Resource " + getDataClass().getName(), e);
-                        } catch (InstantiationException e) {
-                            throw new RuntimeException("Couldn't make new Resource " + getDataClass().getName(), e);
-                        }
-                        return null;
-                    }
-                });
-                final R resource = result.getItem();
+                final R resource = findByServerIdSynchronously(serverId);
                 BackgroundThread.postMain(new Runnable() {
                     @Override
                     public void run() {
                         callback.onResult(resource);
                     }
                 });
-                if (!result.wasInCache() && !created[0]) {
-                    onAfterCacheAdd(resource);
-                }
             }
         });
+    }
+
+    private R findByServerIdSynchronously(final @NonNull SK serverId){
+        final boolean[] created = {false};
+        ResourceCache.CacheResult<R> result = networkResourceCache.getByServerId(serverId, new ResourceCache.CacheMissCallback<R, SK>() {
+            @Nullable
+            @Override
+            public R onCacheMiss(SK id) {
+                try {
+                    List<R> items = getDao().queryForEq(getServerIdFieldKey(), serverId);
+
+                    if (items.isEmpty()) {
+                        //try from network
+                        JSONObject data = server.getItem(getDataClass(), convertServerIdToString(serverId));
+                        R newInstance = getDataClass().newInstance();
+                        updateFromJSON(newInstance, data);
+                        if (getPermissions().canRead(newInstance) && getPermissions().canCreate(newInstance)) {
+                            //create it from data
+                            onBeforeCreated(newInstance);
+                            getDao().create(newInstance);
+                            created[0] = true; //TODO one-element arrays are HACKY
+                            return newInstance;
+                        }
+                    } else if (getPermissions().canRead(items.get(0))) {
+                        return items.get(0);
+                    }
+                } catch (SQLException e) {
+                    onSQLException(e);
+                } catch (Server.NetworkException e) {
+                    onNetworkException(e);
+                } catch (JSONException e) {
+                    onJSONException(e);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException("Couldn't make new Resource " + getDataClass().getName(), e);
+                } catch (InstantiationException e) {
+                    throw new RuntimeException("Couldn't make new Resource " + getDataClass().getName(), e);
+                }
+                return null;
+            }
+        });
+        R resource = result.getItem();
+        if (!result.wasInCache() && !created[0]) {
+            onAfterCacheAdd(resource);
+        }
+        return resource;
     }
 
     /**
@@ -428,7 +386,7 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
                     }
                 } catch (Server.NetworkException e) {
                     try {
-                        UnsyncedResource.createIfNeeded(unsyncedResourceDao, resource, true);
+                        UnsyncedResource.createIfNeeded(unsyncedResourceDao, resource, convertLocalIdToString(resource.getId()), true);
                     } catch (SQLException ex) {
                         onSQLException(ex);
                     }
@@ -474,7 +432,7 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
                     }
                 } catch (Server.NetworkException e) {
                     try {
-                        UnsyncedResource.createIfNeeded(unsyncedResourceDao, resource, false);
+                        UnsyncedResource.createIfNeeded(unsyncedResourceDao, resource, convertLocalIdToString(resource.getId()), false);
                     } catch (SQLException ex) {
                         onSQLException(ex);
                     }
@@ -551,6 +509,35 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
                 throw new RuntimeException("Problem converting string of " + getDataClass().getName() + " to localId. Please override setLocalIdFromString(R,String) on your Source");
             }
         }
+    }
+
+    private Map<Field, Method> foreignGetSourceMethods = new HashMap<>();
+
+    @SuppressWarnings("unchecked")
+    @Override
+    protected void handleForeignField(R instance, Field field, String key, Object value) throws Exception {
+
+        DatabaseField databaseField = field.getAnnotation(DatabaseField.class);
+
+        if(databaseField.foreignAutoCreate()){
+            throw new RuntimeException("ForeignAutoCreate fields are currently unsupported by Roe.");
+        }else if(databaseField.foreignAutoRefresh()){
+            throw new RuntimeException("ForeignAutoRefresh fields are currently unsupported by Roe.")
+        }else{
+
+        }
+
+//        getDao().setObjectCache();
+//        getDao().findForeignFieldType()
+//
+//
+//        Method getSourceMethod = foreignGetSourceMethods.get(field);
+//        if(getSourceMethod == null){
+//            getSourceMethod = field.getType().getMethod("getSource");
+//            foreignGetSourceMethods.put(field, getSourceMethod);
+//        }
+//        NetworkSource foreignSource = (NetworkSource) getSourceMethod.invoke(field.getType().newInstance());
+//        field.set(instance, foreignSource.findByServerIdSynchronously(value));
     }
 
     private Field serverIdField = null;

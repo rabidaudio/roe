@@ -31,12 +31,12 @@ public class UnsyncedResource {
 
     }
 
-    private UnsyncedResource(NetworkResource uncreatedResource, boolean needsCreated) {
+    private UnsyncedResource(NetworkResource uncreatedResource, String localId, boolean needsCreated) {
         if (uncreatedResource.getId() == null) {
             throw new IllegalArgumentException("Can't network create a resource that hasn't been saved locally");
         }
         className = uncreatedResource.getClass().getCanonicalName();
-        localId = uncreatedResource.localIdToString();
+        this.localId = localId;
         this.needsCreated = needsCreated;
     }
 
@@ -56,14 +56,14 @@ public class UnsyncedResource {
         return dao.queryForEq("className", uClass.getCanonicalName());
     }
 
-    protected static void createIfNeeded(Dao<UnsyncedResource, ?> dao, NetworkResource resource, boolean needsCreated) throws SQLException {
+    protected static void createIfNeeded(Dao<UnsyncedResource, ?> dao, NetworkResource resource, String localId, boolean needsCreated) throws SQLException {
         Map<String, Object> query = new HashMap<>(2);
         query.put("className", resource.getClass().getCanonicalName());
-        query.put("localId", resource.localIdToString());
+        query.put("localId", localId);
         List<UnsyncedResource> results = dao.queryForFieldValuesArgs(query);
         if (results.isEmpty()) {
             //need to add one
-            dao.create(new UnsyncedResource(resource, needsCreated));
+            dao.create(new UnsyncedResource(resource, localId, needsCreated));
         } else {
             UnsyncedResource r = results.get(0);
             r.needsCreated = r.needsCreated || needsCreated;
