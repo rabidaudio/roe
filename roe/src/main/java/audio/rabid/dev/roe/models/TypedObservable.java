@@ -32,7 +32,7 @@ import java.util.Observer;
  *
  * @see Observer
  */
-public class TypedObservable<T extends Resource> {
+public class TypedObservable<T> {
 
     List<TypedObserver<T>> observers = new ArrayList<>();
 

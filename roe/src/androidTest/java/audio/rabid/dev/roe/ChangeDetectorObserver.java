@@ -17,9 +17,9 @@ public class ChangeDetectorObserver<T> implements TypedObserver<T> {
 
     @Override
     public synchronized void update(T observable, boolean deleted) {
-        seenChanges++;
         this.deleted = deleted;
         callingThread = Thread.currentThread();
+        seenChanges++;
     }
 
     public synchronized boolean sawChange() {

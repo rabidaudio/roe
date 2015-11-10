@@ -12,7 +12,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.FieldPosition;
@@ -552,7 +551,8 @@ public class Source<R extends Resource<LK>, LK> {
     }
 
     protected void handleForeignField(R instance, Field field, String key, Object value) throws Exception {
-        throw new RuntimeException("Stub!");
+//        throw new RuntimeException("Stub!");
+        Log.w("Roe", "Handling foreign fields is currently unsupported in Roe. You will need to fetch and populate child fields manually.");
     }
 
     /**

@@ -511,34 +511,34 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
         }
     }
 
-    private Map<Field, Method> foreignGetSourceMethods = new HashMap<>();
+//    private Map<Field, Method> foreignGetSourceMethods = new HashMap<>();
 
-    @SuppressWarnings("unchecked")
-    @Override
-    protected void handleForeignField(R instance, Field field, String key, Object value) throws Exception {
-
-        DatabaseField databaseField = field.getAnnotation(DatabaseField.class);
-
-        if(databaseField.foreignAutoCreate()){
-            throw new RuntimeException("ForeignAutoCreate fields are currently unsupported by Roe.");
-        }else if(databaseField.foreignAutoRefresh()){
-            throw new RuntimeException("ForeignAutoRefresh fields are currently unsupported by Roe.")
-        }else{
-
-        }
-
-//        getDao().setObjectCache();
-//        getDao().findForeignFieldType()
+//    @SuppressWarnings("unchecked")
+//    @Override
+//    protected void handleForeignField(R instance, Field field, String key, Object value) throws Exception {
 //
+//        DatabaseField databaseField = field.getAnnotation(DatabaseField.class);
 //
-//        Method getSourceMethod = foreignGetSourceMethods.get(field);
-//        if(getSourceMethod == null){
-//            getSourceMethod = field.getType().getMethod("getSource");
-//            foreignGetSourceMethods.put(field, getSourceMethod);
+//        if(databaseField.foreignAutoCreate()){
+//            throw new RuntimeException("ForeignAutoCreate fields are currently unsupported by Roe.");
+//        }else if(databaseField.foreignAutoRefresh()){
+//            throw new RuntimeException("ForeignAutoRefresh fields are currently unsupported by Roe.");
+//        }else{
+//
 //        }
-//        NetworkSource foreignSource = (NetworkSource) getSourceMethod.invoke(field.getType().newInstance());
-//        field.set(instance, foreignSource.findByServerIdSynchronously(value));
-    }
+//
+////        getDao().setObjectCache();
+////        getDao().findForeignFieldType()
+////
+////
+////        Method getSourceMethod = foreignGetSourceMethods.get(field);
+////        if(getSourceMethod == null){
+////            getSourceMethod = field.getType().getMethod("getSource");
+////            foreignGetSourceMethods.put(field, getSourceMethod);
+////        }
+////        NetworkSource foreignSource = (NetworkSource) getSourceMethod.invoke(field.getType().newInstance());
+////        field.set(instance, foreignSource.findByServerIdSynchronously(value));
+//    }
 
     private Field serverIdField = null;
     private Field getServerIdField(){
