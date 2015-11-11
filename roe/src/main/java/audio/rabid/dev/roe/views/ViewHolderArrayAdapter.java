@@ -7,7 +7,6 @@ import android.view.View;
 import java.util.List;
 
 import audio.rabid.dev.roe.models.Resource;
-import audio.rabid.dev.roe.models.TypedObservable;
 
 /**
  * Created by charles on 10/25/15.

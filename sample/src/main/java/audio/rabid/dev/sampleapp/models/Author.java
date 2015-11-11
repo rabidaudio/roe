@@ -19,7 +19,7 @@ import java.net.URL;
 import audio.rabid.dev.roe.models.IntegerKeyedNetworkResource;
 import audio.rabid.dev.roe.models.JSONField;
 import audio.rabid.dev.roe.models.Source;
-import audio.rabid.dev.roe.models.rails.RailsResource;
+import audio.rabid.dev.roe.models.rails.RailsModelKey;
 import audio.rabid.dev.roe.models.rails.RailsSource;
 import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.R;
@@ -30,7 +30,7 @@ import audio.rabid.dev.utils.ImageCache;
  * Created by charles on 10/23/15.
  */
 @DatabaseTable(tableName = "authors")
-@RailsResource(endpoint = "authors", singularJSONKey = "author", pluralJSONKey = "authors")
+@RailsModelKey(endpoint = "authors", singularJSONKey = "author", pluralJSONKey = "authors")
 public class Author extends IntegerKeyedNetworkResource {
 
     @JSONField

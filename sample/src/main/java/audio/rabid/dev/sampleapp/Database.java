@@ -8,14 +8,14 @@ import com.j256.ormlite.table.TableUtils;
 
 import java.sql.SQLException;
 
-import audio.rabid.dev.roe.models.RoeDatabase;
+import audio.rabid.dev.roe.models.RoeDatabaseOld;
 import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.sampleapp.models.Post;
 
 /**
  * Created by charles on 10/23/15.
  */
-public class Database extends RoeDatabase {
+public class Database extends RoeDatabaseOld {
 
     private static Database instance;
 

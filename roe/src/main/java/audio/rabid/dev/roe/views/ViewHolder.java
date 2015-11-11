@@ -4,8 +4,6 @@ import android.app.Activity;
 import android.support.annotation.NonNull;
 import android.view.View;
 
-import audio.rabid.dev.roe.models.Resource;
-import audio.rabid.dev.roe.models.TypedObservable;
 import audio.rabid.dev.roe.models.TypedObserver;
 
 /**

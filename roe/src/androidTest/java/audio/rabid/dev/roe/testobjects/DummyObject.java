@@ -1,19 +1,16 @@
 package audio.rabid.dev.roe.testobjects;
 
-import android.support.annotation.Nullable;
-
+import com.alibaba.fastjson.annotation.JSONField;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-
-import audio.rabid.dev.roe.models.IntegerKeyedNetworkResource;
-import audio.rabid.dev.roe.models.JSONField;
-import audio.rabid.dev.roe.models.Source;
+import com.raizlabs.android.parser.core.Parseable;
 
 /**
  * Created by charles on 10/30/15.
  */
+@Parseable
 @DatabaseTable(tableName = "dummies")
-public class DummyObject extends IntegerKeyedNetworkResource {
+public class DummyObject {
 
     public DummyObject() {
     }
@@ -23,6 +20,10 @@ public class DummyObject extends IntegerKeyedNetworkResource {
         this.age = age;
         this.child = child;
     }
+
+    @JSONField
+    @DatabaseField(generatedId = true)
+    private int id;
 
     @JSONField
     @DatabaseField
@@ -50,18 +51,5 @@ public class DummyObject extends IntegerKeyedNetworkResource {
 
     public DummyChild getChild() {
         return child;
-    }
-
-    public void save(@Nullable Source.OperationCallback<DummyObject> callback) {
-        getSource().createOrUpdate(this, callback);
-    }
-
-    public void delete(@Nullable Source.OperationCallback<DummyObject> callback) {
-        getSource().delete(this, callback);
-    }
-
-    @Override
-    public Source<DummyObject, Integer> getSource() {
-        return DummyObjectSource.getInstance();
     }
 }

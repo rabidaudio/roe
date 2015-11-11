@@ -14,7 +14,6 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -92,25 +91,32 @@ public abstract class Server {
         //default: no-op
     }
 
-    public abstract JSONObject getItem(Class<?> clazz, String serverId) throws NetworkException;
+    public abstract <T, ID> JSONObject getItem(Class<T> clazz, ID id) throws NetworkException;
 
-    public abstract JSONObject createItem(Class<?> clazz, JSONObject item) throws NetworkException;
+    public abstract <T> List<JSONObject> getItems(Class<T> clazz, JSONObject search) throws NetworkException;
 
-    public abstract List<JSONObject> getItems(Class<?> clazz, JSONObject search) throws NetworkException;
+    public abstract <T> JSONObject createItem(Class<T> clazz, T item) throws NetworkException;
 
-    public abstract JSONObject updateItem(Class<?> clazz, String serverId, JSONObject data) throws NetworkException;
+    public abstract <T> JSONObject updateItem(Class<T> clazz, T item) throws NetworkException;
 
-    public abstract JSONObject deleteItem(Class<?> clazz, String serverId) throws NetworkException;
+    public abstract <T> JSONObject deleteItem(Class<T> clazz, T item) throws NetworkException;
+
+    public abstract boolean isErrorResponse(Response r);
 
     public final Response request(String endpoint, Method method, @Nullable JSONObject payload) throws NetworkException {
-        URL url = null;
+
+        URL url;
         try {
             if (payload != null && method == Method.GET) {
-                url = buildQueryString(rootURL+endpoint, payload);
+                url = buildQueryString(rootURL + endpoint, payload);
             } else {
                 url = new URL(rootURL + endpoint);
             }
+        } catch (MalformedURLException | URISyntaxException | JSONException e) {
+            throw new IllegalArgumentException("Problem building URL for request", e);
+        }
 
+        try {
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
             connection.setRequestMethod(method.toString());
@@ -148,17 +154,18 @@ public abstract class Server {
                 result.append(inputStr);
 
             Response r = new Response(responseCode, new JSONObject(result.toString()), connection.getHeaderFields());
+            if(isErrorResponse(r)){
+                throw new Exception("Error Response"); //let it rethrow as NetworkException
+            }
             onResponse(url, r);
             return r;
 
-        } catch (MalformedURLException | ProtocolException e) {
-            throw new IllegalArgumentException(e);
         } catch (UnsupportedEncodingException e) {
             // who doesn't support UTF-8??
             throw new RuntimeException(e);
         } catch (Exception e) {
             onResponse(url, null);
-            throw new NetworkException(e);
+            throw new NetworkException(e, endpoint, method, payload);
         }
     }
 
@@ -203,7 +210,7 @@ public abstract class Server {
     /**
      * An object containing the response to a request.
      */
-    public static class Response {
+    protected static class Response {
         private int responseCode;
         private JSONObject responseBody;
         private Map<String, List<String>> headers;
@@ -232,12 +239,19 @@ public abstract class Server {
     }
 
     public static class NetworkException extends Exception {
-        public NetworkException(Throwable e) {
-            super(e);
-        }
 
-        public NetworkException(Response failedResponse) {
-            super("Error response received: " + failedResponse.toString());
+        public String endpoint;
+
+        public Method method;
+
+        @Nullable
+        public JSONObject payload;
+
+        public NetworkException(Throwable e, String endpoint, Method method, @Nullable JSONObject payload) {
+            super(e);
+            this.endpoint = endpoint;
+            this.method = method;
+            this.payload = payload;
         }
     }
 }

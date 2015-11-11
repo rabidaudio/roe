@@ -8,8 +8,8 @@ import com.j256.ormlite.table.TableUtils;
 
 import java.sql.SQLException;
 
-import audio.rabid.dev.roe.models.DeletedResource;
 import audio.rabid.dev.roe.models.RoeDatabase;
+import audio.rabid.dev.roe.models.Server;
 import audio.rabid.dev.roe.models.UnsyncedResource;
 
 /**
@@ -37,8 +37,6 @@ public class GenericDatabase extends RoeDatabase {
             TableUtils.clearTable(getConnectionSource(), DummyObject.class);
             TableUtils.clearTable(getConnectionSource(), DummyChild.class);
             TableUtils.clearTable(getConnectionSource(), NoNetworkResource.class);
-
-            TableUtils.clearTable(getConnectionSource(), DeletedResource.class);
             TableUtils.clearTable(getConnectionSource(), UnsyncedResource.class);
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -51,7 +49,6 @@ public class GenericDatabase extends RoeDatabase {
 
     @Override
     public void onCreate(SQLiteDatabase database, ConnectionSource connectionSource) {
-        super.onCreate(database, connectionSource);
         try {
             TableUtils.createTable(connectionSource, DummyObject.class);
             TableUtils.createTable(connectionSource, DummyChild.class);
@@ -66,5 +63,10 @@ public class GenericDatabase extends RoeDatabase {
     @Override
     public void onUpgrade(SQLiteDatabase database, ConnectionSource connectionSource, int oldVersion, int newVersion) {
 
+    }
+
+    @Override
+    public <T> Server getServer(Class<T> tClass) {
+        return DummyObjectMockServer.getInstance();
     }
 }

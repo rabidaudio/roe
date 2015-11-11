@@ -4,10 +4,10 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Created by charles on 11/6/15.
@@ -18,56 +18,45 @@ public class UnsyncedResource {
     @DatabaseField(generatedId = true)
     private int id;
 
-    @DatabaseField(canBeNull = false)
-    private String localId;
-
-    @DatabaseField(canBeNull = false)
-    private String className;
+    @DatabaseField
+    private Server.Method method;
 
     @DatabaseField
-    private boolean needsCreated = false;
+    private String endpoint;
+
+    @DatabaseField
+    private String payload;
+
+    @DatabaseField(index = true)
+    private String cancelId;
 
     protected UnsyncedResource() {
 
     }
 
-    private UnsyncedResource(NetworkResource uncreatedResource, String localId, boolean needsCreated) {
-        if (uncreatedResource.getId() == null) {
-            throw new IllegalArgumentException("Can't network create a resource that hasn't been saved locally");
+    protected UnsyncedResource(Server.NetworkException e, String cancelId) {
+        method = e.method;
+        endpoint = e.endpoint;
+        if (e.payload != null) {
+            payload = e.payload.toString();
         }
-        className = uncreatedResource.getClass().getCanonicalName();
-        this.localId = localId;
-        this.needsCreated = needsCreated;
+        this.cancelId = cancelId;
     }
 
-    public String getLocalId() {
-        return localId;
-    }
-
-    public boolean needsCreate() {
-        return needsCreated;
-    }
-
-    protected String getClassName() {
-        return className;
-    }
-
-    protected static List<UnsyncedResource> getUnsynced(Class uClass, Dao<UnsyncedResource, ?> dao) throws SQLException {
-        return dao.queryForEq("className", uClass.getCanonicalName());
-    }
-
-    protected static void createIfNeeded(Dao<UnsyncedResource, ?> dao, NetworkResource resource, String localId, boolean needsCreated) throws SQLException {
-        Map<String, Object> query = new HashMap<>(2);
-        query.put("className", resource.getClass().getCanonicalName());
-        query.put("localId", localId);
-        List<UnsyncedResource> results = dao.queryForFieldValuesArgs(query);
-        if (results.isEmpty()) {
-            //need to add one
-            dao.create(new UnsyncedResource(resource, localId, needsCreated));
-        } else {
-            UnsyncedResource r = results.get(0);
-            r.needsCreated = r.needsCreated || needsCreated;
-            dao.update(r);
+    protected boolean attemptSync(Server server) {
+        try {
+            server.request(endpoint, method, payload == null ? null : new JSONObject(payload));
+            return true;
+        } catch (JSONException e) {
+            //this shouldn't happen, since it came from JSON
+            throw new RuntimeException(e);
+        } catch (Server.NetworkException e) {
+            //oh, well, still no network
         }
+        return false;
+    }
+
+    protected static void cancelPendingSyncs(Dao<UnsyncedResource, Integer> myDao, String cancelId) throws SQLException {
+        myDao.delete(myDao.queryForEq("cancelId", cancelId));
     }
 }
