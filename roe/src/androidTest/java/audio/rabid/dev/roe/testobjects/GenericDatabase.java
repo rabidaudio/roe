@@ -49,6 +49,7 @@ public class GenericDatabase extends RoeDatabase {
 
     @Override
     public void onCreate(SQLiteDatabase database, ConnectionSource connectionSource) {
+        super.onCreate(database, connectionSource);
         try {
             TableUtils.createTable(connectionSource, DummyObject.class);
             TableUtils.createTable(connectionSource, DummyChild.class);

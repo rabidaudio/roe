@@ -5,6 +5,8 @@ import android.database.sqlite.SQLiteDatabase;
 
 import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.support.ConnectionSource;
+import com.j256.ormlite.table.TableUtils;
 
 import java.io.File;
 import java.io.InputStream;
@@ -50,6 +52,15 @@ public abstract class RoeDatabase extends OrmLiteSqliteOpenHelper {
             ((NetworkRoeDao) result).initialize(getServer(clazz), this);
         }
         return result;
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase database, ConnectionSource connectionSource) {
+        try {
+            TableUtils.createTableIfNotExists(connectionSource, UnsyncedResource.class);
+        }catch (SQLException e){
+            throw new RuntimeException(e);
+        }
     }
 
     public abstract <T> Server getServer(Class<T> tClass);

@@ -1,17 +1,10 @@
 package audio.rabid.dev.roe.models;
 
-import android.support.annotation.Nullable;
 import android.test.AndroidTestCase;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.Date;
-
-import audio.rabid.dev.roe.BackgroundThread;
-import audio.rabid.dev.roe.Synchronizer;
-import audio.rabid.dev.roe.testobjects.DummyObject;
-import audio.rabid.dev.roe.testobjects.DummyObjectSource;
 import audio.rabid.dev.roe.testobjects.GenericDatabase;
 
 /**
@@ -57,72 +50,72 @@ public class JSONTest extends AndroidTestCase {
                 Server.buildQueryString(root, hardMode).toExternalForm());
     }
 
-    public void testReflectiveConvertToJSON() throws Exception {
-
-        final DummyObject o = new DummyObject("meow", 15, null);
-
-        JSONObject json = DummyObjectSource.getInstance().toJSON(o);
-
-        assertEquals("meow", json.getString("name"));
-        assertEquals(15, json.getInt("age"));
-        assertTrue(json.isNull("created_at"));
-        assertTrue(json.isNull("updated_at"));
-        assertFalse(json.has("id"));
-
-        new Synchronizer<DummyObject>() {
-            @Override
-            public void run() {
-                o.save(new Source.OperationCallback<DummyObject>() {
-                    @Override
-                    public void onResult(@Nullable DummyObject result) {
-                        setResult(result);
-                    }
-                });
-            }
-        }.blockUntilFinished();
-        new Synchronizer<Void>() {
-            @Override
-            public void run() {
-                BackgroundThread.postBackground(new Runnable() {
-                    @Override
-                    public void run() {
-                        while (!DummyObjectSource.getInstance().wasCreateCompleted()) { /*block*/ }
-                        DummyObjectSource.getInstance().clearCreateCompleted();
-                        setResult(null);
-                    }
-                });
-            }
-        }.blockUntilFinished();
-
-        json = DummyObjectSource.getInstance().toJSON(o);
-
-        assertEquals("meow", json.getString("name"));
-        assertEquals(15, json.getInt("age"));
-        assertEquals(o.getCreatedAt().getTime(), DummyObjectSource.getInstance().getDateFormat().parse(json.getString("created_at")).getTime());
-        assertTrue(json.getInt("id") > 0);
-    }
-
-    public void testReflectivePopulateFromJSON() throws Exception {
-
-        DummyObject o = new DummyObject();
-
-        JSONObject data = new JSONObject()
-                .put("id", 25)
-                .put("name", "meow")
-                .put("age", 15)
-                .put("created_at", DummyObjectSource.getInstance().getDateFormat().format(new Date()))
-                .put("updated_at", DummyObjectSource.getInstance().getDateFormat().format(new Date()));
-
-        boolean changed = DummyObjectSource.getInstance().updateFromJSON(o, data);
-
-        assertTrue(changed);
-        assertEquals("meow", o.getName());
-        assertEquals(15, o.getAge());
-        assertEquals(Integer.valueOf(25), o.getServerId());
-        assertNull(o.createdAt);
-        assertNull(o.updatedAt);
-
-        changed = DummyObjectSource.getInstance().updateFromJSON(o, data);
-        assertFalse(changed);
-    }
+//    public void testReflectiveConvertToJSON() throws Exception {
+//
+//        final DummyObject o = new DummyObject("meow", 15, null);
+//
+//        JSONObject json = DummyObjectSource.getInstance().toJSON(o);
+//
+//        assertEquals("meow", json.getString("name"));
+//        assertEquals(15, json.getInt("age"));
+//        assertTrue(json.isNull("created_at"));
+//        assertTrue(json.isNull("updated_at"));
+//        assertFalse(json.has("id"));
+//
+//        new Synchronizer<DummyObject>() {
+//            @Override
+//            public void run() {
+//                o.save(new Source.OperationCallback<DummyObject>() {
+//                    @Override
+//                    public void onResult(@Nullable DummyObject result) {
+//                        setResult(result);
+//                    }
+//                });
+//            }
+//        }.blockUntilFinished();
+//        new Synchronizer<Void>() {
+//            @Override
+//            public void run() {
+//                BackgroundThread.postBackground(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        while (!DummyObjectSource.getInstance().wasCreateCompleted()) { /*block*/ }
+//                        DummyObjectSource.getInstance().clearCreateCompleted();
+//                        setResult(null);
+//                    }
+//                });
+//            }
+//        }.blockUntilFinished();
+//
+//        json = DummyObjectSource.getInstance().toJSON(o);
+//
+//        assertEquals("meow", json.getString("name"));
+//        assertEquals(15, json.getInt("age"));
+//        assertEquals(o.getCreatedAt().getTime(), DummyObjectSource.getInstance().getDateFormat().parse(json.getString("created_at")).getTime());
+//        assertTrue(json.getInt("id") > 0);
+//    }
+//
+//    public void testReflectivePopulateFromJSON() throws Exception {
+//
+//        DummyObject o = new DummyObject();
+//
+//        JSONObject data = new JSONObject()
+//                .put("id", 25)
+//                .put("name", "meow")
+//                .put("age", 15)
+//                .put("created_at", DummyObjectSource.getInstance().getDateFormat().format(new Date()))
+//                .put("updated_at", DummyObjectSource.getInstance().getDateFormat().format(new Date()));
+//
+//        boolean changed = DummyObjectSource.getInstance().updateFromJSON(o, data);
+//
+//        assertTrue(changed);
+//        assertEquals("meow", o.getName());
+//        assertEquals(15, o.getAge());
+//        assertEquals(Integer.valueOf(25), o.getServerId());
+//        assertNull(o.createdAt);
+//        assertNull(o.updatedAt);
+//
+//        changed = DummyObjectSource.getInstance().updateFromJSON(o, data);
+//        assertFalse(changed);
+//    }
 }

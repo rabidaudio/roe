@@ -22,7 +22,7 @@ public class RoeDao<T, ID> extends BaseDaoImpl<T, ID> implements CallbackReferen
 
     private Map<T, TypedObservable<T>> observers = new WeakHashMap<>();
 
-    protected RoeDao(ConnectionSource connectionSource, Class<T> dataClass) throws SQLException {
+    public RoeDao(ConnectionSource connectionSource, Class<T> dataClass) throws SQLException {
         super(connectionSource, dataClass);
         CallbackReferenceObjectCache objectCache = new CallbackReferenceObjectCache(true);
         setObjectCache(objectCache);

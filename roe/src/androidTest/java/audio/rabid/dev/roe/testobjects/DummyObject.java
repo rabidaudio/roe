@@ -3,13 +3,13 @@ package audio.rabid.dev.roe.testobjects;
 import com.alibaba.fastjson.annotation.JSONField;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import com.raizlabs.android.parser.core.Parseable;
+
+import audio.rabid.dev.roe.models.NetworkRoeDao;
 
 /**
  * Created by charles on 10/30/15.
  */
-@Parseable
-@DatabaseTable(tableName = "dummies")
+@DatabaseTable(tableName = "dummies", daoClass = NetworkRoeDao.class)
 public class DummyObject {
 
     public DummyObject() {
@@ -23,7 +23,11 @@ public class DummyObject {
 
     @JSONField
     @DatabaseField(generatedId = true)
-    private int id;
+    private int id = -1;
+
+    @JSONField
+    @DatabaseField(index = true)
+    private int serverId = -1;
 
     @JSONField
     @DatabaseField
@@ -36,6 +40,22 @@ public class DummyObject {
     @JSONField
     @DatabaseField(foreign = true)
     public DummyChild child;
+
+    public int getId(){
+        return id;
+    }
+
+    public boolean isNew(){
+        return id == -1;
+    }
+
+    public int getServerId(){
+        return serverId;
+    }
+
+    public boolean hasServerId(){
+        return serverId != -1;
+    }
 
     public String getName() {
         return name;

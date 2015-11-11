@@ -1,13 +1,14 @@
 package audio.rabid.dev.roe.models;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
-import com.raizlabs.android.parser.ParserHolder;
-
-import org.json.JSONObject;
 
 import java.sql.SQLException;
+
+import audio.rabid.dev.roe.Utils;
 
 /**
  * Created by charles on 11/10/15.
@@ -18,9 +19,8 @@ public class NetworkRoeDao<T, ID> extends RoeDao<T, ID> {
 
     Dao<UnsyncedResource, Integer> unsyncedResourceDao;
 
-    protected NetworkRoeDao(ConnectionSource connectionSource, Class<T> dataClass) throws SQLException {
+    public NetworkRoeDao(ConnectionSource connectionSource, Class<T> dataClass) throws SQLException {
         super(connectionSource, dataClass);
-        TableUtils.createTableIfNotExists(connectionSource, UnsyncedResource.class);
     }
 
     public void initialize(Server server, RoeDatabase database) throws SQLException {
@@ -40,7 +40,7 @@ public class NetworkRoeDao<T, ID> extends RoeDao<T, ID> {
         try {
             JSONObject data = server.getItem(rClass, id);
             synchronized (item) {
-                ParserHolder.parse(item, data);
+                populateFromJSON(item, data);
                 getObservable(item).setChanged();
                 refresh(item);
             }
@@ -58,7 +58,7 @@ public class NetworkRoeDao<T, ID> extends RoeDao<T, ID> {
             try {
                 JSONObject data = server.createItem(getDataClass(), item);
                 synchronized (item) {
-                    ParserHolder.parse(item, data);
+                    populateFromJSON(item, data);
                     getObservable(item).setChanged();
                 }
                 UnsyncedResource.cancelPendingSyncs(unsyncedResourceDao, cancelId);
@@ -78,10 +78,11 @@ public class NetworkRoeDao<T, ID> extends RoeDao<T, ID> {
             try {
                 JSONObject data = server.updateItem(getDataClass(), item);
                 synchronized (item) {
-                    ParserHolder.parse(item, data);
+                    populateFromJSON(item, data);
                     getObservable(item).setChanged();
                 }
                 UnsyncedResource.cancelPendingSyncs(unsyncedResourceDao, cancelId);
+                UnsyncedResource.cancelPendingSyncs(unsyncedResourceDao, generateCancelId(Op.CREATE, item));//also want to cancel pending creates, if any
             } catch (Server.NetworkException e) {
                 unsyncedResourceDao.create(new UnsyncedResource(e, cancelId));
             }
@@ -112,5 +113,15 @@ public class NetworkRoeDao<T, ID> extends RoeDao<T, ID> {
 
     public void onSQLException(SQLException e) {
         throw new RuntimeException(e);
+    }
+
+    protected void populateFromJSON(T item, JSONObject data){
+        try {
+            T newItem = JSON.parseObject(data.toString(), getDataClass());
+            Utils.copyFields(getDataClass(), newItem, item);
+        }catch (Exception e){
+            throw new RuntimeException("Unable to convert JSON "+data.toString()+" to "+
+                    getDataClass().getSimpleName()+". Please override populateFromJSON() in your Dao.");
+        }
     }
 }
