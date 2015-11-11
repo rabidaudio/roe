@@ -43,7 +43,6 @@ public class PostSource extends RailsSource<Post, Integer> {
         }, callback);
     }
 
-
     /**
      * This callback will be called up to two times. Once after fetching local results and possibly
      * again after network results hit, if the results have changed. It will combine the two lists on
@@ -116,5 +115,49 @@ public class PostSource extends RailsSource<Post, Integer> {
                 }
             }
         });
+    }
+
+    @Override
+    public void createOrUpdate(final Post post, final @Nullable OperationCallback<Post> callback){
+        if(post.getAuthor() != null){
+            post.getAuthor().save(new OperationCallback<Author>() {
+                @Override
+                public void onResult(@Nullable Author result) {
+                    //obnoxiously, you can't call super here....
+                    if (post.isNew()) {
+                        create(post, callback);
+                    } else {
+                        update(post, callback);
+                    }
+                }
+            });
+        }else{
+            super.createOrUpdate(post, callback);
+        }
+    }
+
+    @Override
+    public boolean updateFromJSON(final Post post, JSONObject data) throws JSONException {
+        boolean changed = super.updateFromJSON(post, data);
+        if(data.isNull("author_id")){
+            if(post.getAuthor() != null){
+                changed = true;
+            }
+            post.setAuthor(null);
+        }else{
+            if(post.getAuthor() != null && post.getAuthor().getServerId().equals(data.getInt("author_id"))){
+                //already same author, so do nothing
+                return changed;
+            }
+            changed = true;
+            Author.Source.findByServerId(data.getInt("author_id"), new OperationCallback<Author>() {
+                @Override
+                public void onResult(@Nullable Author result) {
+                    post.setAuthor(result);
+                    notifyObservers(post, false);
+                }
+            });
+        }
+        return changed;
     }
 }

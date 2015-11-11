@@ -172,6 +172,7 @@ public class Source<R extends Resource<LK>, LK> {
 
     }
 
+
     protected void onBeforeCreated(R created) {
 
     }
@@ -195,6 +196,26 @@ public class Source<R extends Resource<LK>, LK> {
     protected void onAfterDeleted(R deleted) {
 
     }
+
+    @SuppressWarnings("unchecked")
+    protected void createOrUpdateForeign(R item){
+        for(Field f : getForeignFields()){
+            try {
+                final Resource r = (Resource) f.get(item);
+                if (r != null) {
+                    DatabaseField d = f.getAnnotation(DatabaseField.class);
+                    if (r.isNew() && d.foreignAutoCreate()) {
+                        r.getSource().create(r, null);
+                    } else if (!r.isNew() && d.foreignAutoRefresh()) {
+                        r.getSource().update(r, null);
+                    }
+                }
+            }catch (IllegalAccessException e){
+                throw new RuntimeException("Problem populating foreign field "+f.getName()+" on "+getDataClass().getName(), e);
+            }
+        }
+    }
+    
 
     /**
      * Get a resource by it's local id. Method will try the cache, otherwise resorting to the database
@@ -416,11 +437,10 @@ public class Source<R extends Resource<LK>, LK> {
                         }
                     } else if (dbf != null && dbf.foreign()) {
                         //foreign fields
-                        FieldType fieldType = dao.findForeignFieldType(field.getClass());
 
-                        Resource r = (Resource) field.get(item);
-                        if (r != null && r.getId() != null) {
-                            value = r.getId();
+                        NetworkResource r = (NetworkResource) field.get(item);
+                        if (r != null && r.hasServerId()) {
+                            value = r.getServerId();
                         } else {
                             value = JSONObject.NULL; //explicit null value
                         }
@@ -548,6 +568,22 @@ public class Source<R extends Resource<LK>, LK> {
             }
         }
         return updated;
+    }
+
+    private List<Field> foreignFields = null;
+    protected List<Field> getForeignFields(){
+        if(foreignFields == null){
+            foreignFields = new ArrayList<>();
+            for (Class<?> classWalk = getDataClass(); classWalk != null; classWalk = classWalk.getSuperclass()) {
+                for (Field field : classWalk.getDeclaredFields()) {
+                    DatabaseField databaseField = field.getAnnotation(DatabaseField.class);
+                    if (databaseField != null && databaseField.foreign()) {
+                        foreignFields.add(field);
+                    }
+                }
+            }
+        }
+        return foreignFields;
     }
 
     protected void handleForeignField(R instance, Field field, String key, Object value) throws Exception {

@@ -191,7 +191,7 @@ public class NetworkSource<R extends NetworkResource<LK, SK>, LK, SK> extends So
                                 synchronized (resource) {
                                     changed = updateFromJSON(resource, data);
                                     if (changed) {
-                                        onBeforeCreated(resource);
+                                        onBeforeUpdated(resource);
                                         getDao().update(resource);
                                     }
                                 }
