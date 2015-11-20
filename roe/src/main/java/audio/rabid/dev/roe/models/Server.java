@@ -1,6 +1,7 @@
 package audio.rabid.dev.roe.models;
 
 import android.net.Uri;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Pair;
 
@@ -21,43 +22,30 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import audio.rabid.dev.roe.models.resource.Resource;
+
 /**
- * Created by charles on 10/28/15.
- * <p/>
- * The class that makes HTTP api calls to get data remotely (if available). {@link #request(String, Method, JSONObject)}
- * is the method that does the work. Override {@link #onBeforeConnection(HttpURLConnection, JSONObject)}
- * to set additional headers or change other connection settings before open.
+ * Created by charles on 11/11/15.
+ *
+ * NOTE: Servers should only throw a NetworkException if the request could not complete (no access,
+ * server not found, connection lost in processing, 5XX response, etc)
+ *
+ * It should NOT throw a NetworkException if the request succeeded but there was some problem with the
+ * request (unauthorized, invalid format, duplicate items, etc), because the request will be retried
+ * later with the same arguments. Your Server implementation should handle those cases.
+ *
+ * If you want to disallow a particular method on the network, just provide an empty implementation and
+ * the framework will assume the request was completed successfully.
  */
 public abstract class Server {
 
-    private String rootURL;
+//    private String rootURL;
 
     private int timeout = 1000;
 
-    /**
-     * Available HTTP verbs
-     */
-    public enum Method {
-        GET("GET"),
-        PUT("PUT"),
-        PATCH("PATCH"),
-        POST("POST"),
-        DELETE("DELETE");
-
-        String s;
-
-        Method(String s) {
-            this.s = s;
-        }
-
-        public String toString() {
-            return s;
-        }
-    }
-
-    public Server(String rootURL) {
-        this.rootURL = rootURL;
-    }
+//    public Server() {
+//        this.rootURL = rootURL;
+//    }
 
     /**
      * Control the amount of time to wait for a connection or read to occur before connection fails.
@@ -91,33 +79,63 @@ public abstract class Server {
         //default: no-op
     }
 
-    public abstract <T, ID> JSONObject getItem(Class<T> clazz, ID id) throws NetworkException;
+    /**
+     * A request to get a single item from the server by its server id. You should make the request
+     * and return a JSONObject representation of the item to create or update with, or null if no
+     * item exists.
+     */
+    public abstract <T extends Resource<?, SK>, SK> JSONObject getItem(Class<T> clazz, SK id) throws NetworkException;
 
-    public abstract <T> List<JSONObject> getItems(Class<T> clazz, JSONObject search) throws NetworkException;
+//    public abstract <T extends Resource<?, SK>, SK> JSONObject parseGetItemResponse(Class<T> clazz, Response response) throws NetworkException;
 
-    public abstract <T> JSONObject createItem(Class<T> clazz, T item) throws NetworkException;
+    /**
+     * A request to get a collection of items from the server using an optional set of filters. You should make the request
+     * and return a list of JSONObject representations of items to create or update, or an empty list
+     * items exist.
+     */
+    @NonNull
+    public abstract <T extends Resource> List<JSONObject> getItems(Class<T> clazz, JSONObject search) throws NetworkException;
 
-    public abstract <T> JSONObject updateItem(Class<T> clazz, T item) throws NetworkException;
+    /**
+     * A request to create a single item from the server. You should make the request
+     * and return a JSONObject to update the item's fields with, or null if you don't want to alter the item.
+     * You should only throw a NetworkException if you want the request to be retried later.
+     */
+    @Nullable
+    public abstract <T extends Resource> JSONObject createItem(Class<T> clazz, T item) throws NetworkException;
 
-    public abstract <T> JSONObject deleteItem(Class<T> clazz, T item) throws NetworkException;
+    /**
+     * A request to update a single item from the server. You should make the request
+     * and return a JSONObject to update the item's fields with, or null if you don't want to alter the item.
+     * You should only throw a NetworkException if you want the request to be retried later.
+     */
+    @Nullable
+    public abstract <T extends Resource<?, SK>, SK> JSONObject updateItem(Class<T> clazz, T item, String id) throws NetworkException;
 
-    public abstract boolean isErrorResponse(Response r);
+    /**
+     * A request to delete a single item from the server. If you want to disallow deleting of a resource, simply
+     * return.
+     * You should only throw a NetworkException if you want the request to be retried later.
+     */
+    public abstract <T extends Resource<?, SK>, SK> void deleteItem(Class<T> clazz, T item, String id) throws NetworkException;
 
-    public final Response request(String endpoint, Method method, @Nullable JSONObject payload) throws NetworkException {
-
-        URL url;
+    public Response request(String url, Method method, @Nullable JSONObject payload) throws NetworkException {
+//        String endpoint = request.getEndpoint();
+//        Method method = request.getMethod();
+//        JSONObject payload = request.getPayload();
+        URL urlo;
         try {
             if (payload != null && method == Method.GET) {
-                url = buildQueryString(rootURL + endpoint, payload);
+                urlo = buildQueryString(url, payload);
             } else {
-                url = new URL(rootURL + endpoint);
+                urlo = new URL(url);
             }
         } catch (MalformedURLException | URISyntaxException | JSONException e) {
             throw new IllegalArgumentException("Problem building URL for request", e);
         }
 
         try {
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            HttpURLConnection connection = (HttpURLConnection) urlo.openConnection();
 
             connection.setRequestMethod(method.toString());
             connection.setConnectTimeout(timeout);
@@ -154,23 +172,21 @@ public abstract class Server {
                 result.append(inputStr);
 
             Response r = new Response(responseCode, new JSONObject(result.toString()), connection.getHeaderFields());
-            if(isErrorResponse(r)){
-                throw new Exception("Error Response"); //let it rethrow as NetworkException
-            }
-            onResponse(url, r);
+            onResponse(urlo, r);
             return r;
 
         } catch (UnsupportedEncodingException e) {
             // who doesn't support UTF-8??
             throw new RuntimeException(e);
         } catch (Exception e) {
-            onResponse(url, null);
-            throw new NetworkException(e, endpoint, method, payload);
+            onResponse(urlo, null);
+            throw new NetworkException(e, url, method, payload);
         }
     }
 
+
     protected static URL buildQueryString(String url, JSONObject query) throws URISyntaxException, JSONException, MalformedURLException {
-        if(query==null){
+        if (query == null) {
             return new URL(url);
         }
         Uri.Builder builder = Uri.parse(url).buildUpon();
@@ -180,7 +196,7 @@ public abstract class Server {
             Object object = query.get(key);
             List<Pair<String, String>> params = new ArrayList<>();
             jsonToMap(key, object, params);
-            for(Pair<String,String> entry : params){
+            for (Pair<String, String> entry : params) {
                 builder.appendQueryParameter(entry.first, entry.second);
             }
         }
@@ -202,15 +218,56 @@ public abstract class Server {
                 jsonToMap(key + "[" + nestedKey + "]", ((JSONObject) object).get(nestedKey), currentMap);
             }
         } else {
-            currentMap.add(new Pair<>(key, object==null ? "null" : String.valueOf(object)));
+            currentMap.add(new Pair<>(key, object == null ? "null" : String.valueOf(object)));
+        }
+    }
+
+    public enum Method {
+        GET("GET"),
+        PUT("PUT"),
+        PATCH("PATCH"),
+        POST("POST"),
+        DELETE("DELETE");
+
+        String s;
+
+        Method(String s) {
+            this.s = s;
+        }
+
+        public String toString() {
+            return s;
         }
     }
 
 
-    /**
-     * An object containing the response to a request.
-     */
-    protected static class Response {
+    public static class Request {
+        private String endpoint;
+        private Method method;
+        @Nullable
+        private JSONObject payload;
+
+        public Request(String endpoint, Method method, @Nullable JSONObject payload){
+            this.endpoint = endpoint;
+            this.method = method;
+            this.payload = payload;
+        }
+
+        public String getEndpoint() {
+            return endpoint;
+        }
+
+        public Method getMethod() {
+            return method;
+        }
+
+        @Nullable
+        public JSONObject getPayload() {
+            return payload;
+        }
+    }
+
+    public static class Response {
         private int responseCode;
         private JSONObject responseBody;
         private Map<String, List<String>> headers;

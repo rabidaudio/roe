@@ -59,6 +59,10 @@ public abstract class EasyArrayAdapter<T, V> extends ArrayAdapter<T> {
         return list;
     }
 
+    public Context getContext(){
+        return context;
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public View getView(int position, View view, ViewGroup viewGroup) {

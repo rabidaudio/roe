@@ -1,10 +1,5 @@
 package audio.rabid.dev.sampleapp;
 
-import com.j256.ormlite.dao.Dao;
-
-import java.util.concurrent.Callable;
-
-import audio.rabid.dev.roe.BackgroundThread;
 import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.sampleapp.models.Post;
 

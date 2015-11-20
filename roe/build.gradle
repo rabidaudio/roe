@@ -26,8 +26,6 @@ dependencies {
 
     compile 'com.j256.ormlite:ormlite-android:4.48'
 
-    compile 'com.alibaba:fastjson:1.1.46.android'
-
     testCompile 'junit:junit:4.12'
 }
 
