@@ -26,4 +26,8 @@ public abstract class IntegerKeyedResource extends SimpleJSONifyable implements 
     public boolean hasServerId() {
         return serverId != null;
     }
+
+    public Integer getId(){
+        return id;
+    }
 }

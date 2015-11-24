@@ -3,6 +3,7 @@ package audio.rabid.dev.sampleapp;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.net.HttpURLConnection;
@@ -15,7 +16,7 @@ import audio.rabid.dev.roe.models.rails.RailsServer;
  */
 public class SampleAppServer extends RailsServer {
 
-    private static final String ROOT = "http://192.168.1.119:3000/";
+    private static final String ROOT = "http://382e30c6.ngrok.io";
 
     private static SampleAppServer instance = new SampleAppServer();
 
@@ -39,5 +40,10 @@ public class SampleAppServer extends RailsServer {
         Log.d("server", String.format("%s [%d]: %s", url == null ? "null" : url.toString(),
                 response == null ? 0 : response.getResponseCode(),
                 response == null ? "null" : response.getResponseBody().toString()));
+    }
+
+    @Override
+    public void onNonNetworkException(Exception e){
+        Log.e("OHSHI", "server exception", e);
     }
 }

@@ -28,6 +28,8 @@ module Server
     # Do not swallow errors in after_commit/after_rollback callbacks.
     config.active_record.raise_in_transactional_callbacks = true
 
+    config.autoload_paths += %W(#{config.root}/lib)
+
     config.middleware.use ActionDispatch::Flash # we don't acutally use it, but Devise expects it to exist
   end
 end

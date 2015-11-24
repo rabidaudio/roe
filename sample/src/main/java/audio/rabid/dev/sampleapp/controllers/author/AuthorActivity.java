@@ -10,7 +10,7 @@ import android.widget.ListView;
 
 import java.util.List;
 
-import audio.rabid.dev.roe.models.Source;
+import audio.rabid.dev.roe.models.NetworkSyncableDao;
 import audio.rabid.dev.roe.views.EasyArrayAdapter;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.posts.PostActivity;
@@ -43,7 +43,7 @@ public class AuthorActivity extends AppCompatActivity {
         view = new AuthorViewHolder(this);
 
         final int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
-        Author.Source.find(authorId, new Source.OperationCallback<Author>() {
+        Author.AuthorDao.queryForIdAsync(authorId, new NetworkSyncableDao.OperationCallback<Author>() {
             @Override
             public void onResult(@Nullable Author result) {
                 view.setItem(result);
@@ -51,7 +51,7 @@ public class AuthorActivity extends AppCompatActivity {
             }
         });
 
-        Post.Source.getRecentByAuthor(authorId, 5l, new Source.OperationCallback<List<Post>>() {
+        Post.PostDao.getRecentByAuthor(authorId, 5l, new NetworkSyncableDao.OperationCallback<List<Post>>() {
             @Override
             public void onResult(@Nullable List<Post> result) {
                 recentPosts.setAdapter(new RecentPostsAdapter(result));

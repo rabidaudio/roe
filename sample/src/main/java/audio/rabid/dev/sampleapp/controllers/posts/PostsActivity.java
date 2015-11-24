@@ -18,8 +18,9 @@ import android.widget.ListView;
 
 import java.util.List;
 
-import audio.rabid.dev.roe.models.Source;
-import audio.rabid.dev.roe.views.EasyArrayAdapter;
+import audio.rabid.dev.roe.models.CollectionObserver;
+import audio.rabid.dev.roe.models.NetworkSyncableDao;
+import audio.rabid.dev.roe.views.ViewHolderArrayAdapter;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.author.AuthorActivity;
 import audio.rabid.dev.sampleapp.controllers.author.AuthorsActivity;
@@ -30,7 +31,7 @@ import audio.rabid.dev.sampleapp.views.PostViewHolder;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 
-public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
+public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener, CollectionObserver {
 
     public static final String EXTRA_AUTHOR_ID = "EXTRA_AUTHOR_ID";
 
@@ -59,7 +60,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
             authorId = null;
             author.setVisibility(View.GONE);
         } else {
-            Author.Source.find(authorId, new Source.OperationCallback<Author>() {
+            Author.AuthorDao.queryForIdAsync(authorId, new NetworkSyncableDao.OperationCallback<Author>() {
                 @Override
                 public void onResult(@Nullable Author result) {
                     authorViewHolder.setItem(result);
@@ -93,7 +94,17 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
     @Override
     protected void onResume() {
         super.onResume();
-        updateList();
+        refreshLayout.setRefreshing(true);
+        final long start = System.nanoTime();
+        Post.PostDao.allByAuthorOrAll(authorId, new NetworkSyncableDao.OperationCallback<List<Post>>() {
+            @Override
+            public void onResult(@Nullable List<Post> result) {
+                Log.d("q", "query time ms: " + (System.nanoTime() - start) / 1000f / 1000f);
+                Post.PostDao.addCollectionObserver(PostsActivity.this);
+                refreshLayout.setRefreshing(false);
+                posts.setAdapter(new PostAdapter(result));
+            }
+        });
     }
 
     @Override
@@ -103,16 +114,18 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
 
     void updateList() {
         refreshLayout.setRefreshing(true);
-        final long start = System.nanoTime();
-
-        Post.Source.allByAuthorOrAll(authorId, new Source.OperationCallback<List<Post>>() {
+        NetworkSyncableDao.OperationCallback<List<Post>> callback = new NetworkSyncableDao.OperationCallback<List<Post>>() {
             @Override
-            public void onResult(@Nullable List<Post> result) {
-                Log.d("q", "query time ms: " + (System.nanoTime() - start) / 1000f / 1000f);
+            public void onResult(List<Post> result) {
                 refreshLayout.setRefreshing(false);
                 posts.setAdapter(new PostAdapter(result));
             }
-        });
+        };
+        if(authorId != null) {
+            Post.PostDao.queryForEqAsync("author_id", authorId, callback);
+        }else{
+            Post.PostDao.queryForAllAsync(callback);
+        }
     }
 
     public static void openForAuthor(Context context, @Nullable Integer authorId) {
@@ -149,7 +162,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                                                 .setPositiveButton(getString(R.string.ok), new DialogInterface.OnClickListener() {
                                                     @Override
                                                     public void onClick(DialogInterface dialog, int which) {
-                                                        post.delete(new Source.OperationCallback<Post>() {
+                                                        post.delete(new NetworkSyncableDao.OperationCallback<Post>() {
                                                             @Override
                                                             public void onResult(@Nullable Post result) {
                                                                 finish();
@@ -165,28 +178,16 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                 ).create().show();
     }
 
-    private class PostAdapter extends EasyArrayAdapter<Post, PostViewHolder> {
+    @Override
+    public void collectionChanged() {
+        Log.d(getClass().getSimpleName(), "Posts collection changed! re-querying...");
+        updateList();
+    }
+
+    private class PostAdapter extends ViewHolderArrayAdapter<Post, PostViewHolder> {
 
         public PostAdapter(@Nullable List<Post> list) {
             super(PostsActivity.this, R.layout.item_post, list);
-        }
-
-        @Override
-        protected void onDrawView(final Post object, PostViewHolder viewHolder, View parent) {
-            viewHolder.setItem(object);
-            parent.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    open(object);
-                }
-            });
-            parent.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View v) {
-                    showMenu(object);
-                    return false;
-                }
-            });
         }
 
         @Override

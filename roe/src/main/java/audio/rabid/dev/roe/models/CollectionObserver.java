@@ -5,5 +5,5 @@ package audio.rabid.dev.roe.models;
  */
 public interface CollectionObserver {
 
-    void collectionChanged(int change);
+    void collectionChanged();
 }

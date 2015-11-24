@@ -34,11 +34,11 @@ public class PostViewHolder extends ViewHolder<Post> {
     AuthorViewHolder authorViewHolder;
 
     public PostViewHolder(View v) {
-        super(v);
+        super(v, Post.PostDao);
     }
 
     public PostViewHolder(Activity a) {
-        super(a);
+        super(a, Post.PostDao);
     }
 
     @Override

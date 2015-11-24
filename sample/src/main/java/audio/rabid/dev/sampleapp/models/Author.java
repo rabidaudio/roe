@@ -15,23 +15,24 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.concurrent.Future;
 
-import audio.rabid.dev.roe.models.IntegerKeyedNetworkResource;
-import audio.rabid.dev.roe.models.JSONField;
-import audio.rabid.dev.roe.models.Source;
-import audio.rabid.dev.roe.models.rails.RailsModelKey;
-import audio.rabid.dev.roe.models.rails.RailsSource;
+import audio.rabid.dev.roe.models.NetworkSyncableDao;
+import audio.rabid.dev.roe.models.json.JSONField;
+import audio.rabid.dev.roe.models.rails.RailsServerResource;
+import audio.rabid.dev.roe.models.resource.IntegerKeyedResource;
 import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.R;
-import audio.rabid.dev.sampleapp.SampleAppServer;
 import audio.rabid.dev.utils.ImageCache;
 
 /**
  * Created by charles on 10/23/15.
  */
-@DatabaseTable(tableName = "authors")
-@RailsModelKey(endpoint = "authors", singularJSONKey = "author", pluralJSONKey = "authors")
-public class Author extends IntegerKeyedNetworkResource {
+@DatabaseTable(tableName = "authors", daoClass = NetworkSyncableDao.class)
+@RailsServerResource(endpoint = "/authors")
+public class Author extends IntegerKeyedResource {
+
+    public static NetworkSyncableDao<Author, Integer, Integer> AuthorDao = Database.getInstance().getDao(Author.class);
 
     @JSONField
     @DatabaseField
@@ -44,13 +45,6 @@ public class Author extends IntegerKeyedNetworkResource {
     @JSONField
     @DatabaseField
     private String avatar;
-
-    @Override
-    public Source<Author, Integer> getSource() {
-        return Source;
-    }
-
-    public static RailsSource<Author, Integer> Source = new RailsSource<>(SampleAppServer.getInstance(), Database.getInstance(), Author.class);
 
     public String getName() {
         return name;
@@ -148,7 +142,7 @@ public class Author extends IntegerKeyedNetworkResource {
         context.startActivity(Intent.createChooser(i, context.getString(R.string.contact_author)));
     }
 
-    public void save(@Nullable Source.OperationCallback<Author> callback){
-        getSource().createOrUpdate(this, callback);
+    public Future<Author> save(@Nullable NetworkSyncableDao.OperationCallback<Author> callback){
+        return AuthorDao.saveAsync(this, callback);
     }
 }

@@ -9,7 +9,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
-import audio.rabid.dev.roe.models.Source;
+import audio.rabid.dev.roe.models.NetworkSyncableDao;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.author.AuthorActivity;
 import audio.rabid.dev.sampleapp.models.Post;
@@ -38,7 +38,7 @@ public class PostActivity extends AppCompatActivity {
 
         int postID = getIntent().getIntExtra(EXTRA_POST_ID, -1);
 
-        Post.Source.find(postID, new Source.OperationCallback<Post>() {
+        Post.PostDao.queryForIdAsync(postID, new NetworkSyncableDao.OperationCallback<Post>() {
             @Override
             public void onResult(@Nullable Post result) {
                 postViewHolder.setItem(result);

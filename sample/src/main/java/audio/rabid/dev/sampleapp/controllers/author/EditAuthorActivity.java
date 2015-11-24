@@ -11,7 +11,7 @@ import android.widget.TextView;
 
 import java.net.URL;
 
-import audio.rabid.dev.roe.models.Source;
+import audio.rabid.dev.roe.models.NetworkSyncableDao;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import butterknife.Bind;
@@ -48,7 +48,7 @@ public class EditAuthorActivity extends AppCompatActivity {
         if (authorId == -1) {
             drawNewAuthor();
         } else {
-            Author.Source.find(authorId, new Source.OperationCallback<Author>() {
+            Author.AuthorDao.queryForIdAsync(authorId, new NetworkSyncableDao.OperationCallback<Author>() {
                 @Override
                 public void onResult(@Nullable Author result) {
                     if (result == null) {
@@ -105,7 +105,7 @@ public class EditAuthorActivity extends AppCompatActivity {
         author.setName(n);
         author.setEmail(e);
         author.setAvatar(a);
-        author.save(new Source.OperationCallback<Author>() {
+        author.save(new NetworkSyncableDao.OperationCallback<Author>() {
             @Override
             public void onResult(@Nullable Author result) {
                 setResult(Activity.RESULT_OK);

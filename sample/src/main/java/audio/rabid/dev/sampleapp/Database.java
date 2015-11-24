@@ -8,13 +8,14 @@ import com.j256.ormlite.table.TableUtils;
 
 import java.sql.SQLException;
 
+import audio.rabid.dev.roe.models.Server;
 import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.sampleapp.models.Post;
 
 /**
  * Created by charles on 10/23/15.
  */
-public class Database extends RoeDatabaseOld {
+public class Database extends audio.rabid.dev.roe.models.Database {
 
     private static Database instance;
 
@@ -44,6 +45,11 @@ public class Database extends RoeDatabaseOld {
         } catch (SQLException e) {
             throw new RuntimeException("Problem creating database", e);
         }
+    }
+
+    @Override
+    public <T> Server getServer(Class<T> tClass) {
+        return SampleAppServer.getInstance();
     }
 
     private static final int VERSION = 2;

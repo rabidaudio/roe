@@ -7,7 +7,7 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.EditText;
 
-import audio.rabid.dev.roe.models.Source;
+import audio.rabid.dev.roe.models.NetworkSyncableDao;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.sampleapp.models.Post;
@@ -43,7 +43,7 @@ public class EditPostActivity extends AppCompatActivity {
         final int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
         if (postId == -1) {
             post = new Post();
-            Author.Source.find(authorId, new Source.OperationCallback<Author>() {
+            Author.AuthorDao.queryForIdAsync(authorId, new NetworkSyncableDao.OperationCallback<Author>() {
                 @Override
                 public void onResult(Author result) {
                     post.setAuthor(result);
@@ -51,7 +51,7 @@ public class EditPostActivity extends AppCompatActivity {
                 }
             });
         } else {
-            Post.Source.find(postId, new Source.OperationCallback<Post>() {
+            Post.PostDao.queryForIdAsync(postId, new NetworkSyncableDao.OperationCallback<Post>() {
                 @Override
                 public void onResult(Post result) {
                     if (result == null) {
@@ -83,7 +83,7 @@ public class EditPostActivity extends AppCompatActivity {
 
         post.setTitle(t);
         post.setBody(b);
-        post.save(new Source.OperationCallback<Post>() {
+        post.save(new NetworkSyncableDao.OperationCallback<Post>() {
             @Override
             public void onResult(Post result) {
                 setResult(RESULT_OK);

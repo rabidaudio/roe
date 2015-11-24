@@ -26,11 +26,11 @@ public class AuthorViewHolder extends ViewHolder<Author> {
     TextView email;
 
     public AuthorViewHolder(View v) {
-        super(v);
+        super(v, Author.AuthorDao);
     }
 
     public AuthorViewHolder(Activity a) {
-        super(a);
+        super(a, Author.AuthorDao);
     }
 
     @Override

@@ -52,6 +52,8 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
 
     private CollectionObservable collectionObservable = new CollectionObservable();
 
+    private boolean massCollectionChange = false;
+
     private Server server;
 
     private Database database;
@@ -106,6 +108,7 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
 
     protected void notifyObservers(final T item, final boolean deleted) {
         if (hasObservers(item)) {
+            getObservable(item).setChanged();
             ThreadHandler.postMain(new Runnable() {
                 @Override
                 public void run() {
@@ -119,11 +122,33 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
         collectionObservable.addObserver(collectionObserver);
     }
 
-    protected void notifyCollectionObservers(int changed){
-        collectionObservable.setChanged();
-        collectionObservable.notifyObservers(changed);
+    /**
+     * This gets called when an item is created or destroyed, which is great for single items. But if
+     * we create a group of items at once, e.g. {@link #getFromNetwork(String, JSONObject, OperationCallback)},
+     * we want one update call for all of them. So for that we disable individual calls with
+     * {@link #startMassCollectionChange()} which blocks each insertion from notifying until finally calling
+     * {@link #completeMassCollectionChange()}.
+     */
+    protected void notifyCollectionObservers(){
+        if(collectionObservable.countObservers()>0 && !massCollectionChange) {
+            collectionObservable.setChanged();
+            ThreadHandler.postMain(new Runnable() {
+                @Override
+                public void run() {
+                    collectionObservable.notifyObservers();
+                }
+            });
+        }
     }
 
+    private synchronized void startMassCollectionChange(){
+        massCollectionChange = true;
+    }
+
+    private synchronized void completeMassCollectionChange(){
+        massCollectionChange = false;
+        notifyCollectionObservers();
+    }
 
     public boolean isNew(T item) throws SQLException {
         LK id = extractId(item);
@@ -139,7 +164,7 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
             checkUpdatesNetwork(item);
             alreadyUpToDate.add(item.getServerId());
         }
-        notifyCollectionObservers(1);
+        notifyCollectionObservers();
     }
 
     protected Future<Boolean> checkUpdatesNetwork(final T item) {
@@ -182,11 +207,10 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
     @Override
     public void onCacheItemDeleted(Class<T> tClass, LK id, T data) {
         onDeleted(data);
-        notifyCollectionObservers(-1);
+        notifyCollectionObservers();
     }
 
     protected void onCreated(T item) {
-        getObservable(item).setChanged();
         notifyObservers(item, false);
         createNetwork(item);
     }
@@ -203,7 +227,6 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
                             JSONObject data = server.createItem(getDataClass(), item);
                             item.fromJSON(data);
                             superUpdate(item);
-                            getObservable(item).setChanged();
                             notifyObservers(item, false);
                             return true;
                         } catch (Server.NetworkException e) {
@@ -221,7 +244,6 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
     }
 
     protected void onUpdated(final T item) {
-        getObservable(item).setChanged();
         notifyObservers(item, false);
         updateNetwork(item);
     }
@@ -238,7 +260,6 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
                             JSONObject data = server.updateItem(getDataClass(), item, String.valueOf(item.getServerId()));
                             item.fromJSON(data);
                             superUpdate(item);
-                            getObservable(item).setChanged();
                             notifyObservers(item, false);
                             return true;
                         } catch (Server.NetworkException e) {
@@ -256,7 +277,6 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
     }
 
     protected void onDeleted(T item) {
-        getObservable(item).setChanged();
         notifyObservers(item, true);
         deleteNetwork(item);
     }
@@ -290,7 +310,6 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
     @Override
     public int refresh(T item) throws SQLException {
         int result = super.refresh(item);
-        getObservable(item).setChanged();
         notifyObservers(item, false);
         return result;
     }
@@ -307,6 +326,22 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
     }
 
     @Override
+    public int delete(Collection<T> datas) throws SQLException {
+        startMassCollectionChange();
+        int result = super.delete(datas);
+        completeMassCollectionChange();
+        return result;
+    }
+
+    @Override
+    public int deleteIds(Collection<LK> ids) throws SQLException {
+        startMassCollectionChange();
+        int result = super.deleteIds(ids);
+        completeMassCollectionChange();
+        return result;
+    }
+
+    @Override
     public int update(T item) throws SQLException {
         int result = super.update(item); // will not call any cache methods, because the item should already be in the cache
         onUpdated(item);
@@ -314,8 +349,15 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
     }
 
     // hack to route around our overridden listener update method to avoid circular calls
-    private void superUpdate(T item) throws SQLException {
-        super.update(item);
+    private int superUpdate(T item) throws SQLException {
+        return super.update(item);
+    }
+
+    private int superCreate(T item) throws SQLException {
+        if(item.hasServerId()) {
+            alreadyUpToDate.add(item.getServerId());
+        }
+        return super.create(item);
     }
 
     @Override
@@ -323,6 +365,31 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
         int result = super.updateId(data, newId);
         onUpdated(data);
         return result;
+    }
+
+    public T getByServerId(final String serverFieldName, final SK serverId) throws SQLException {
+        List<T> results = queryForEq(serverFieldName, serverId);
+        if(results.isEmpty()){
+            //pull from network
+            try {
+                JSONObject data = server.getItem(getDataClass(), serverId);
+                T newInstance = getDataClass().newInstance();
+                newInstance.fromJSON(data);
+                create(newInstance);
+                return newInstance;
+            }catch (Server.NetworkException e){
+                //oh well
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            } catch (InstantiationException e) {
+                throw new RuntimeException(e);
+            } catch (JSONException e){
+                onJSONException(e);
+            }
+            return null;
+        }else{
+            return results.get(0);
+        }
     }
 
     @Override
@@ -399,26 +466,57 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
         },callback);
     }
 
-    public Future<T> getByServerId(final String serverFieldName, final SK serverId, @Nullable OperationCallback<T> callback){
+    public Future<T> getByServerIdAsync(final String serverFieldName, final SK serverId, @Nullable OperationCallback<T> callback){
         return doAsync(new Callable<T>() {
             @Override
             public T call() throws Exception {
-                List<T> results = queryForEq(serverFieldName, serverId);
-                if(results.isEmpty()){
-                    //pull from network
-                    try {
-                        JSONObject data = server.getItem(getDataClass(), serverId);
+                return getByServerId(serverFieldName, serverId);
+            }
+        }, callback);
+    }
+
+    public Future<List<T>> getFromNetwork(final String serverFieldName, final JSONObject search, @Nullable OperationCallback<List<T>> callback){
+        return doAsync(new Callable<List<T>>() {
+            @Override
+            public List<T> call() throws Exception {
+                try {
+                    List<JSONObject> data = server.getItems(getDataClass(), search);
+                    List<T> results = new ArrayList<>(data.size());
+                    startMassCollectionChange();
+                    for (JSONObject o : data) {
+                        //create a new instance from the data
                         T newInstance = getDataClass().newInstance();
-                        newInstance.fromJSON(data);
-                        create(newInstance);
-                        return newInstance;
-                    }catch (Server.NetworkException e){
-                        //oh well
-                        return null;
+                        newInstance.fromJSON(o);
+                        if (alreadyUpToDate.contains(newInstance.getServerId())) {
+                            //already up to date, so no worries
+                            continue;
+                        }
+                        //look for an instance with the same serverId
+                        List<T> current = queryForEq(serverFieldName, newInstance.getServerId());
+                        if (current.isEmpty()) {
+                            //if none exists, create a new one
+                            create(newInstance);
+                            results.add(newInstance);
+                        } else {
+                            T c = current.get(0);
+                            c.fromJSON(o);
+                            alreadyUpToDate.add(c.getServerId());
+                            update(c);
+                            results.add(c);
+                            notifyObservers(c, false);
+                        }
                     }
-                }else{
-                    return results.get(0);
+                    return results;
+                } catch (Server.NetworkException e) {
+                    //oh well, no network
+                } catch (SQLException e) {
+                    onSQLException(e);
+                } catch (JSONException e) {
+                    onJSONException(e);
+                } finally {
+                    completeMassCollectionChange();
                 }
+                return new ArrayList<>(0);
             }
         }, callback);
     }
@@ -427,10 +525,10 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
      * This can be used for blocking query operations as an alternative to {@link android.os.AsyncTask}.
      * <p/>
      * Create a new instance, and in your call method, run your blocking dao operation. You can either
-     * supply a {@link com.fixdapp.two.modelframework.NetworkSyncableDao.OperationCallback} to receive the result
+     * supply a {@link OperationCallback} to receive the result
      * on the main thread, or use the instance directly as a {@link Future}.
      */
-    public static <T> Future<T> doAsync(final @NonNull Callable<T> callable, final @Nullable OperationCallback<T> callback){
+    public static <T> Future<T> doAsync(final @NonNull Callable<T> callable, final @Nullable OperationCallback<T> callback) {
         return ThreadHandler.postBackground(new Callable<T>() {
             @Override
             public T call() throws Exception {
@@ -446,6 +544,10 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
                 return result;
             }
         });
+    }
+
+    public static Future doAsync(final @NonNull Runnable runnable){
+        return ThreadHandler.postBackground(runnable);
     }
 
     public interface OperationCallback<T> {

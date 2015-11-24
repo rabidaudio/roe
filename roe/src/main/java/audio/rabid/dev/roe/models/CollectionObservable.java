@@ -84,7 +84,7 @@ public class CollectionObservable {
      * argument. Afterwards calls {@code clearChanged()}..
      */
     @SuppressWarnings("unchecked")
-    public void notifyObservers(int changed) {
+    public void notifyObservers() {
         int size = 0;
         CollectionObserver[] arrays = null;
         synchronized (this) {
@@ -97,7 +97,7 @@ public class CollectionObservable {
         }
         if (arrays != null) {
             for (CollectionObserver observer : arrays) {
-                observer.collectionChanged(changed);
+                observer.collectionChanged();
             }
         }
     }

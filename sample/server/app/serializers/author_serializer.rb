@@ -1,5 +1,5 @@
-class AuthorSerializer < ApplicationSerializer
-  attributes :name, :email, :avatar
+class AuthorSerializer < ActiveModel::Serializer
+  attributes :id, :name, :email, :avatar, :created_at, :updated_at
 
-  # has_many :posts
+  has_many :posts
 end

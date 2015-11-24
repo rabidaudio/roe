@@ -70,7 +70,7 @@ public class RailsServer extends Server {
         if(checkPermissions(clazz, Operation.SHOW)){
             RailsResource r = getResource(clazz);
             String url = rootUrl+r.getEndpoint()+"/"+String.valueOf(id);
-            Response response = request(url, Method.GET, null);
+            Response response = request(url, Method.GET, r.getIncludesQueryParams(), null);
             try{
                 if(isErrorResponse(response)){
                     onNonNetworkException(new Exception(response.getResponseBody().getJSONObject("error").toString()));
@@ -90,7 +90,7 @@ public class RailsServer extends Server {
         if(checkPermissions(clazz, Operation.INDEX)){
             RailsResource r = getResource(clazz);
             String url = rootUrl+r.getEndpoint();
-            Response response = request(url, Method.GET, search);
+            Response response = request(url, Method.GET, r.getIncludesQueryParams(), search);
             try{
                 if(isErrorResponse(response)){
                     onNonNetworkException(new Exception(response.getResponseBody().getJSONObject("error").toString()));
@@ -101,16 +101,16 @@ public class RailsServer extends Server {
                     for(int i=0; i<array.length(); i++){
                         result.add(i, array.getJSONObject(i));
                     }
-                    if(!search.has("page") && array.length() == pagination.getInt("per_page")){
+                    if((search==null || !search.has("page")) && array.length() == pagination.getInt("per_page")){
                         //try and get the rest of the data
-                        Response nextPage = request(pagination.getString("next_page"), Method.GET, null);
+                        Response nextPage = request(pagination.getString("next_page"), Method.GET, r.getIncludesQueryParams(), null);
                         while(!isErrorResponse(nextPage) && !"NONE_FOUND".equals(nextPage.getResponseBody().getString("status"))){
                             pagination = nextPage.getResponseBody().getJSONObject("pagination");
                             array = nextPage.getResponseBody().getJSONArray("data");
                             for(int i=0; i<array.length(); i++){
                                 result.add(i, array.getJSONObject(i));
                             }
-                            nextPage = request(pagination.getString("next_page"), Method.GET, null);
+                            nextPage = request(pagination.getString("next_page"), Method.GET, r.getIncludesQueryParams(), null);
                         }
                     }
                     return result;
@@ -129,7 +129,7 @@ public class RailsServer extends Server {
             RailsResource r = getResource(clazz);
             String url = rootUrl+r.getEndpoint();
             try{
-                Response response = request(url, Method.POST, item.asJSON());
+                Response response = request(url, Method.POST, null, item.asJSON());
                 if(isErrorResponse(response)){
                     onNonNetworkException(new Exception(response.getResponseBody().getJSONObject("error").toString()));
                 }else{
@@ -149,7 +149,7 @@ public class RailsServer extends Server {
             RailsResource r = getResource(clazz);
             String url = rootUrl+r.getEndpoint()+"/"+String.valueOf(id);
             try{
-                Response response = request(url, Method.PUT, item.asJSON());
+                Response response = request(url, Method.PUT, null, item.asJSON());
                 if(isErrorResponse(response)){
                     onNonNetworkException(new Exception(response.getResponseBody().getJSONObject("error").toString()));
                 }else{
@@ -168,7 +168,7 @@ public class RailsServer extends Server {
             if (checkPermissions(clazz, Operation.DELETE)) {
                 RailsResource r = getResource(clazz);
                 String endpoint = r.getEndpoint() + "/" + String.valueOf(id);
-                Response response = request(endpoint, Method.DELETE, null);
+                Response response = request(endpoint, Method.DELETE, null, null);
                 if (isErrorResponse(response)) {
                     onNonNetworkException(new Exception(response.getResponseBody().getJSONObject("error").toString()));
                 }
@@ -190,6 +190,7 @@ public class RailsServer extends Server {
     protected static class RailsResource {
         private String endpoint;
         private List<Operation> allowedOperations = Arrays.asList(Operation.values());
+        private List<String> includes = new ArrayList<>();
 
         public <T> RailsResource(Class<T> rClass){
             endpoint = rClass.getSimpleName().toLowerCase();
@@ -198,6 +199,7 @@ public class RailsServer extends Server {
             if(annotation != null) {
                 endpoint = annotation.endpoint();
                 allowedOperations = Arrays.asList(annotation.allowedOperations());
+                includes = Arrays.asList(annotation.includes());
             }
         }
 
@@ -208,6 +210,17 @@ public class RailsServer extends Server {
 
         public String getEndpoint() {
             return endpoint;
+        }
+
+        public Map<String, String> getIncludesQueryParams(){
+            if(includes.isEmpty()){
+                return null;
+            }
+            Map<String, String> q = new HashMap<>(includes.size());
+            for(String item : includes){
+                q.put("include[]", item);
+            }
+            return q;
         }
     }
 

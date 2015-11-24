@@ -119,23 +119,16 @@ public abstract class Server {
      */
     public abstract <T extends Resource<?, SK>, SK> void deleteItem(Class<T> clazz, T item, String id) throws NetworkException;
 
-    public Response request(String url, Method method, @Nullable JSONObject payload) throws NetworkException {
-//        String endpoint = request.getEndpoint();
-//        Method method = request.getMethod();
-//        JSONObject payload = request.getPayload();
-        URL urlo;
+    public Response request(String url, Method method, @Nullable Map<String, String> query, @Nullable JSONObject payload) throws NetworkException {
+        URL u;
         try {
-            if (payload != null && method == Method.GET) {
-                urlo = buildQueryString(url, payload);
-            } else {
-                urlo = new URL(url);
-            }
+            u = buildQueryString(url, query, method == Method.GET ? payload : null);
         } catch (MalformedURLException | URISyntaxException | JSONException e) {
             throw new IllegalArgumentException("Problem building URL for request", e);
         }
 
         try {
-            HttpURLConnection connection = (HttpURLConnection) urlo.openConnection();
+            HttpURLConnection connection = (HttpURLConnection) u.openConnection();
 
             connection.setRequestMethod(method.toString());
             connection.setConnectTimeout(timeout);
@@ -172,32 +165,39 @@ public abstract class Server {
                 result.append(inputStr);
 
             Response r = new Response(responseCode, new JSONObject(result.toString()), connection.getHeaderFields());
-            onResponse(urlo, r);
+            onResponse(u, r);
             return r;
 
         } catch (UnsupportedEncodingException e) {
             // who doesn't support UTF-8??
             throw new RuntimeException(e);
         } catch (Exception e) {
-            onResponse(urlo, null);
+            onResponse(u, null);
             throw new NetworkException(e, url, method, payload);
         }
     }
 
 
-    protected static URL buildQueryString(String url, JSONObject query) throws URISyntaxException, JSONException, MalformedURLException {
-        if (query == null) {
+    protected static URL buildQueryString(String url, @Nullable Map<String,String> query, @Nullable JSONObject data) throws URISyntaxException, JSONException, MalformedURLException {
+        if (data == null && query == null) {
             return new URL(url);
         }
         Uri.Builder builder = Uri.parse(url).buildUpon();
-        Iterator<String> keys = query.keys();
-        while (keys.hasNext()) {
-            String key = keys.next();
-            Object object = query.get(key);
-            List<Pair<String, String>> params = new ArrayList<>();
-            jsonToMap(key, object, params);
-            for (Pair<String, String> entry : params) {
-                builder.appendQueryParameter(entry.first, entry.second);
+        if(query != null){
+            for(Map.Entry<String, String> e : query.entrySet()){
+                builder.appendQueryParameter(e.getKey(), e.getValue());
+            }
+        }
+        if(data != null) {
+            Iterator<String> keys = data.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                Object object = data.get(key);
+                List<Pair<String, String>> params = new ArrayList<>();
+                jsonToMap(key, object, params);
+                for (Pair<String, String> entry : params) {
+                    builder.appendQueryParameter(entry.first, entry.second);
+                }
             }
         }
         return new URL(builder.build().toString());

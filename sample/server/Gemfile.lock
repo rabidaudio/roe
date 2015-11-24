@@ -1,3 +1,12 @@
+GIT
+  remote: https://github.com/rails-api/active_model_serializers.git
+  revision: aa4384839dba6d1680564cb513301172cc66ba78
+  specs:
+    active_model_serializers (0.10.0.rc3)
+      actionpack (>= 4.0)
+      activemodel (>= 4.0)
+      railties (>= 4.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -20,8 +29,6 @@ GEM
       erubis (~> 2.7.0)
       rails-dom-testing (~> 1.0, >= 1.0.5)
       rails-html-sanitizer (~> 1.0, >= 1.0.2)
-    active_model_serializers (0.8.3)
-      activemodel (>= 3.0)
     activejob (4.2.4)
       activesupport (= 4.2.4)
       globalid (>= 0.3.0)
@@ -44,6 +51,7 @@ GEM
       debug_inspector (>= 0.0.1)
     builder (3.2.2)
     byebug (6.0.2)
+    cancan (1.6.10)
     debug_inspector (0.0.2)
     devise (3.5.2)
       bcrypt (~> 3.0)
@@ -100,6 +108,10 @@ GEM
     rake (10.4.2)
     responders (2.1.0)
       railties (>= 4.2.0, < 5)
+    simple_token_authentication (1.10.1)
+      actionmailer (>= 3.2.6, < 5)
+      actionpack (>= 3.2.6, < 5)
+      devise (~> 3.2)
     spring (1.4.0)
     sprockets (3.4.0)
       rack (> 1, < 3)
@@ -119,19 +131,23 @@ GEM
       binding_of_caller (>= 0.7.2)
       railties (>= 4.0)
       sprockets-rails (>= 2.0, < 4.0)
+    will_paginate (3.0.7)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  active_model_serializers
+  active_model_serializers!
   byebug
+  cancan
   devise
   rails (= 4.2.4)
   rails-api
+  simple_token_authentication
   spring
   sqlite3
   web-console (~> 2.0)
+  will_paginate
 
 BUNDLED WITH
    1.10.6

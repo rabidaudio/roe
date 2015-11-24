@@ -2,30 +2,28 @@ class AuthorsController < ApplicationController
 
   def index
     @authors = Author.where(params.permit(:email))
-    render json: @authors
+    @authors = @authors.order('created_at desc').paginate(pagination)
+    render json: @authors, include: params[:include] || [], pagination: pagination_info
   end
 
   def show
-    render json: Author.find(params[:id])
+    render json: Author.find(params[:id]), include: params[:include] || []
   end
 
   def create
-    @author = Author.create! params.require(:author).permit(:name, :email, :avatar)
-    render json: @author
+    @author = Author.create! params.permit(:name, :email, :avatar)
+    render json: @author, include: []
   end
 
   def update
     @author = Author.find params[:id]
-    if @author.nil?
-      record_not_found
-    else
-      @author.update! params.require(:author).permit(:name, :email, :avatar)
-      render json: @author
-    end
+    @author.update! params.permit(:name, :email, :avatar)
+    render json: @author, include: []
   end
 
   def destroy
-    render json: Author.find(params[:id]).destroy
+    @author = Author.find(params[:id])
+    @author.destroy
+    render json: @author, include: []
   end
-
 end
