@@ -4,11 +4,14 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.j256.ormlite.dao.BaseDaoImpl;
+import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.field.DatabaseFieldConfig;
 import com.j256.ormlite.support.ConnectionSource;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -58,6 +61,8 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
 
     private Database database;
 
+    private String serverIdFieldName;
+
     public enum Op {
         READ,
         CREATE,
@@ -84,6 +89,7 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
     public void initialize(Server server, Database database) throws SQLException {
         this.server = server;
         this.database = database;
+        initialize();
     }
 
     protected TypedObservable<T> getObservable(T item) {
@@ -124,7 +130,7 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
 
     /**
      * This gets called when an item is created or destroyed, which is great for single items. But if
-     * we create a group of items at once, e.g. {@link #getFromNetwork(String, JSONObject, OperationCallback)},
+     * we create a group of items at once, e.g. {@link #getFromNetwork(JSONObject, OperationCallback)}
      * we want one update call for all of them. So for that we disable individual calls with
      * {@link #startMassCollectionChange()} which blocks each insertion from notifying until finally calling
      * {@link #completeMassCollectionChange()}.
@@ -148,6 +154,34 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
     private synchronized void completeMassCollectionChange(){
         massCollectionChange = false;
         notifyCollectionObservers();
+    }
+
+    public String getServerIdFieldName(){
+        if(serverIdFieldName == null){
+            Field serverIdField = null;
+            for (Class<?> classWalk = getDataClass(); classWalk != null; classWalk = classWalk.getSuperclass()) {
+                for (Field f : classWalk.getDeclaredFields()) {
+                    ServerKey serverKey = f.getAnnotation(ServerKey.class);
+                    if (serverKey != null) {
+                        serverIdField = f;
+                        break;
+                    } else if (f.getName().equals("serverId")) {
+                        serverIdField = f; //set it, but keep searching in case there is a ServerKey annotation
+                    }
+                }
+            }
+            if(serverIdField == null){
+                throw new RuntimeException("Could not determine serverId field for class "+
+                        getDataClass().getSimpleName()+". Please use @ServerKey to annotate this field" +
+                        " or override getServerIdFieldName()");
+            }
+            serverIdFieldName = serverIdField.getName();
+            DatabaseField databaseField = serverIdField.getAnnotation(DatabaseField.class);
+            if(databaseField != null && !databaseField.columnName().isEmpty()){
+                serverIdFieldName = databaseField.columnName();
+            }
+        }
+        return serverIdFieldName;
     }
 
     public boolean isNew(T item) throws SQLException {
@@ -367,8 +401,8 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
         return result;
     }
 
-    public T getByServerId(final String serverFieldName, final SK serverId) throws SQLException {
-        List<T> results = queryForEq(serverFieldName, serverId);
+    public T getByServerId(final SK serverId) throws SQLException {
+        List<T> results = queryForEq(getServerIdFieldName(), serverId);
         if(results.isEmpty()){
             //pull from network
             try {
@@ -466,16 +500,16 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
         },callback);
     }
 
-    public Future<T> getByServerIdAsync(final String serverFieldName, final SK serverId, @Nullable OperationCallback<T> callback){
+    public Future<T> getByServerIdAsync(final SK serverId, @Nullable OperationCallback<T> callback){
         return doAsync(new Callable<T>() {
             @Override
             public T call() throws Exception {
-                return getByServerId(serverFieldName, serverId);
+                return getByServerId(serverId);
             }
         }, callback);
     }
 
-    public Future<List<T>> getFromNetwork(final String serverFieldName, final JSONObject search, @Nullable OperationCallback<List<T>> callback){
+    public Future<List<T>> getFromNetwork(final JSONObject search, @Nullable OperationCallback<List<T>> callback){
         return doAsync(new Callable<List<T>>() {
             @Override
             public List<T> call() throws Exception {
@@ -492,7 +526,7 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
                             continue;
                         }
                         //look for an instance with the same serverId
-                        List<T> current = queryForEq(serverFieldName, newInstance.getServerId());
+                        List<T> current = queryForEq(getServerIdFieldName(), newInstance.getServerId());
                         if (current.isEmpty()) {
                             //if none exists, create a new one
                             create(newInstance);

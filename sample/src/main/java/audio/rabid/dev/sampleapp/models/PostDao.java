@@ -81,7 +81,7 @@ public class PostDao extends NetworkSyncableDao<Post, Integer, Integer> {
                                 }
                             }
                             //callback should set observable on collection to see when new results are available
-                            getFromNetwork("serverId", search, null);
+                            getFromNetwork(search, null);
                         }catch (SQLException | JSONException e){
                             throw new RuntimeException(e);
                         }
@@ -93,15 +93,15 @@ public class PostDao extends NetworkSyncableDao<Post, Integer, Integer> {
 
     @Override
     protected void onCreated(Post item) {
-        try {
-            //auto create/update Author relation
-            Author actual = Author.AuthorDao.getByServerId("id", item.getAuthor().getServerId());
-            if(actual != null){
-                item.setAuthor(actual);
-            }
-        }catch (SQLException e){
-            throw new RuntimeException(e);
-        }
+//        try {
+//            //auto create/update Author relation
+//            Author actual = Author.AuthorDao.getByServerId(item.getAuthor().getServerId());
+//            if(actual != null){
+//                item.setAuthor(actual);
+//            }
+//        }catch (SQLException e){
+//            throw new RuntimeException(e);
+//        }
         super.onCreated(item);
     }
 

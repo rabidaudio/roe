@@ -349,60 +349,20 @@ public class GenericResourceTest extends AndroidTestCase {
         r.setField1("meow");
         r.setField2(99);
 
-        GenericResource result = new Synchronizer<GenericResource>() {
-            @Override
-            public void run() {
-                dao.saveAsync(r, new NetworkSyncableDao.OperationCallback<GenericResource>() {
-                    @Override
-                    public void onResult(GenericResource result) {
-                        setResult(result);
-                    }
-                });
-            }
-        }.blockUntilFinished();
+        GenericResource result = dao.saveAsync(r, null).get(1, TimeUnit.SECONDS);
 
         assertEquals(r, result);
 
         final int id = dao.extractId(r);
-        result = new Synchronizer<GenericResource>() {
-            @Override
-            public void run() {
-                dao.queryForIdAsync(id, new NetworkSyncableDao.OperationCallback<GenericResource>() {
-                    @Override
-                    public void onResult(GenericResource result) {
-                        setResult(result);
-                    }
-                });
-            }
-        }.blockUntilFinished();
+        result = dao.queryForIdAsync(id, null).get(1, TimeUnit.SECONDS);
 
         assertEquals(r, result);
 
-        result = new Synchronizer<GenericResource>() {
-            @Override
-            public void run() {
-                dao.saveAsync(r, new NetworkSyncableDao.OperationCallback<GenericResource>() {
-                    @Override
-                    public void onResult(GenericResource result) {
-                        setResult(result);
-                    }
-                });
-            }
-        }.blockUntilFinished();
+        result = dao.saveAsync(r,null).get(1, TimeUnit.SECONDS);
 
         assertEquals(r, result);
 
-        result = new Synchronizer<GenericResource>() {
-            @Override
-            public void run() {
-                dao.deleteAsync(r, new NetworkSyncableDao.OperationCallback<GenericResource>() {
-                    @Override
-                    public void onResult(GenericResource result) {
-                        setResult(result);
-                    }
-                });
-            }
-        }.blockUntilFinished();
+        result = dao.deleteAsync(r,null).get(1, TimeUnit.SECONDS);
 
         assertEquals(r, result);
     }
@@ -419,20 +379,10 @@ public class GenericResourceTest extends AndroidTestCase {
 
         dao.create(c);
         dao.lastCreateFuture.get(1, TimeUnit.SECONDS); //ensure create happens
-        assertNull(dao.lastCheckUpdateFuture); //TODO failing because it does have a server id!
+        assertNull(dao.lastCheckUpdateFuture);
 
         //should not hit network
-        GenericChild x = new Synchronizer<GenericChild>() {
-            @Override
-            public void run() {
-                dao.getByServerId("id", "cat", new NetworkSyncableDao.OperationCallback<GenericChild>() {
-                    @Override
-                    public void onResult(GenericChild result) {
-                        setResult(result);
-                    }
-                });
-            }
-        }.blockUntilFinished();
+        GenericChild x = dao.getByServerIdAsync("cat", null).get();
 
         assertEquals(c, x);
     }

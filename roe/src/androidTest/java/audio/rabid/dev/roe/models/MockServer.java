@@ -169,7 +169,7 @@ public class MockServer extends Server {
 //    }
 
     @Override
-    public Response request(String endpoint, Method method, @Nullable JSONObject payload) throws NetworkException {
+    public Response request(String endpoint, Method method, @Nullable Map<String,String> query, @Nullable JSONObject payload) throws NetworkException {
         checkNetwork();
         String r = method.toString();
         Integer currentCount = rawRequestCount.get(r);

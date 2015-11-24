@@ -2,6 +2,7 @@ package audio.rabid.dev.roe.models.resource;
 
 import com.j256.ormlite.field.DatabaseField;
 
+import audio.rabid.dev.roe.models.ServerKey;
 import audio.rabid.dev.roe.models.json.JSONField;
 import audio.rabid.dev.roe.models.json.SimpleJSONifyable;
 
@@ -14,6 +15,7 @@ public abstract class IntegerKeyedResource extends SimpleJSONifyable implements 
     protected Integer id;
 
     @JSONField(key = "id")
+    @ServerKey
     @DatabaseField(index = true)
     protected Integer serverId;
 
