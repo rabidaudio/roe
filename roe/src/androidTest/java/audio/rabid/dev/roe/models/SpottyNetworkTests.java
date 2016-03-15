@@ -230,7 +230,7 @@ public class SpottyNetworkTests extends AndroidTestCase {
 
         enableNetwork();
 
-        assertTrue(GenericDatabase.getInstance().syncWithServerSynchronous());
+        assertTrue(GenericDatabase.getInstance().blockingSyncWithServer());
 
         assertEquals(0, getUnsyncedDao().countOf());
         assertEquals(1, MockServer.getInstance().deleteCount);

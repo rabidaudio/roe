@@ -55,7 +55,7 @@ public class ReferencesTests extends AndroidTestCase {
         assertEquals("child", r.getChild().getName());
     }
 
-    @Suppress //only run this test with @DatabaseField(foreignAutoCreate = true) on GenericChild field of GenericResource TODO doesn't work yet
+//    @Suppress //only run this test with @DatabaseField(foreignAutoCreate = true) on GenericChild field of GenericResource TODO doesn't work yet
     public void testAutoCreate() throws Exception {
 
         GenericResource r = createNewResource();

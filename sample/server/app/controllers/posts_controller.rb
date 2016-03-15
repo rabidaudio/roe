@@ -1,7 +1,7 @@
 class PostsController < ApplicationController
 
   def index
-    @posts = Post.where(params.permit(:author_id, :likes))
+    @posts = Post.where permitted
     @posts = @posts.order('created_at desc').paginate(pagination)
     render json: @posts, include: params[:include] || [], pagination: pagination_info
   end
@@ -11,13 +11,13 @@ class PostsController < ApplicationController
   end
 
   def create
-    @post = Post.create! params.permit(:author_id, :title, :body, :likes)
+    @post = Post.create! permitted
     render json: @post, include: []
   end
 
   def update
     @post = Post.find params[:id]
-    @post.update! params.permit(:author_id, :title, :body, :likes)
+    @post.update! permitted
     render json: @post, include: []
   end
 
@@ -27,4 +27,10 @@ class PostsController < ApplicationController
     render json: post, include: []
   end
 
+  private
+  def permitted
+    permitted = params.permit(:title, :body, :likes)
+    permitted[:author_id] = params[:author][:id] unless params[:author].nil?
+    permitted
+  end
 end

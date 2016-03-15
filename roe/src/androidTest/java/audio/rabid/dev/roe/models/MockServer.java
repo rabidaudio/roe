@@ -76,7 +76,7 @@ public class MockServer extends Server {
             }
         }else if(clazz.equals(GenericChild.class)){
             try {
-                return new GenericChild().asJSON();
+                return new GenericChild().asJSON().put("id", id);
             } catch (JSONException e) {
                 throw new RuntimeException(e);
             }

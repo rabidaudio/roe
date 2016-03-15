@@ -14,6 +14,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 
 import java.util.List;
@@ -102,7 +103,9 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                 Log.d("q", "query time ms: " + (System.nanoTime() - start) / 1000f / 1000f);
                 Post.PostDao.addCollectionObserver(PostsActivity.this);
                 refreshLayout.setRefreshing(false);
-                posts.setAdapter(new PostAdapter(result));
+                PostAdapter a = new PostAdapter(result);
+                posts.setAdapter(a);
+                posts.setOnItemClickListener(a);
             }
         });
     }
@@ -118,7 +121,9 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
             @Override
             public void onResult(List<Post> result) {
                 refreshLayout.setRefreshing(false);
-                posts.setAdapter(new PostAdapter(result));
+                PostAdapter a = new PostAdapter(result);
+                posts.setAdapter(a);
+                posts.setOnItemClickListener(a);
             }
         };
         if(authorId != null) {
@@ -184,7 +189,7 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         updateList();
     }
 
-    private class PostAdapter extends ViewHolderArrayAdapter<Post, PostViewHolder> {
+    private class PostAdapter extends ViewHolderArrayAdapter<Post, PostViewHolder> implements AdapterView.OnItemClickListener {
 
         public PostAdapter(@Nullable List<Post> list) {
             super(PostsActivity.this, R.layout.item_post, list);
@@ -193,6 +198,11 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         @Override
         protected PostViewHolder createViewHolder(View v) {
             return new PostViewHolder(v);
+        }
+
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            PostActivity.open(PostsActivity.this, getItem(position).getId());
         }
     }
 }

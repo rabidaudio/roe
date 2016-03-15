@@ -83,7 +83,7 @@ public abstract class Database extends OrmLiteSqliteOpenHelper {
         }
     }
 
-    public synchronized boolean syncWithServerSynchronous(){
+    public synchronized boolean blockingSyncWithServer(){
         try {
             return UnsyncedResource.attemptAllPendingRequests(this, null);
         }catch (SQLException e){

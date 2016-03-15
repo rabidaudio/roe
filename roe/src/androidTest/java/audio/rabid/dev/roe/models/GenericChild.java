@@ -8,6 +8,7 @@ import org.json.JSONObject;
 
 import java.util.Date;
 
+import audio.rabid.dev.roe.models.json.JSONField;
 import audio.rabid.dev.roe.models.resource.SameStringKeyedResource;
 
 /**

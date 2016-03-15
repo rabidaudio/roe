@@ -4,8 +4,10 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.j256.ormlite.dao.BaseDaoImpl;
+import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.field.DatabaseFieldConfig;
+import com.j256.ormlite.field.FieldType;
 import com.j256.ormlite.support.ConnectionSource;
 
 import org.json.JSONException;
@@ -62,6 +64,7 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
     private Database database;
 
     private String serverIdFieldName;
+    private List<FieldType> foreignFields = null;
 
     public enum Op {
         READ,
@@ -89,7 +92,6 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
     public void initialize(Server server, Database database) throws SQLException {
         this.server = server;
         this.database = database;
-        initialize();
     }
 
     protected TypedObservable<T> getObservable(T item) {
@@ -133,7 +135,7 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
      * we create a group of items at once, e.g. {@link #getFromNetwork(JSONObject, OperationCallback)}
      * we want one update call for all of them. So for that we disable individual calls with
      * {@link #startMassCollectionChange()} which blocks each insertion from notifying until finally calling
-     * {@link #completeMassCollectionChange()}.
+     * {@link #completeMassCollectionChange(int)}.
      */
     protected void notifyCollectionObservers(){
         if(collectionObservable.countObservers()>0 && !massCollectionChange) {
@@ -151,9 +153,11 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
         massCollectionChange = true;
     }
 
-    private synchronized void completeMassCollectionChange(){
+    private synchronized void completeMassCollectionChange(int count){
         massCollectionChange = false;
-        notifyCollectionObservers();
+        if(count > 0) {
+            notifyCollectionObservers();
+        }
     }
 
     public String getServerIdFieldName(){
@@ -182,6 +186,21 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
             }
         }
         return serverIdFieldName;
+    }
+
+    protected List<FieldType> getForeignFields(){
+        if(foreignFields == null){
+            foreignFields = new ArrayList<>();
+            for(FieldType f : getTableInfo().getFieldTypes()) {
+                if (f.isForeign()) {
+                    Dao<?, ?> dao = database.getDao(f.getType());
+                    if (dao != null && dao instanceof NetworkSyncableDao) {
+                        foreignFields.add(f);
+                    }
+                }
+            }
+        }
+        return foreignFields;
     }
 
     public boolean isNew(T item) throws SQLException {
@@ -244,6 +263,31 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
         notifyCollectionObservers();
     }
 
+    @SuppressWarnings("unchecked")
+    protected void onBeforeCreate(T item){
+        startMassCollectionChange();
+        for (FieldType f : getForeignFields()){
+            NetworkSyncableDao dao = database.getDao(f.getType());
+            try {
+                Resource val = (Resource) f.getField().get(item);
+                if(val == null || !val.hasServerId()){
+                    return;
+                }
+                Object actual = dao.getByServerIdLocalOnly(val.getServerId());
+                if(actual == null){
+                    dao.superCreate(val);
+                }else {
+                    f.getField().set(item, actual);
+                }
+            }catch (SQLException e){
+                onSQLException(e);
+            }catch (IllegalAccessException e){
+                throw new RuntimeException(e);
+            }
+        }
+        completeMassCollectionChange(getForeignFields().size());
+    }
+
     protected void onCreated(T item) {
         notifyObservers(item, false);
         createNetwork(item);
@@ -254,7 +298,7 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
             @Override
             public Boolean call() throws Exception {
                 //if up-to-date, or a sync works, and now we're up to date
-                if(!database.isSyncRequired() || database.syncWithServerSynchronous()){
+                if(!database.isSyncRequired() || database.blockingSyncWithServer()){
                     //can create
                     synchronized (item) {
                         try {
@@ -287,7 +331,7 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
             @Override
             public Boolean call() throws Exception {
                 //if up-to-date, or a sync works, and now we're up to date
-                if(!database.isSyncRequired() || database.syncWithServerSynchronous()){
+                if(!database.isSyncRequired() || database.blockingSyncWithServer()){
                     //can update
                     synchronized (item) {
                         try {
@@ -320,7 +364,7 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
             @Override
             public Boolean call() throws Exception {
                 //if up-to-date, or a sync works, and now we're up to date
-                if(!database.isSyncRequired() || database.syncWithServerSynchronous()){
+                if(!database.isSyncRequired() || database.blockingSyncWithServer()){
                     //can delete
                     synchronized (item) {
                         try {
@@ -350,11 +394,7 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
 
     @Override
     public int create(T item) throws SQLException {
-        if(item.hasServerId()) {
-            alreadyUpToDate.add(item.getServerId());
-        }
-        int result = super.create(item); //this will cause cache insert, which will guarantee that
-        // onCacheItemAdded will be called before this line completes
+        int result = superCreate(item);
         onCreated(item);
         return result;
     }
@@ -363,7 +403,7 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
     public int delete(Collection<T> datas) throws SQLException {
         startMassCollectionChange();
         int result = super.delete(datas);
-        completeMassCollectionChange();
+        completeMassCollectionChange(datas.size());
         return result;
     }
 
@@ -371,7 +411,7 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
     public int deleteIds(Collection<LK> ids) throws SQLException {
         startMassCollectionChange();
         int result = super.deleteIds(ids);
-        completeMassCollectionChange();
+        completeMassCollectionChange(ids.size());
         return result;
     }
 
@@ -391,7 +431,9 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
         if(item.hasServerId()) {
             alreadyUpToDate.add(item.getServerId());
         }
-        return super.create(item);
+        onBeforeCreate(item);
+        return super.create(item);//this will cause cache insert, which will guarantee that
+        // onCacheItemAdded will be called before this line completes
     }
 
     @Override
@@ -402,14 +444,14 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
     }
 
     public T getByServerId(final SK serverId) throws SQLException {
-        List<T> results = queryForEq(getServerIdFieldName(), serverId);
-        if(results.isEmpty()){
+        T item = getByServerIdLocalOnly(serverId);
+        if(item == null){
             //pull from network
             try {
                 JSONObject data = server.getItem(getDataClass(), serverId);
                 T newInstance = getDataClass().newInstance();
                 newInstance.fromJSON(data);
-                create(newInstance);
+                superCreate(newInstance);
                 return newInstance;
             }catch (Server.NetworkException e){
                 //oh well
@@ -420,6 +462,15 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
             } catch (JSONException e){
                 onJSONException(e);
             }
+            return null;
+        }else{
+            return item;
+        }
+    }
+
+    public T getByServerIdLocalOnly(final SK serverId) throws SQLException {
+        List<T> results = queryForEq(getServerIdFieldName(), serverId);
+        if(results.isEmpty()){
             return null;
         }else{
             return results.get(0);
@@ -526,20 +577,20 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
                             continue;
                         }
                         //look for an instance with the same serverId
-                        List<T> current = queryForEq(getServerIdFieldName(), newInstance.getServerId());
-                        if (current.isEmpty()) {
+                        T current = getByServerIdLocalOnly(newInstance.getServerId());
+                        if (current == null) {
                             //if none exists, create a new one
-                            create(newInstance);
+                            superCreate(newInstance);
                             results.add(newInstance);
                         } else {
-                            T c = current.get(0);
-                            c.fromJSON(o);
-                            alreadyUpToDate.add(c.getServerId());
-                            update(c);
-                            results.add(c);
-                            notifyObservers(c, false);
+                            current.fromJSON(o);
+                            alreadyUpToDate.add(current.getServerId());
+                            update(current);
+                            results.add(current);
+                            notifyObservers(current, false);
                         }
                     }
+                    completeMassCollectionChange(data.size());
                     return results;
                 } catch (Server.NetworkException e) {
                     //oh well, no network
@@ -547,9 +598,8 @@ public class NetworkSyncableDao<T extends Resource<LK, SK>, LK, SK> extends Base
                     onSQLException(e);
                 } catch (JSONException e) {
                     onJSONException(e);
-                } finally {
-                    completeMassCollectionChange();
                 }
+                completeMassCollectionChange(0);
                 return new ArrayList<>(0);
             }
         }, callback);

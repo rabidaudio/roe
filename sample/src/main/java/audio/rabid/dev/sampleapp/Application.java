@@ -10,6 +10,6 @@ public class Application extends android.app.Application {
 
         Database.createInstance(this); //initialize database
 
-        Database.getInstance().syncWithServerSynchronous(); //blocking sync
+        Database.getInstance().blockingSyncWithServer(); //blocking sync
     }
 }

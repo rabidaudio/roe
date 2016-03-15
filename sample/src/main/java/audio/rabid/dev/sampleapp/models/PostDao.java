@@ -77,7 +77,7 @@ public class PostDao extends NetworkSyncableDao<Post, Integer, Integer> {
                             if (authorId != null) {
                                 Author a = Author.AuthorDao.queryForId(authorId);
                                 if (a != null) {
-                                    search = new JSONObject().put("author_id", a.getServerId());
+                                    search = new JSONObject().put("author", new JSONObject().put("id", a.getServerId()));
                                 }
                             }
                             //callback should set observable on collection to see when new results are available
@@ -89,20 +89,6 @@ public class PostDao extends NetworkSyncableDao<Post, Integer, Integer> {
                 });
             }
         });
-    }
-
-    @Override
-    protected void onCreated(Post item) {
-//        try {
-//            //auto create/update Author relation
-//            Author actual = Author.AuthorDao.getByServerId(item.getAuthor().getServerId());
-//            if(actual != null){
-//                item.setAuthor(actual);
-//            }
-//        }catch (SQLException e){
-//            throw new RuntimeException(e);
-//        }
-        super.onCreated(item);
     }
 
     @Override
