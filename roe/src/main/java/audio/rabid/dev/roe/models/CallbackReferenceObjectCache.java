@@ -5,7 +5,7 @@ import com.j256.ormlite.dao.ReferenceObjectCache;
 /**
  * Created by charles on 11/10/15.
  *
- * A simple weak reference object cache that we use to catch inserts and deletes for {@link NetworkSyncableDao}.
+ * A simple weak reference object cache that we use to catch inserts and deletes.
  */
 public class CallbackReferenceObjectCache extends ReferenceObjectCache {
 
