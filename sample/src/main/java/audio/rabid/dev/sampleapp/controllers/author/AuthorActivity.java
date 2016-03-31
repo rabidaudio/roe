@@ -10,7 +10,9 @@ import android.widget.ListView;
 
 import org.jdeferred.DoneCallback;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import audio.rabid.dev.roe.views.EasyArrayAdapter;
 import audio.rabid.dev.sampleapp.Database;
@@ -46,7 +48,7 @@ public class AuthorActivity extends AppCompatActivity {
 
         final int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
 
-        Database.getInstance().show(Database.getInstance().getAuthorModel(), String.valueOf(authorId)).then(new DoneCallback<Author>() {
+        Database.getInstance().find(Author.class, authorId).then(new DoneCallback<Author>() {
             @Override
             public void onDone(Author result) {
                 view.setItem(result);
@@ -54,13 +56,16 @@ public class AuthorActivity extends AppCompatActivity {
             }
         });
 
-        //TODO
-//        Post.Source.getRecentByAuthor(authorId, 5l, new Source.OperationCallback<List<Post>>() {
-//            @Override
-//            public void onResult(@Nullable List<Post> result) {
-//                recentPosts.setAdapter(new RecentPostsAdapter(result));
-//            }
-//        });
+        Map<String, String> query = new HashMap<>();
+        query.put("author_id", String.valueOf(authorId));
+        query.put("order_by", "created_at");
+        query.put("per_page", "5");
+        Database.getInstance().query(Post.class, query).then(new DoneCallback<List<Post>>() {
+            @Override
+            public void onDone(List<Post> result) {
+                recentPosts.setAdapter(new RecentPostsAdapter(result));
+            }
+        });
     }
 
     public static void open(Context context, @Nullable Integer id) {

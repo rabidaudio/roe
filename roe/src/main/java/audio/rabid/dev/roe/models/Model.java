@@ -1,35 +1,30 @@
 package audio.rabid.dev.roe.models;
 
-import android.net.NetworkRequest;
+import android.util.Pair;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.concurrent.Future;
-
-import audio.rabid.dev.roe.models.network.NetworkOperation;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by  charles  on 3/30/16.
  */
-public interface Model<T> {
+public interface Model<T, ID> {
 
-    Class<T> getModelClass();
+    List<T> query(Map<String, String> query) throws Exception;
 
-    // TODO index
+    T find(ID id) throws Exception;
 
-    NetworkOperation createShowRequest(String key);
+    T create(T object) throws Exception;
 
-    NetworkOperation createCreateRequest(T object);
+    T update(ID id, T object) throws Exception;;
 
-    NetworkOperation createUpdateRequest(T object);
+    void delete(T object) throws Exception;
 
-    NetworkOperation createDeleteRequest(T object);
+    T findInPersistentStorage(ID id);
 
-    T fromJSON(JSONObject object) throws JSONException;
+    List<T> queryPersistentStorage(Map<String, String> query);
 
-    JSONObject toJSON(T object) throws JSONException;
+    void saveToPersistentStorage(ID id, T object);
 
-
-    /////////////////////////////////////
+    ID getID(T object);
 }

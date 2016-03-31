@@ -66,20 +66,20 @@ public class WeakMapResourceCache implements ResourceCache {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public synchronized <T> CacheResult<T> get(String key, CacheMissCallback<T> cacheMissCallback) {
-        WeakReference<Object> ref = instanceCache.get(key);
-        if (ref == null) {
-            T cached = cacheMissCallback.onCacheMiss(key);
-            if (cached != null && key != null) {
-                instanceCache.put(key, new WeakReference<Object>(cached));
-            }
-            return new CacheResult<>(cached, false);
-        } else {
-            return new CacheResult<>((T) ref.get(), true);
-        }
-    }
+//    @SuppressWarnings("unchecked")
+//    @Override
+//    public synchronized <T> CacheResult<T> get(String key, CacheMissCallback<T> cacheMissCallback) {
+//        WeakReference<Object> ref = instanceCache.get(key);
+//        if (ref == null) {
+//            T cached = cacheMissCallback.onCacheMiss(key);
+//            if (cached != null && key != null) {
+//                instanceCache.put(key, new WeakReference<Object>(cached));
+//            }
+//            return new CacheResult<>(cached, false);
+//        } else {
+//            return new CacheResult<>((T) ref.get(), true);
+//        }
+//    }
 
     @Override
     public synchronized void clear(){

@@ -8,15 +8,17 @@ import com.snappydb.SnappydbException;
 
 import org.jdeferred.android.AndroidDeferredManager;
 
-import audio.rabid.dev.roe.AManager;
+import audio.rabid.dev.roe.models.RoeManager;
 import audio.rabid.dev.roe.models.cache.WeakMapResourceCache;
+import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.sampleapp.models.AuthorModel;
+import audio.rabid.dev.sampleapp.models.Post;
 import audio.rabid.dev.sampleapp.models.PostModel;
 
 /**
  * Created by charles on 10/23/15.
  */
-public class Database extends AManager {
+public class Database extends RoeManager {
 
     private static Database instance;
 
@@ -39,23 +41,12 @@ public class Database extends AManager {
 
     private DB database;
 
-    private AuthorModel authorModel;
-    private PostModel postModel;
-
     private Database(Context context) throws SnappydbException {
         super(new AndroidDeferredManager(), new WeakMapResourceCache());
         database = DBFactory.open(context);
 
-        authorModel = new AuthorModel(database);
-        postModel = new PostModel(database);
-    }
-
-    public AuthorModel getAuthorModel() {
-        return authorModel;
-    }
-
-    public PostModel getPostModel() {
-        return postModel;
+        addModel(Author.class, new AuthorModel(database));
+        addModel(Post.class, new PostModel(database));
     }
 
     @Override
