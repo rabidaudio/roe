@@ -8,7 +8,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import audio.rabid.dev.roe.views.ViewHolder;
+import audio.rabid.dev.roe.views.BasicViewHolder;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import butterknife.Bind;
@@ -17,7 +17,8 @@ import butterknife.ButterKnife;
 /**
  * Created by charles on 10/25/15.
  */
-public class AuthorViewHolder extends ViewHolder<Author> {
+public class AuthorViewHolder extends BasicViewHolder<Author> {
+
     @Bind(R.id.avatar)
     ImageView avatar;
     @Bind(R.id.name)

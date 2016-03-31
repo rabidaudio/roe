@@ -10,16 +10,17 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
 
+import org.jdeferred.DoneCallback;
+
 import java.util.List;
 
-import audio.rabid.dev.roe.models.Source;
 import audio.rabid.dev.roe.views.EasyArrayAdapter;
+import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.author.AuthorActivity;
 import audio.rabid.dev.sampleapp.controllers.author.AuthorsActivity;
@@ -59,9 +60,9 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
             authorId = null;
             author.setVisibility(View.GONE);
         } else {
-            Author.Source.find(authorId, new Source.OperationCallback<Author>() {
+            Database.getInstance().show(Database.getInstance().getAuthorModel(), String.valueOf(authorId)).then(new DoneCallback<Author>() {
                 @Override
-                public void onResult(@Nullable Author result) {
+                public void onDone(Author result) {
                     authorViewHolder.setItem(result);
                 }
             });
@@ -105,14 +106,15 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
         refreshLayout.setRefreshing(true);
         final long start = System.nanoTime();
 
-        Post.Source.allByAuthorOrAll(authorId, new Source.OperationCallback<List<Post>>() {
-            @Override
-            public void onResult(@Nullable List<Post> result) {
-                Log.d("q", "query time ms: " + (System.nanoTime() - start) / 1000f / 1000f);
-                refreshLayout.setRefreshing(false);
-                posts.setAdapter(new PostAdapter(result));
-            }
-        });
+        // TODO
+//        Post.Source.allByAuthorOrAll(authorId, new Source.OperationCallback<List<Post>>() {
+//            @Override
+//            public void onResult(@Nullable List<Post> result) {
+//                Log.d("q", "query time ms: " + (System.nanoTime() - start) / 1000f / 1000f);
+//                refreshLayout.setRefreshing(false);
+//                posts.setAdapter(new PostAdapter(result));
+//            }
+//        });
     }
 
     public static void openForAuthor(Context context, @Nullable Integer authorId) {
@@ -127,8 +129,12 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
 
     void showMenu(final Post post) {
         new AlertDialog.Builder(this)
-                .setItems(new String[]{getString(R.string.open), getString(R.string.edit), getString(R.string.author_details), getString(R.string.delete)},
-                        new DialogInterface.OnClickListener() {
+                .setItems(new String[]{
+                        getString(R.string.open),
+                        getString(R.string.edit),
+                        getString(R.string.author_details),
+                        getString(R.string.delete)
+                }, new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 switch (which) {
@@ -142,27 +148,35 @@ public class PostsActivity extends AppCompatActivity implements SwipeRefreshLayo
                                         AuthorActivity.open(PostsActivity.this, post.getAuthor().getId());
                                         break;
                                     case 3: //delete
-                                        new AlertDialog.Builder(PostsActivity.this)
-                                                .setMessage(getString(R.string.dialog_post_delete_confirm))
-                                                .setCancelable(true)
-                                                .setNegativeButton(getString(R.string.cancel), null)
-                                                .setPositiveButton(getString(R.string.ok), new DialogInterface.OnClickListener() {
-                                                    @Override
-                                                    public void onClick(DialogInterface dialog, int which) {
-                                                        post.delete(new Source.OperationCallback<Post>() {
-                                                            @Override
-                                                            public void onResult(@Nullable Post result) {
-                                                                finish();
-                                                            }
-                                                        });
-                                                    }
-                                                })
-                                                .create().show();
+                                        showDeleteConfirmDialog(post);
                                         break;
                                 }
                             }
                         }
                 ).create().show();
+    }
+
+    private void showDeleteConfirmDialog(final Post post){
+        new AlertDialog.Builder(PostsActivity.this)
+                .setMessage(getString(R.string.dialog_post_delete_confirm))
+                .setCancelable(true)
+                .setNegativeButton(getString(R.string.cancel), null)
+                .setPositiveButton(getString(R.string.ok), new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        deletePost(post);
+                    }
+                })
+                .create().show();
+    }
+
+    private void deletePost(Post post){
+        Database.getInstance().destroy(Database.getInstance().getPostModel(), String.valueOf(post.getId())).then(new DoneCallback<Void>() {
+            @Override
+            public void onDone(Void result) {
+                finish();
+            }
+        });
     }
 
     private class PostAdapter extends EasyArrayAdapter<Post, PostViewHolder> {

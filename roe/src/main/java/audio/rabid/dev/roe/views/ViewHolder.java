@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.support.annotation.NonNull;
 import android.view.View;
 
-import audio.rabid.dev.roe.models.Resource;
 import audio.rabid.dev.roe.models.TypedObservable;
 import audio.rabid.dev.roe.models.TypedObserver;
 
@@ -15,52 +14,21 @@ import audio.rabid.dev.roe.models.TypedObserver;
  * parent {@link View}. Then call {@link #setItem(T)} when your data becomes available.
  * This will set itself as an observable, so when your model changes, your draw method will be called.
  */
-public abstract class ViewHolder<T extends Resource> implements TypedObserver<T> {
-
-    private T item;
-    private View container;
+public abstract class ViewHolder<T extends TypedObservable<T>> extends BasicViewHolder<T> implements TypedObserver<T> {
 
     public ViewHolder(View v) {
-        container = v;
+        super(v);
     }
 
     public ViewHolder(Activity a) {
-        container = a.getWindow().getDecorView();
-    }
-
-    @SuppressWarnings("unchecked")
-    public void setItem(T item) {
-        this.item = item;
-        if (item != null) {
-            item.getSource().addObserver(item, this);
-            draw(item, container);
-        } else {
-            onNoItem(container);
-        }
+        super(a);
     }
 
     @Override
-    public void update(T observable, boolean deleted) {
-        if (deleted) {
-            onNoItem(container);
-        } else {
-            item = observable;
-            draw(item, container);
+    public void setItem(T item) {
+        if (item != null) {
+            item.addObserver(this);
         }
+        super.setItem(item);
     }
-
-    /**
-     * Map your data to a view. This is called whenever data changes (including when it is deleted).
-     *
-     * @param item   the data
-     * @param parent the view
-     */
-    protected abstract void draw(@NonNull T item, View parent);
-
-    /**
-     * Called when data is not available ({@link #setItem(T)} was called with null).
-     *
-     * @param parent the view
-     */
-    protected abstract void onNoItem(View parent);
 }

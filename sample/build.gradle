@@ -28,6 +28,10 @@ dependencies {
     compile project(':roe')
 
     compile 'com.jakewharton:butterknife:7.0.1'
+
+    compile 'com.snappydb:snappydb-lib:0.5.2'
+    compile 'com.esotericsoftware.kryo:kryo:2.24.0'
+
 }
 
 apply from: rootProject.file('gradle/gradle-mvn-push.gradle')

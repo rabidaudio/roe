@@ -7,7 +7,9 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.EditText;
 
-import audio.rabid.dev.roe.models.Source;
+import org.jdeferred.DoneCallback;
+
+import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import audio.rabid.dev.sampleapp.models.Post;
@@ -32,6 +34,8 @@ public class EditPostActivity extends AppCompatActivity {
 
     Post post;
 
+    boolean isNew = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,18 +46,19 @@ public class EditPostActivity extends AppCompatActivity {
         final int postId = getIntent().getIntExtra(EXTRA_POST_ID, -1);
         final int authorId = getIntent().getIntExtra(EXTRA_AUTHOR_ID, -1);
         if (postId == -1) {
+            isNew = true;
             post = new Post();
-            Author.Source.find(authorId, new Source.OperationCallback<Author>() {
+            Database.getInstance().show(Database.getInstance().getAuthorModel(), String.valueOf(authorId)).then(new DoneCallback<Author>() {
                 @Override
-                public void onResult(Author result) {
+                public void onDone(Author result) {
                     post.setAuthor(result);
                     authorViewHolder.setItem(result);
                 }
             });
         } else {
-            Post.Source.find(postId, new Source.OperationCallback<Post>() {
+            Database.getInstance().show(Database.getInstance().getPostModel(), String.valueOf(postId)).then(new DoneCallback<Post>() {
                 @Override
-                public void onResult(Post result) {
+                public void onDone(Post result) {
                     if (result == null) {
                         post = new Post();
                     } else {
@@ -83,9 +88,12 @@ public class EditPostActivity extends AppCompatActivity {
 
         post.setTitle(t);
         post.setBody(b);
-        post.save(new Source.OperationCallback<Post>() {
+        (isNew
+                ? Database.getInstance().create(Database.getInstance().getPostModel(), post)
+                : Database.getInstance().update(Database.getInstance().getPostModel(), String.valueOf(post.getId()), post)
+        ).then(new DoneCallback<Post>() {
             @Override
-            public void onResult(Post result) {
+            public void onDone(Post result) {
                 setResult(RESULT_OK);
                 finish();
             }

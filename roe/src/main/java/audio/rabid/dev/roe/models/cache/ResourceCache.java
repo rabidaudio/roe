@@ -8,19 +8,23 @@ import android.support.annotation.Nullable;
  * An object cache for keeping track of Resources (either by localId or serverId). You should make
  * your cache thread-safe by making all your methods synchronized for atomicity.
  */
-public interface ResourceCache<R, LK> {
+public interface ResourceCache {
 
-    R put(R object);
+    <T> T put(String key, T object);
 
 //    R putIfMissing(R object);
 
-    R delete(R object);
+    <T> T delete(String key, T object);
+
+    boolean has(String key);
 
     void clear();
 
     int size();
 
-    CacheResult<R> get(LK id, CacheMissCallback<R, LK> cacheMissCallback);
+    <T> T get(String id);
+
+    <T> CacheResult<T> get(String id, CacheMissCallback<T> cacheMissCallback);
 
     /**
      * This block is called if the item wasn't in the cache. Return an item to be put in the cache
@@ -28,9 +32,9 @@ public interface ResourceCache<R, LK> {
      *
      * @param <T>
      */
-    interface CacheMissCallback<T, ID> {
+    interface CacheMissCallback<T> {
         @Nullable
-        T onCacheMiss(ID id);
+        T onCacheMiss(String id);
     }
 
     class CacheResult<T> {

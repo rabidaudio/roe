@@ -9,9 +9,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import org.jdeferred.DoneCallback;
+
 import java.net.URL;
 
-import audio.rabid.dev.roe.models.Source;
+import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Author;
 import butterknife.Bind;
@@ -37,6 +39,8 @@ public class EditAuthorActivity extends AppCompatActivity {
 
     private Author author;
 
+    boolean isNew = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,9 +52,9 @@ public class EditAuthorActivity extends AppCompatActivity {
         if (authorId == -1) {
             drawNewAuthor();
         } else {
-            Author.Source.find(authorId, new Source.OperationCallback<Author>() {
+            Database.getInstance().show(Database.getInstance().getAuthorModel(), String.valueOf(authorId)).then(new DoneCallback<Author>() {
                 @Override
-                public void onResult(@Nullable Author result) {
+                public void onDone(Author result) {
                     if (result == null) {
                         drawNewAuthor();
                     } else {
@@ -74,6 +78,7 @@ public class EditAuthorActivity extends AppCompatActivity {
     }
 
     private void drawNewAuthor() {
+        isNew = true;
         author = new Author();
         title.setText(R.string.add_author);
     }
@@ -105,9 +110,12 @@ public class EditAuthorActivity extends AppCompatActivity {
         author.setName(n);
         author.setEmail(e);
         author.setAvatar(a);
-        author.save(new Source.OperationCallback<Author>() {
+        (isNew
+                ? Database.getInstance().create(Database.getInstance().getAuthorModel(), author)
+                : Database.getInstance().update(Database.getInstance().getAuthorModel(), String.valueOf(author.getId()), author)
+        ).then(new DoneCallback<Author>() {
             @Override
-            public void onResult(@Nullable Author result) {
+            public void onDone(Author result) {
                 setResult(Activity.RESULT_OK);
                 finish();
             }

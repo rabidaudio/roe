@@ -9,7 +9,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
-import audio.rabid.dev.roe.models.Source;
+import org.jdeferred.DoneCallback;
+
+import audio.rabid.dev.sampleapp.Database;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.author.AuthorActivity;
 import audio.rabid.dev.sampleapp.models.Post;
@@ -38,9 +40,9 @@ public class PostActivity extends AppCompatActivity {
 
         int postID = getIntent().getIntExtra(EXTRA_POST_ID, -1);
 
-        Post.Source.find(postID, new Source.OperationCallback<Post>() {
+        Database.getInstance().show(Database.getInstance().getPostModel(), String.valueOf(postID)).then(new DoneCallback<Post>() {
             @Override
-            public void onResult(@Nullable Post result) {
+            public void onDone(Post result) {
                 postViewHolder.setItem(result);
                 post = result;
             }

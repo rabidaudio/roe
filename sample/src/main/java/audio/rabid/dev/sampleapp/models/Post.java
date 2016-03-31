@@ -1,45 +1,37 @@
 package audio.rabid.dev.sampleapp.models;
 
-import android.support.annotation.Nullable;
+import java.util.Date;
 
-import com.j256.ormlite.field.DatabaseField;
-import com.j256.ormlite.table.DatabaseTable;
-
-import audio.rabid.dev.roe.models.IntegerKeyedNetworkResource;
-import audio.rabid.dev.roe.models.JSONField;
-import audio.rabid.dev.roe.models.Source;
+import audio.rabid.dev.roe.models.json.JSONField;
+import audio.rabid.dev.roe.models.json.SimpleJSONifyable;
 
 /**
  * Created by charles on 10/25/15.
  */
-@DatabaseTable(tableName = "posts")
-public class Post extends IntegerKeyedNetworkResource {
+public class Post extends SimpleJSONifyable {
 
     @JSONField
-    @DatabaseField
+    protected int id;
+
+    @JSONField
     private String title;
 
     @JSONField
-    @DatabaseField
     private String body;
 
     @JSONField
-    @DatabaseField
     private int likes;
 
     @JSONField
-    @DatabaseField
     private boolean liked;
 
-    @DatabaseField(foreign = true, foreignAutoRefresh = true)
+    @JSONField
+    private Date createdAt;
+
+    @JSONField
+    private Date updatedAt;
+
     private Author author;
-
-    public static PostSource Source = new PostSource();
-
-    @Override
-    public Source<Post, Integer> getSource() {
-        return Source;
-    }
 
     public String getTitle() {
         return title;
@@ -77,11 +69,15 @@ public class Post extends IntegerKeyedNetworkResource {
         this.author = author;
     }
 
-    public void save(@Nullable Source.OperationCallback<Post> callback){
-        getSource().createOrUpdate(this, callback);
+    public Date getCreatedAt() {
+        return createdAt;
     }
 
-    public void delete(@Nullable Source.OperationCallback<Post> callback){
-        getSource().delete(this, callback);
+    public Date getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public int getId() {
+        return id;
     }
 }

@@ -6,8 +6,9 @@ package audio.rabid.dev.roe.models;
  * The possible CRUD operations.
  */
 public enum Op {
-    READ,
+    INDEX,
+    SHOW,
     CREATE,
     UPDATE,
-    DELETE
+    DESTROY
 }

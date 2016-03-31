@@ -9,13 +9,11 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
 import android.widget.ListView;
 
 import java.util.List;
 
-import audio.rabid.dev.roe.models.Source;
 import audio.rabid.dev.roe.views.EasyArrayAdapter;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.controllers.posts.PostsActivity;
@@ -62,14 +60,16 @@ public class AuthorsActivity extends AppCompatActivity implements SwipeRefreshLa
     private void updateAuthors() {
         refreshLayout.setRefreshing(true);
         final long start = System.nanoTime();
-        Author.Source.getAllLocal(new Source.OperationCallback<List<Author>>() {
-            @Override
-            public void onResult(@Nullable List<Author> results) {
-                Log.d("q", "query time ms: " + (System.nanoTime() - start) / 1000f / 1000f);
-                refreshLayout.setRefreshing(false);
-                authors.setAdapter(new AuthorAdapter(AuthorsActivity.this, results));
-            }
-        });
+
+        //TODO
+//        Author.Source.getAllLocal(new Source.OperationCallback<List<Author>>() {
+//            @Override
+//            public void onResult(@Nullable List<Author> results) {
+//                Log.d("q", "query time ms: " + (System.nanoTime() - start) / 1000f / 1000f);
+//                refreshLayout.setRefreshing(false);
+//                authors.setAdapter(new AuthorAdapter(AuthorsActivity.this, results));
+//            }
+//        });
     }
 
     public void open(Author author) {

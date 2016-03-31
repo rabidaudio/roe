@@ -8,7 +8,7 @@ import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 
-import audio.rabid.dev.roe.views.ViewHolder;
+import audio.rabid.dev.roe.views.BasicViewHolder;
 import audio.rabid.dev.sampleapp.R;
 import audio.rabid.dev.sampleapp.models.Post;
 import butterknife.Bind;
@@ -17,7 +17,7 @@ import butterknife.ButterKnife;
 /**
  * Created by charles on 10/25/15.
  */
-public class PostViewHolder extends ViewHolder<Post> {
+public class PostViewHolder extends BasicViewHolder<Post> {
 
     @Bind(R.id.title)
     TextView title;

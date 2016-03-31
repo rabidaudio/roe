@@ -8,49 +8,40 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.annotation.Nullable;
 
-import com.j256.ormlite.field.DatabaseField;
-import com.j256.ormlite.table.DatabaseTable;
-
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Date;
 
-import audio.rabid.dev.roe.models.IntegerKeyedNetworkResource;
-import audio.rabid.dev.roe.models.JSONField;
-import audio.rabid.dev.roe.models.Source;
-import audio.rabid.dev.roe.models.rails.RailsResource;
-import audio.rabid.dev.roe.models.rails.RailsSource;
-import audio.rabid.dev.sampleapp.Database;
+import audio.rabid.dev.roe.models.json.JSONField;
+import audio.rabid.dev.roe.models.json.SimpleJSONifyable;
 import audio.rabid.dev.sampleapp.R;
-import audio.rabid.dev.sampleapp.SampleAppServer;
 import audio.rabid.dev.utils.ImageCache;
 
 /**
  * Created by charles on 10/23/15.
  */
-@DatabaseTable(tableName = "authors")
-@RailsResource(endpoint = "authors", singularJSONKey = "author", pluralJSONKey = "authors")
-public class Author extends IntegerKeyedNetworkResource {
+public class Author extends SimpleJSONifyable {
 
     @JSONField
-    @DatabaseField
+    protected int id;
+
+    @JSONField
     private String name;
 
     @JSONField
-    @DatabaseField
     private String email;
 
     @JSONField
-    @DatabaseField
     private String avatar;
 
-    @Override
-    public Source<Author, Integer> getSource() {
-        return Source;
-    }
+    @JSONField
+    private Date createdAt;
 
-    public static RailsSource<Author, Integer> Source = new RailsSource<>(SampleAppServer.getInstance(), Database.getInstance(), Author.class);
+    @JSONField
+    private Date updatedAt;
+
 
     public String getName() {
         return name;
@@ -66,6 +57,18 @@ public class Author extends IntegerKeyedNetworkResource {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public Date getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public int getId() {
+        return id;
     }
 
     public URL getAvatar() {
@@ -146,9 +149,5 @@ public class Author extends IntegerKeyedNetworkResource {
         Intent i = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", getEmail(), null));
         i.putExtra(Intent.EXTRA_EMAIL, new String[]{getEmail()});
         context.startActivity(Intent.createChooser(i, context.getString(R.string.contact_author)));
-    }
-
-    public void save(@Nullable Source.OperationCallback<Author> callback){
-        getSource().createOrUpdate(this, callback);
     }
 }
